@@ -70,6 +70,19 @@ export abstract class InfrastructureDeploy extends WorkspaceFunction<
 }
 
 /**
+ * The interface that should be implemented by {@link WorkspaceFunction}s meant to be used as processors before running
+ * infrastructure operations.
+ * The function should return an object that will be merged with the workspace configuration.
+ */
+export interface InfrastructureProcessor extends WorkspaceFunction<object> {
+  /**
+   * If `true`, the processor is called during the tear down, after the infrastructure operation has been performed.
+   * The processor should clean up any temporary resource.
+   */
+  readonly tearDown?: boolean;
+}
+
+/**
  * Wraps the call to the {@link InfrastructurePrepare} workspace function by first calling processors listed in the
  * configuration `infrastructure.processors`.
  * This is the function exposed from the CLI and it should not be implemented by any other than the core module.

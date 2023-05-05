@@ -1,5 +1,6 @@
 import { WorkspaceContext } from '@causa/workspace';
 import { jest } from '@jest/globals';
+import 'jest-extended';
 import { createContext } from '../utils.test.js';
 import { GitService } from './git.js';
 

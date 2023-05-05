@@ -3,7 +3,7 @@ import { ProcessorInstruction } from '@causa/workspace';
 /**
  * Configuration for infrastructure projects.
  */
-export type InfrastructureProjectConfiguration = {
+export type InfrastructureConfiguration = {
   /**
    * Configuration for infrastructure projects.
    */

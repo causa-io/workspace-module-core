@@ -1,3 +1,4 @@
+export { GitService } from './git.js';
 export {
   ProcessService,
   ProcessServiceExitCodeError,

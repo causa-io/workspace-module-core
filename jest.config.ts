@@ -8,6 +8,8 @@ const config: Config = {
     '!**/index.ts',
     '!**/*.spec.ts',
     '!**/*.test.ts',
+    '!./configurations/**/*.ts',
+    '!./definitions/**/*.ts',
   ],
   coverageProvider: 'v8',
   rootDir: 'src',

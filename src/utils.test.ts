@@ -8,7 +8,10 @@ import {
   ConfigurationReader,
   ConfigurationReaderSourceType,
 } from '@causa/workspace/configuration';
-import { FunctionRegistry } from '@causa/workspace/function-registry';
+import {
+  FunctionRegistry,
+  ImplementableFunctionArguments,
+} from '@causa/workspace/function-registry';
 import { resolve } from 'path';
 import { Logger, pino } from 'pino';
 
@@ -61,4 +64,12 @@ export function createContext(
     logger,
   );
   return { context, configuration, functionRegistry, logger };
+}
+
+export function createFunction<F extends WorkspaceFunction<any>>(
+  fn: new () => F,
+  args: ImplementableFunctionArguments<F>,
+): F {
+  const f = new fn();
+  return Object.assign(f, args);
 }

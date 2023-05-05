@@ -40,7 +40,9 @@ export function createContext(
       ? options.configuration
       : new ConfigurationReader<BaseConfiguration>([
           {
-            configuration: options.configuration ?? {},
+            configuration: options.configuration ?? {
+              workspace: { name: 'test' },
+            },
             source: 'causa.yaml',
             sourceType: ConfigurationReaderSourceType.File,
           },

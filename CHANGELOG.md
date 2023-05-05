@@ -10,3 +10,4 @@ Features:
 - Implement the `GitService`.
 - Implement the `DockerService`.
 - Implement the `SecretFetchForEnvironmentVariable` workspace function.
+- Implement the `EmulatorListForAll`, `EmulatorStartManyForAll`, and `EmulatorStopManyForAll` functions.

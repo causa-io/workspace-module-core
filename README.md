@@ -1,0 +1,1 @@
+# `@causa/workspace-core` module

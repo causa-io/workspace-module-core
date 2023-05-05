@@ -9,3 +9,4 @@ Features:
 - Implement the `ProcessService`.
 - Implement the `GitService`.
 - Implement the `DockerService`.
+- Implement the `SecretFetchForEnvironmentVariable` workspace function.

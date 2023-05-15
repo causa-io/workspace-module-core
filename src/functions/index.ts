@@ -1,4 +1,18 @@
-export { EmulatorListForAll } from './emulator-list.js';
-export { EmulatorStartManyForAll } from './emulator-start-many.js';
-export { EmulatorStopManyForAll } from './emulator-stop-many.js';
-export { SecretFetchForEnvironmentVariable } from './secret-fetch-environment-variable.js';
+import { ModuleRegistrationContext } from '@causa/workspace';
+import { EmulatorListForAll } from './emulator-list.js';
+import { EmulatorStartManyForAll } from './emulator-start-many.js';
+import { EmulatorStopManyForAll } from './emulator-stop-many.js';
+import { ProjectPublishArtefactForAll } from './project-publish-artefact.js';
+import { ProjectPushArtefactForServiceContainer } from './project-push-artefact-service-container.js';
+import { SecretFetchForEnvironmentVariable } from './secret-fetch-environment-variable.js';
+
+export function registerFunctions(context: ModuleRegistrationContext) {
+  context.registerFunctionImplementations(
+    EmulatorListForAll,
+    EmulatorStartManyForAll,
+    EmulatorStopManyForAll,
+    ProjectPublishArtefactForAll,
+    ProjectPushArtefactForServiceContainer,
+    SecretFetchForEnvironmentVariable,
+  );
+}

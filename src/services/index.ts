@@ -1,3 +1,4 @@
+export { DockerService } from './docker.js';
 export { GitService } from './git.js';
 export {
   ProcessService,

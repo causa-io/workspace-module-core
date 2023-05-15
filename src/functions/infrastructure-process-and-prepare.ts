@@ -1,5 +1,5 @@
 import { WorkspaceContext } from '@causa/workspace';
-import { cloneContextWithInfrastructureProcessorsIfNeeded } from '../context-utils.js';
+import { wrapInfrastructureOperation } from '../context-utils.js';
 import {
   InfrastructurePrepare,
   InfrastructureProcessAndPrepare,
@@ -13,12 +13,12 @@ import {
  */
 export class InfrastructureProcessAndPrepareForAll extends InfrastructureProcessAndPrepare {
   async _call(context: WorkspaceContext): Promise<PrepareResult> {
-    context = await cloneContextWithInfrastructureProcessorsIfNeeded(context);
-
-    return await context.call(InfrastructurePrepare, {
-      print: this.print,
-      output: this.output,
-    });
+    return await wrapInfrastructureOperation(context, (context) =>
+      context.call(InfrastructurePrepare, {
+        print: this.print,
+        output: this.output,
+      }),
+    );
   }
 
   _supports(): boolean {

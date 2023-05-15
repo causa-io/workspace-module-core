@@ -1,12 +1,39 @@
-import { ProcessorInstruction } from '@causa/workspace';
+import { ProcessorInstruction, WorkspaceFunction } from '@causa/workspace';
 import { createContext, registerMockFunction } from '@causa/workspace/testing';
+import { AllowMissing } from '@causa/workspace/validation';
 import { jest } from '@jest/globals';
+import { IsBoolean, IsString } from 'class-validator';
 import 'jest-extended';
 import {
   InfrastructureDeploy,
   InfrastructureProcessAndDeploy,
+  InfrastructureProcessor,
 } from '../definitions/index.js';
 import { InfrastructureProcessAndDeployForAll } from './infrastructure-process-and-deploy.js';
+
+abstract class FirstProcessor
+  extends WorkspaceFunction<{}>
+  implements InfrastructureProcessor
+{
+  @IsBoolean()
+  @AllowMissing()
+  readonly tearDown?: boolean;
+}
+
+abstract class SecondProcessor
+  extends WorkspaceFunction<{}>
+  implements InfrastructureProcessor
+{
+  @IsString()
+  readonly arg1!: string;
+
+  @IsString()
+  readonly arg2!: string;
+
+  @IsBoolean()
+  @AllowMissing()
+  readonly tearDown?: boolean;
+}
 
 describe('InfrastructureProcessAndDeployForAll', () => {
   it('should not run any processor and forward the call to InfrastructureDeploy', async () => {
@@ -28,11 +55,21 @@ describe('InfrastructureProcessAndDeployForAll', () => {
     });
   });
 
-  it('should run processors and forward the call to InfrastructureDeploy', async () => {
+  it('should run processors, forward the call to InfrastructureDeploy, and tear down processors', async () => {
     const { context: clonedContext, functionRegistry } = createContext();
     const deployMock = registerMockFunction(
       functionRegistry,
       InfrastructureDeploy,
+      async () => {},
+    );
+    const firstProcessorMock = registerMockFunction(
+      functionRegistry,
+      FirstProcessor,
+      async () => {},
+    );
+    const secondProcessorMock = registerMockFunction(
+      functionRegistry,
+      SecondProcessor,
       async () => {},
     );
     const expectedProcessorInstructions: ProcessorInstruction[] = [
@@ -57,6 +94,14 @@ describe('InfrastructureProcessAndDeployForAll', () => {
     });
     expect(context.clone).toHaveBeenCalledOnceWith({
       processors: expectedProcessorInstructions,
+    });
+    expect(firstProcessorMock).toHaveBeenCalledOnceWith(clonedContext, {
+      tearDown: true,
+    });
+    expect(secondProcessorMock).toHaveBeenCalledOnceWith(clonedContext, {
+      arg1: 'val1',
+      arg2: 'val2',
+      tearDown: true,
     });
   });
 });

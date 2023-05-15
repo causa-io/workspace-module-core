@@ -34,23 +34,36 @@ export async function cloneContextForEnvironmentProjectIfNeeded(
 }
 
 /**
- * Returns a {@link WorkspaceContext} where the processors defined in the `infrastructure.processors` configuration has
- * been applied. If no processor is defined, the input context is returned.
+ * Runs the given operation after having run the processors defined in the `infrastructure.processors` configuration.
+ * Processors are also torn down after the operation.
  *
  * @param context The current {@link WorkspaceContext}.
- * @returns The input context, or a clone with the processors applied.
+ * @param operation The operation to run. The passed context will be the input context if no processor is defined.
+ * @returns The result of the operation.
  */
-export async function cloneContextWithInfrastructureProcessorsIfNeeded(
+export async function wrapInfrastructureOperation<T>(
   context: WorkspaceContext,
-): Promise<WorkspaceContext> {
+  operation: (context: WorkspaceContext) => Promise<T>,
+): Promise<T> {
   const processors =
     context
       .asConfiguration<InfrastructureConfiguration>()
       .get('infrastructure.processors') ?? [];
 
   if (processors.length > 0) {
-    return await context.clone({ processors });
+    context = await context.clone({ processors });
   }
 
-  return context;
+  try {
+    const result = await operation(context);
+    return result;
+  } finally {
+    for (const processor of [...processors].reverse()) {
+      const { name, args } = processor;
+
+      context.logger.debug(`🔨 Tearing down processor '${name}'.`);
+
+      await context.callByName(name, { ...args, tearDown: true });
+    }
+  }
 }

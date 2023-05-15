@@ -1,13 +1,40 @@
-import { ProcessorInstruction } from '@causa/workspace';
+import { ProcessorInstruction, WorkspaceFunction } from '@causa/workspace';
 import { createContext, registerMockFunction } from '@causa/workspace/testing';
+import { AllowMissing } from '@causa/workspace/validation';
 import { jest } from '@jest/globals';
+import { IsBoolean, IsString } from 'class-validator';
 import 'jest-extended';
 import {
   InfrastructurePrepare,
   InfrastructureProcessAndPrepare,
+  InfrastructureProcessor,
   PrepareResult,
 } from '../definitions/index.js';
 import { InfrastructureProcessAndPrepareForAll } from './infrastructure-process-and-prepare.js';
+
+abstract class FirstProcessor
+  extends WorkspaceFunction<{}>
+  implements InfrastructureProcessor
+{
+  @IsBoolean()
+  @AllowMissing()
+  readonly tearDown?: boolean;
+}
+
+abstract class SecondProcessor
+  extends WorkspaceFunction<{}>
+  implements InfrastructureProcessor
+{
+  @IsString()
+  readonly arg1!: string;
+
+  @IsString()
+  readonly arg2!: string;
+
+  @IsBoolean()
+  @AllowMissing()
+  readonly tearDown?: boolean;
+}
 
 describe('InfrastructureProcessAndPrepareForAll', () => {
   it('should not run any processor and forward the call to InfrastructurePrepare', async () => {
@@ -36,7 +63,7 @@ describe('InfrastructureProcessAndPrepareForAll', () => {
     });
   });
 
-  it('should run processors and forward the call to InfrastructurePrepare', async () => {
+  it('should run processors, forward the call to InfrastructurePrepare, and tear down processors', async () => {
     const { context: clonedContext, functionRegistry } = createContext();
     const expectedResult: PrepareResult = {
       isDeploymentNeeded: true,
@@ -46,6 +73,16 @@ describe('InfrastructureProcessAndPrepareForAll', () => {
       functionRegistry,
       InfrastructurePrepare,
       async () => expectedResult,
+    );
+    const firstProcessorMock = registerMockFunction(
+      functionRegistry,
+      FirstProcessor,
+      async () => {},
+    );
+    const secondProcessorMock = registerMockFunction(
+      functionRegistry,
+      SecondProcessor,
+      async () => {},
     );
     const expectedProcessorInstructions: ProcessorInstruction[] = [
       { name: 'FirstProcessor' },
@@ -72,6 +109,14 @@ describe('InfrastructureProcessAndPrepareForAll', () => {
     });
     expect(context.clone).toHaveBeenCalledOnceWith({
       processors: expectedProcessorInstructions,
+    });
+    expect(firstProcessorMock).toHaveBeenCalledOnceWith(clonedContext, {
+      tearDown: true,
+    });
+    expect(secondProcessorMock).toHaveBeenCalledOnceWith(clonedContext, {
+      arg1: 'val1',
+      arg2: 'val2',
+      tearDown: true,
     });
   });
 });

@@ -13,3 +13,4 @@ Features:
 - Implement the `EmulatorListForAll`, `EmulatorStartManyForAll`, and `EmulatorStopManyForAll` functions.
 - Implement the `ProjectPublishArtefactForAll` and `ProjectPushArtefactForServiceContainer` functions.
 - Implement the `EnvironmentDeployForAll` and `EnvironmentPrepareForAll` functions.
+- Implement the `InfrastructureProcessAndPrepareForAll` and `InfrastructureProcessAndDeployForAll` functions.

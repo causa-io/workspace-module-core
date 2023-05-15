@@ -1,5 +1,10 @@
 import { WorkspaceContext } from '@causa/workspace';
 import { FunctionRegistry } from '@causa/workspace/function-registry';
+import {
+  WorkspaceFunctionCallMock,
+  createContext,
+  registerMockFunction,
+} from '@causa/workspace/testing';
 import { jest } from '@jest/globals';
 import 'jest-extended';
 import {
@@ -10,74 +15,40 @@ import {
   ProjectReadVersion,
 } from '../definitions/index.js';
 import { GitService } from '../index.js';
-import { createContext } from '../utils.test.js';
 import { ProjectPublishArtefactForAll } from './project-publish-artefact.js';
-
-class BuildArtefact extends ProjectBuildArtefact {
-  async _call(): Promise<string> {
-    return '🍱';
-  }
-
-  _supports(): boolean {
-    return true;
-  }
-}
-
-class ReadVersion extends ProjectReadVersion {
-  async _call(): Promise<string> {
-    return '🔖';
-  }
-
-  _supports(): boolean {
-    return true;
-  }
-}
-
-class GetArtefactDestination extends ProjectGetArtefactDestination {
-  async _call(): Promise<string> {
-    return `dst/${this.tag}`;
-  }
-
-  _supports(): boolean {
-    return true;
-  }
-}
-
-class PushArtefact extends ProjectPushArtefact {
-  async _call(): Promise<string> {
-    PushArtefact.artefact = this.artefact;
-    PushArtefact.destination = this.destination;
-    PushArtefact.overwrite = this.overwrite;
-    return this.destination;
-  }
-
-  _supports(): boolean {
-    return true;
-  }
-
-  static artefact: string | undefined;
-  static destination: string | undefined;
-  static overwrite: boolean | undefined;
-}
 
 describe('ProjectPublishArtefactForAll', () => {
   let context: WorkspaceContext;
   let functionRegistry: FunctionRegistry<WorkspaceContext>;
   let gitService: GitService;
+  let buildArtefactMock: WorkspaceFunctionCallMock<ProjectBuildArtefact>;
+  let pushArtefactMock: WorkspaceFunctionCallMock<ProjectPushArtefact>;
 
   beforeEach(() => {
-    ({ context, functionRegistry } = createContext());
+    ({ context, functionRegistry } = createContext({
+      functions: [ProjectPublishArtefactForAll],
+    }));
     gitService = context.service(GitService);
-    functionRegistry.registerImplementations(
-      BuildArtefact,
-      ReadVersion,
-      GetArtefactDestination,
-      PushArtefact,
-      ProjectPublishArtefactForAll,
+    registerMockFunction(
+      functionRegistry,
+      ProjectReadVersion,
+      async () => '🔖',
     );
-    PushArtefact.artefact = undefined;
-    PushArtefact.destination = undefined;
-    PushArtefact.overwrite = undefined;
+    buildArtefactMock = registerMockFunction(
+      functionRegistry,
+      ProjectBuildArtefact,
+      async () => '🍱',
+    );
+    registerMockFunction(
+      functionRegistry,
+      ProjectGetArtefactDestination,
+      async (_, args) => `dst/${args.tag}`,
+    );
+    pushArtefactMock = registerMockFunction(
+      functionRegistry,
+      ProjectPushArtefact,
+      async (_, args) => args.destination,
+    );
   });
 
   it('should build and push an artefact using the git short SHA', async () => {
@@ -87,14 +58,15 @@ describe('ProjectPublishArtefactForAll', () => {
 
     expect(actualDestination).toEqual('dst/abcd');
     expect(gitService.getCurrentShortSha).toHaveBeenCalledOnce();
-    expect(PushArtefact.artefact).toEqual('🍱');
-    expect(PushArtefact.destination).toEqual('dst/abcd');
-    expect(PushArtefact.overwrite).toBeUndefined();
+    expect(pushArtefactMock).toHaveBeenCalledOnceWith(context, {
+      artefact: '🍱',
+      destination: 'dst/abcd',
+      overwrite: undefined,
+    });
   });
 
   it('should use the provided artefact instead of building it', async () => {
     jest.spyOn(gitService, 'getCurrentShortSha').mockResolvedValueOnce('abcd');
-    jest.spyOn(BuildArtefact.prototype, '_call');
 
     const actualDestination = await context.call(ProjectPublishArtefact, {
       artefact: 'myArtefact',
@@ -102,10 +74,12 @@ describe('ProjectPublishArtefactForAll', () => {
 
     expect(actualDestination).toEqual('dst/abcd');
     expect(gitService.getCurrentShortSha).toHaveBeenCalledOnce();
-    expect(PushArtefact.artefact).toEqual('myArtefact');
-    expect(PushArtefact.destination).toEqual('dst/abcd');
-    expect(PushArtefact.overwrite).toBeUndefined();
-    expect(BuildArtefact.prototype._call).not.toHaveBeenCalled();
+    expect(pushArtefactMock).toHaveBeenCalledOnceWith(context, {
+      artefact: 'myArtefact',
+      destination: 'dst/abcd',
+      overwrite: undefined,
+    });
+    expect(buildArtefactMock).not.toHaveBeenCalled();
   });
 
   it('should overwrite when pushing', async () => {
@@ -117,9 +91,11 @@ describe('ProjectPublishArtefactForAll', () => {
 
     expect(actualDestination).toEqual('dst/abcd');
     expect(gitService.getCurrentShortSha).toHaveBeenCalledOnce();
-    expect(PushArtefact.artefact).toEqual('🍱');
-    expect(PushArtefact.destination).toEqual('dst/abcd');
-    expect(PushArtefact.overwrite).toBeTrue();
+    expect(pushArtefactMock).toHaveBeenCalledOnceWith(context, {
+      artefact: '🍱',
+      destination: 'dst/abcd',
+      overwrite: true,
+    });
   });
 
   it('should use the semantic version', async () => {
@@ -131,8 +107,10 @@ describe('ProjectPublishArtefactForAll', () => {
 
     expect(actualDestination).toEqual('dst/🔖');
     expect(gitService.getCurrentShortSha).not.toHaveBeenCalled();
-    expect(PushArtefact.artefact).toEqual('🍱');
-    expect(PushArtefact.destination).toEqual('dst/🔖');
-    expect(PushArtefact.overwrite).toBeUndefined();
+    expect(pushArtefactMock).toHaveBeenCalledOnceWith(context, {
+      artefact: '🍱',
+      destination: 'dst/🔖',
+      overwrite: undefined,
+    });
   });
 });

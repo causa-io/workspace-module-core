@@ -1,7 +1,7 @@
 import { WorkspaceContext } from '@causa/workspace';
+import { createContext } from '@causa/workspace/testing';
 import { jest } from '@jest/globals';
 import 'jest-extended';
-import { createContext } from '../utils.test.js';
 import { DockerService } from './docker.js';
 import { ProcessServiceExitCodeError } from './process.js';
 

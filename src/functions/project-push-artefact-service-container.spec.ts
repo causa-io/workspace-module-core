@@ -1,8 +1,6 @@
 import { WorkspaceContext } from '@causa/workspace';
-import {
-  FunctionRegistry,
-  NoImplementationFoundError,
-} from '@causa/workspace/function-registry';
+import { NoImplementationFoundError } from '@causa/workspace/function-registry';
+import { createContext } from '@causa/workspace/testing';
 import { jest } from '@jest/globals';
 import 'jest-extended';
 import {
@@ -10,25 +8,21 @@ import {
   ProjectPushArtefact,
 } from '../definitions/index.js';
 import { DockerService } from '../services/index.js';
-import { createContext } from '../utils.test.js';
 import { ProjectPushArtefactForServiceContainer } from './project-push-artefact-service-container.js';
 
 describe('ProjectPushArtefactForServiceContainer', () => {
   let context: WorkspaceContext;
-  let functionRegistry: FunctionRegistry<WorkspaceContext>;
   let dockerService: DockerService;
 
   beforeEach(() => {
-    ({ context, functionRegistry } = createContext({
+    ({ context } = createContext({
       configuration: {
         workspace: { name: 'test' },
-        project: { name: 'test', type: 'serviceContainer' },
+        project: { name: 'test', language: 'any', type: 'serviceContainer' },
       },
+      functions: [ProjectPushArtefactForServiceContainer],
     }));
     dockerService = context.service(DockerService);
-    functionRegistry.registerImplementations(
-      ProjectPushArtefactForServiceContainer,
-    );
   });
 
   it('should tag the local image and push it', async () => {
@@ -89,7 +83,7 @@ describe('ProjectPushArtefactForServiceContainer', () => {
     const { context, functionRegistry } = createContext({
       configuration: {
         workspace: { name: 'test' },
-        project: { name: 'test', type: 'function' },
+        project: { name: 'test', language: 'any', type: 'function' },
       },
     });
     functionRegistry.registerImplementations(

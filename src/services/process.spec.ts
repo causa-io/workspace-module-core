@@ -1,10 +1,10 @@
 import { WorkspaceContext } from '@causa/workspace';
+import { createContext } from '@causa/workspace/testing';
 import { jest } from '@jest/globals';
 import 'jest-extended';
 import { dirname } from 'path';
 import { Logger } from 'pino';
 import { fileURLToPath } from 'url';
-import { createContext } from '../utils.test.js';
 import { ProcessService, ProcessServiceExitCodeError } from './process.js';
 
 describe('ProcessService', () => {
@@ -13,9 +13,10 @@ describe('ProcessService', () => {
   let service: ProcessService;
 
   beforeEach(() => {
-    ({ context, logger } = createContext({
+    ({ context } = createContext({
       workingDirectory: dirname(fileURLToPath(import.meta.url)),
     }));
+    logger = context.logger;
     service = context.service(ProcessService);
   });
 

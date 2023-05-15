@@ -1,7 +1,10 @@
 import { WorkspaceContext } from '@causa/workspace';
-import { FunctionRegistry } from '@causa/workspace/function-registry';
-import { EmulatorStart, EmulatorStartResult } from '../definitions/index.js';
-import { createContext, createFunction } from '../utils.test.js';
+import { createContext } from '@causa/workspace/testing';
+import {
+  EmulatorStart,
+  EmulatorStartMany,
+  EmulatorStartResult,
+} from '../definitions/index.js';
 import { EmulatorStartManyForAll } from './emulator-start-many.js';
 
 class Emulator1 extends EmulatorStart {
@@ -40,26 +43,27 @@ class Emulator2 extends EmulatorStart {
 
 describe('EmulatorStartManyForAll', () => {
   let context: WorkspaceContext;
-  let functionRegistry: FunctionRegistry<WorkspaceContext>;
 
   beforeEach(() => {
-    ({ context, functionRegistry } = createContext());
-    functionRegistry.registerImplementations(Emulator1, Emulator2);
+    ({ context } = createContext({
+      functions: [Emulator1, Emulator2, EmulatorStartManyForAll],
+    }));
   });
 
   it('should return an empty result when there is no emulator to run', async () => {
-    const { context } = createContext();
-    const fn = createFunction(EmulatorStartManyForAll, { emulators: [] });
+    const { context } = createContext({ functions: [EmulatorStartManyForAll] });
 
-    const actualResult = await fn._call(context);
+    const actualResult = await context.call(EmulatorStartMany, {
+      emulators: [],
+    });
 
     expect(actualResult).toEqual({ emulatorNames: [], configuration: {} });
   });
 
   it('should call all EmulatorStart and return names and configuration', async () => {
-    const fn = createFunction(EmulatorStartManyForAll, { emulators: [] });
-
-    const actualResult = await fn._call(context);
+    const actualResult = await context.call(EmulatorStartMany, {
+      emulators: [],
+    });
 
     expect(actualResult.emulatorNames.sort()).toEqual([
       'emulator1',
@@ -72,22 +76,18 @@ describe('EmulatorStartManyForAll', () => {
   });
 
   it('should only call the specified emulator', async () => {
-    const fn = createFunction(EmulatorStartManyForAll, {
+    const actualResult = await context.call(EmulatorStartMany, {
       emulators: ['emulator1'],
     });
-
-    const actualResult = await fn._call(context);
 
     expect(actualResult.emulatorNames).toEqual(['emulator1']);
     expect(actualResult.configuration).toEqual({ config1: '🔧' });
   });
 
   it('should throw when the emulator cannot be found', async () => {
-    const fn = createFunction(EmulatorStartManyForAll, {
+    const actualPromise = context.call(EmulatorStartMany, {
       emulators: ['🙅'],
     });
-
-    const actualPromise = fn._call(context);
 
     await expect(actualPromise).rejects.toThrow(
       `No implementation found for emulator '🙅'.`,

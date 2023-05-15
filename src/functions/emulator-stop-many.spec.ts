@@ -1,8 +1,7 @@
 import { WorkspaceContext } from '@causa/workspace';
-import { FunctionRegistry } from '@causa/workspace/function-registry';
+import { createContext } from '@causa/workspace/testing';
 import 'jest-extended';
-import { EmulatorStop } from '../definitions/index.js';
-import { createContext, createFunction } from '../utils.test.js';
+import { EmulatorStop, EmulatorStopMany } from '../definitions/index.js';
 import { EmulatorStopManyForAll } from './emulator-stop-many.js';
 
 class Emulator1 extends EmulatorStop {
@@ -27,46 +26,43 @@ class Emulator2 extends EmulatorStop {
 
 describe('EmulatorStopManyForAll', () => {
   let context: WorkspaceContext;
-  let functionRegistry: FunctionRegistry<WorkspaceContext>;
 
   beforeEach(() => {
-    ({ context, functionRegistry } = createContext());
-    functionRegistry.registerImplementations(Emulator1, Emulator2);
+    ({ context } = createContext({
+      functions: [Emulator1, Emulator2, EmulatorStopManyForAll],
+    }));
   });
 
   it('should return an empty result when there is no emulator to stop', async () => {
-    const { context } = createContext();
-    const fn = createFunction(EmulatorStopManyForAll, { emulators: [] });
+    const { context } = createContext({ functions: [EmulatorStopManyForAll] });
 
-    const actualResult = await fn._call(context);
+    const actualResult = await context.call(EmulatorStopMany, {
+      emulators: [],
+    });
 
     expect(actualResult).toBeEmpty();
   });
 
   it('should call all EmulatorStop and return names', async () => {
-    const fn = createFunction(EmulatorStopManyForAll, { emulators: [] });
-
-    const actualResult = await fn._call(context);
+    const actualResult = await context.call(EmulatorStopMany, {
+      emulators: [],
+    });
 
     expect(actualResult.sort()).toEqual(['emulator1', 'emulator2']);
   });
 
   it('should only stop the specified emulator', async () => {
-    const fn = createFunction(EmulatorStopManyForAll, {
+    const actualResult = await context.call(EmulatorStopMany, {
       emulators: ['emulator1'],
     });
-
-    const actualResult = await fn._call(context);
 
     expect(actualResult).toEqual(['emulator1']);
   });
 
   it('should throw when the emulator cannot be found', async () => {
-    const fn = createFunction(EmulatorStopManyForAll, {
+    const actualPromise = context.call(EmulatorStopMany, {
       emulators: ['🙅'],
     });
-
-    const actualPromise = fn._call(context);
 
     await expect(actualPromise).rejects.toThrow(
       `No implementation found for emulator '🙅'.`,

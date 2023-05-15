@@ -11,3 +11,4 @@ Features:
 - Implement the `DockerService`.
 - Implement the `SecretFetchForEnvironmentVariable` workspace function.
 - Implement the `EmulatorListForAll`, `EmulatorStartManyForAll`, and `EmulatorStopManyForAll` functions.
+- Implement the `ProjectPublishArtefactForAll` and `ProjectPushArtefactForServiceContainer` functions.

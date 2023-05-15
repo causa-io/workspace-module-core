@@ -3,6 +3,7 @@ import { EmulatorListForAll } from './emulator-list.js';
 import { EmulatorStartManyForAll } from './emulator-start-many.js';
 import { EmulatorStopManyForAll } from './emulator-stop-many.js';
 import { ProjectPublishArtefactForAll } from './project-publish-artefact.js';
+import { ProjectPushArtefactForServiceContainer } from './project-push-artefact-service-container.js';
 import { SecretFetchForEnvironmentVariable } from './secret-fetch-environment-variable.js';
 
 export function registerFunctions(context: ModuleRegistrationContext) {
@@ -11,6 +12,7 @@ export function registerFunctions(context: ModuleRegistrationContext) {
     EmulatorStartManyForAll,
     EmulatorStopManyForAll,
     ProjectPublishArtefactForAll,
+    ProjectPushArtefactForServiceContainer,
     SecretFetchForEnvironmentVariable,
   );
 }

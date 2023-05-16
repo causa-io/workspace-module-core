@@ -4,6 +4,7 @@ import { EmulatorStartManyForAll } from './emulator-start-many.js';
 import { EmulatorStopManyForAll } from './emulator-stop-many.js';
 import { EnvironmentDeployForAll } from './environment-deploy.js';
 import { EnvironmentPrepareForAll } from './environment-prepare.js';
+import { EventTopicGenerateCodeReferencedInProjectForAll } from './event-topic-generate-code-referenced-in-project.js';
 import { InfrastructureProcessAndDeployForAll } from './infrastructure-process-and-deploy.js';
 import { InfrastructureProcessAndPrepareForAll } from './infrastructure-process-and-prepare.js';
 import { ProjectPublishArtefactForAll } from './project-publish-artefact.js';
@@ -17,6 +18,7 @@ export function registerFunctions(context: ModuleRegistrationContext) {
     EmulatorStopManyForAll,
     EnvironmentDeployForAll,
     EnvironmentPrepareForAll,
+    EventTopicGenerateCodeReferencedInProjectForAll,
     InfrastructureProcessAndDeployForAll,
     InfrastructureProcessAndPrepareForAll,
     ProjectPublishArtefactForAll,

@@ -14,3 +14,4 @@ Features:
 - Implement the `ProjectPublishArtefactForAll` and `ProjectPushArtefactForServiceContainer` functions.
 - Implement the `EnvironmentDeployForAll` and `EnvironmentPrepareForAll` functions.
 - Implement the `InfrastructureProcessAndPrepareForAll` and `InfrastructureProcessAndDeployForAll` functions.
+- Implement the `EventTopicGenerateCodeReferencedInProjectForAll`, `EventTopicListReferencedInProjectForServiceContainer`, and `EventTopicListForAll` functions.

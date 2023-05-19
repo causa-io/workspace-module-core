@@ -72,7 +72,7 @@ export abstract class InfrastructureDeploy extends WorkspaceFunction<
 /**
  * The interface that should be implemented by {@link WorkspaceFunction}s meant to be used as processors before running
  * infrastructure operations.
- * The function should return a `ProcessorOutput` that will be merged with the workspace configuration.
+ * The function should return a `ProcessorResult` that will be merged with the workspace configuration.
  */
 export interface InfrastructureProcessor extends ProcessorFunction {
   /**

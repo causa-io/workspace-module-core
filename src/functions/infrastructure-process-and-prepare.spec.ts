@@ -1,6 +1,6 @@
 import {
   ProcessorInstruction,
-  ProcessorOutput,
+  ProcessorResult,
   WorkspaceFunction,
 } from '@causa/workspace';
 import { createContext, registerMockFunction } from '@causa/workspace/testing';
@@ -17,7 +17,7 @@ import {
 import { InfrastructureProcessAndPrepareForAll } from './infrastructure-process-and-prepare.js';
 
 abstract class FirstProcessor
-  extends WorkspaceFunction<Promise<ProcessorOutput>>
+  extends WorkspaceFunction<Promise<ProcessorResult>>
   implements InfrastructureProcessor
 {
   @IsBoolean()
@@ -26,7 +26,7 @@ abstract class FirstProcessor
 }
 
 abstract class SecondProcessor
-  extends WorkspaceFunction<Promise<ProcessorOutput>>
+  extends WorkspaceFunction<Promise<ProcessorResult>>
   implements InfrastructureProcessor
 {
   @IsString()

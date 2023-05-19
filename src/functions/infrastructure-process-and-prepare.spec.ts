@@ -1,4 +1,8 @@
-import { ProcessorInstruction, WorkspaceFunction } from '@causa/workspace';
+import {
+  ProcessorInstruction,
+  ProcessorOutput,
+  WorkspaceFunction,
+} from '@causa/workspace';
 import { createContext, registerMockFunction } from '@causa/workspace/testing';
 import { AllowMissing } from '@causa/workspace/validation';
 import { jest } from '@jest/globals';
@@ -13,7 +17,7 @@ import {
 import { InfrastructureProcessAndPrepareForAll } from './infrastructure-process-and-prepare.js';
 
 abstract class FirstProcessor
-  extends WorkspaceFunction<{}>
+  extends WorkspaceFunction<Promise<ProcessorOutput>>
   implements InfrastructureProcessor
 {
   @IsBoolean()
@@ -22,7 +26,7 @@ abstract class FirstProcessor
 }
 
 abstract class SecondProcessor
-  extends WorkspaceFunction<{}>
+  extends WorkspaceFunction<Promise<ProcessorOutput>>
   implements InfrastructureProcessor
 {
   @IsString()
@@ -77,12 +81,12 @@ describe('InfrastructureProcessAndPrepareForAll', () => {
     const firstProcessorMock = registerMockFunction(
       functionRegistry,
       FirstProcessor,
-      async () => {},
+      async () => ({ configuration: {} }),
     );
     const secondProcessorMock = registerMockFunction(
       functionRegistry,
       SecondProcessor,
-      async () => {},
+      async () => ({ configuration: {} }),
     );
     const expectedProcessorInstructions: ProcessorInstruction[] = [
       { name: 'FirstProcessor' },

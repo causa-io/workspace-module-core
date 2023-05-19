@@ -17,7 +17,7 @@ describe('DockerService', () => {
   });
 
   describe('docker', () => {
-    it('should spawn the git command', async () => {
+    it('should spawn the docker command', async () => {
       const actualResult = await service.docker('--version', [], {
         capture: { stdout: true },
       });

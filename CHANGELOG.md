@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+Breaking changes:
+
+- The `InfrastructureProcessor` now extends the generic `ProcessorFunction`. This means the processors should return a value containing a `configuration` property, rather than the configuration itself.
+
 ## v0.1.0 (2023-05-17)
 
 Features:

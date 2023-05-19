@@ -5,15 +5,15 @@ export type DockerConfiguration = {
   /**
    * Configuration when using Docker in the workspace.
    */
-  docker?: {
+  readonly docker?: {
     /**
      * Configuration for the local Docker network.
      */
-    network?: {
+    readonly network?: {
       /**
        * The name of the local Docker network.
        */
-      name?: string;
+      readonly name?: string;
     };
   };
 };

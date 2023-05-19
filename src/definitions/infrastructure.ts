@@ -4,7 +4,7 @@ import {
   CliOption,
   ParentCliCommandDefinition,
 } from '@causa/cli';
-import { WorkspaceFunction } from '@causa/workspace';
+import { ProcessorFunction, WorkspaceFunction } from '@causa/workspace';
 import { AllowMissing } from '@causa/workspace/validation';
 import { IsBoolean, IsString } from 'class-validator';
 
@@ -72,9 +72,9 @@ export abstract class InfrastructureDeploy extends WorkspaceFunction<
 /**
  * The interface that should be implemented by {@link WorkspaceFunction}s meant to be used as processors before running
  * infrastructure operations.
- * The function should return an object that will be merged with the workspace configuration.
+ * The function should return a `ProcessorOutput` that will be merged with the workspace configuration.
  */
-export interface InfrastructureProcessor extends WorkspaceFunction<object> {
+export interface InfrastructureProcessor extends ProcessorFunction {
   /**
    * If `true`, the processor is called during the tear down, after the infrastructure operation has been performed.
    * The processor should clean up any temporary resource.

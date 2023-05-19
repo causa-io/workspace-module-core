@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+Breaking changes:
+
+- Upgrade to `@causa/workspace >= 0.6.0`.
+
 ## v0.2.0 (2023-05-19)
 
 Breaking changes:

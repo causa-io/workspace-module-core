@@ -1,4 +1,8 @@
 export {
+  DockerEmulatorAvailabilityCheckTimeoutError,
+  DockerEmulatorService,
+} from './docker-emulator.js';
+export {
   DockerContainerMount,
   DockerContainerPublish,
   DockerService,

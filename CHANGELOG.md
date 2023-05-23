@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+Features:
+
+- Expose `DockerContainerMount` and `DockerContainerPublish` types for the `DockerService`.
+
 ## v0.3.0 (2023-05-19)
 
 Breaking changes:

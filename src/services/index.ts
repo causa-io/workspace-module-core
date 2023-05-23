@@ -1,4 +1,12 @@
-export { DockerService } from './docker.js';
+export {
+  DockerEmulatorAvailabilityCheckTimeoutError,
+  DockerEmulatorService,
+} from './docker-emulator.js';
+export {
+  DockerContainerMount,
+  DockerContainerPublish,
+  DockerService,
+} from './docker.js';
 export { GitService } from './git.js';
 export {
   ProcessService,

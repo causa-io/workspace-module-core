@@ -24,8 +24,11 @@ export class EventTopicListReferencedInProjectForServiceContainer extends EventT
       ),
     ];
 
-    const produced =
-      serviceContainerConf.get('serviceContainer.outputs.eventTopics') ?? [];
+    const produced = [
+      ...new Set(
+        serviceContainerConf.get('serviceContainer.outputs.eventTopics') ?? [],
+      ),
+    ];
 
     return { consumed, produced };
   }

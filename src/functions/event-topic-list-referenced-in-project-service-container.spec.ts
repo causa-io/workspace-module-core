@@ -47,7 +47,11 @@ describe('EventTopicListReferencedInProjectForServiceContainer', () => {
             },
           },
           outputs: {
-            eventTopics: ['my.first-event.v1', 'my.other-event.v1'],
+            eventTopics: [
+              'my.first-event.v1',
+              'my.other-event.v1',
+              'my.other-event.v1',
+            ],
           },
         },
       },

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+Features:
+
+- Implement `EventTopicListReferencedInProject` for `serverlessFunctions` projects.
+
+Fixes:
+
+- Ensure there is no duplicate in the events returned by `EventTopicListReferencedInProjectForServiceContainer`.
+
 ## v0.4.0 (2023-05-23)
 
 Features:

@@ -5,6 +5,7 @@ import { EmulatorStopManyForAll } from './emulator-stop-many.js';
 import { EnvironmentDeployForAll } from './environment-deploy.js';
 import { EnvironmentPrepareForAll } from './environment-prepare.js';
 import { EventTopicGenerateCodeReferencedInProjectForAll } from './event-topic-generate-code-referenced-in-project.js';
+import { EventTopicListReferencedInProjectForServerlessFunctions } from './event-topic-list-referenced-in-project-serverless-functions.js';
 import { EventTopicListReferencedInProjectForServiceContainer } from './event-topic-list-referenced-in-project-service-container.js';
 import { EventTopicListForAll } from './event-topic-list.js';
 import { InfrastructureProcessAndDeployForAll } from './infrastructure-process-and-deploy.js';
@@ -21,6 +22,7 @@ export function registerFunctions(context: ModuleRegistrationContext) {
     EnvironmentDeployForAll,
     EnvironmentPrepareForAll,
     EventTopicGenerateCodeReferencedInProjectForAll,
+    EventTopicListReferencedInProjectForServerlessFunctions,
     EventTopicListReferencedInProjectForServiceContainer,
     EventTopicListForAll,
     InfrastructureProcessAndDeployForAll,

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.5.0 (2023-05-31)
+
 Features:
 
 - Implement `EventTopicListReferencedInProject` for `serverlessFunctions` projects.

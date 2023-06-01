@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.6.0 (2023-06-01)
+
 Features:
 
 - Define the `serverlessFunctions.build.globPatterns` configuration.

@@ -13,6 +13,18 @@ export type ServerlessFunctionsConfiguration = {
     readonly platform?: string;
 
     /**
+     * Configuration when building the artefact for serverless functions projects.
+     */
+    readonly build?: {
+      /**
+       * The glob patterns to include when building the artefact.
+       * Language-specific modules may already include patterns by default, check their documentation before adding
+       * other patterns.
+       */
+      readonly globPatterns?: string[];
+    };
+
+    /**
      * The list of functions exposed by this project.
      */
     readonly functions?: {

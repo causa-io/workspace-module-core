@@ -84,11 +84,11 @@ describe('EnvironmentPrepareForAll', () => {
     });
 
     expect(actualResult).toEqual({ isDeploymentNeeded: true, output: '🚀' });
-    expect(processAndPrepareMock).toHaveBeenCalledOnceWith(clonedContext, {
-      print: false,
-      output: '🚄',
-    });
-    expect(context.clone).toHaveBeenCalledOnceWith({
+    expect(processAndPrepareMock).toHaveBeenCalledExactlyOnceWith(
+      clonedContext,
+      { print: false, output: '🚄' },
+    );
+    expect(context.clone).toHaveBeenCalledExactlyOnceWith({
       workingDirectory: '/root/dir/somewhere/my/proj',
     });
   });
@@ -100,7 +100,7 @@ describe('EnvironmentPrepareForAll', () => {
     });
 
     expect(actualResult).toEqual({ isDeploymentNeeded: true, output: '🚀' });
-    expect(processAndPrepareMock).toHaveBeenCalledOnceWith(context, {
+    expect(processAndPrepareMock).toHaveBeenCalledExactlyOnceWith(context, {
       print: false,
       output: '🚄',
     });

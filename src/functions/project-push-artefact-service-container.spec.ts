@@ -38,9 +38,12 @@ describe('ProjectPushArtefactForServiceContainer', () => {
     });
 
     expect(actualRemoteTag).toEqual(destination);
-    expect(dockerService.tag).toHaveBeenCalledOnceWith(artefact, destination);
-    expect(dockerService.push).toHaveBeenCalledOnceWith(destination);
-    expect(dockerService.exists).toHaveBeenCalledOnceWith(destination);
+    expect(dockerService.tag).toHaveBeenCalledExactlyOnceWith(
+      artefact,
+      destination,
+    );
+    expect(dockerService.push).toHaveBeenCalledExactlyOnceWith(destination);
+    expect(dockerService.exists).toHaveBeenCalledExactlyOnceWith(destination);
   });
 
   it('should not overwrite an existing remote image', async () => {
@@ -56,7 +59,7 @@ describe('ProjectPushArtefactForServiceContainer', () => {
     });
 
     await expect(actualPromise).rejects.toThrow(ArtefactAlreadyExistsError);
-    expect(dockerService.exists).toHaveBeenCalledOnceWith(destination);
+    expect(dockerService.exists).toHaveBeenCalledExactlyOnceWith(destination);
     expect(dockerService.tag).not.toHaveBeenCalled();
     expect(dockerService.push).not.toHaveBeenCalled();
   });
@@ -75,8 +78,11 @@ describe('ProjectPushArtefactForServiceContainer', () => {
     });
 
     expect(actualRemoteTag).toEqual(destination);
-    expect(dockerService.tag).toHaveBeenCalledOnceWith(artefact, destination);
-    expect(dockerService.push).toHaveBeenCalledOnceWith(destination);
+    expect(dockerService.tag).toHaveBeenCalledExactlyOnceWith(
+      artefact,
+      destination,
+    );
+    expect(dockerService.push).toHaveBeenCalledExactlyOnceWith(destination);
   });
 
   it('should not support other project types than service container', async () => {

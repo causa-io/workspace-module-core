@@ -128,7 +128,7 @@ describe('DockerService', () => {
       const actualExists = await service.exists('myImage');
 
       expect(actualExists).toBeTrue();
-      expect(service.manifestInspect).toHaveBeenCalledOnceWith(
+      expect(service.manifestInspect).toHaveBeenCalledExactlyOnceWith(
         'myImage',
         expect.anything(),
       );
@@ -144,7 +144,7 @@ describe('DockerService', () => {
       const actualExists = await service.exists('myImage');
 
       expect(actualExists).toBeFalse();
-      expect(service.manifestInspect).toHaveBeenCalledOnceWith(
+      expect(service.manifestInspect).toHaveBeenCalledExactlyOnceWith(
         'myImage',
         expect.anything(),
       );
@@ -158,7 +158,7 @@ describe('DockerService', () => {
       const actualPromise = service.exists('myImage');
 
       await expect(actualPromise).rejects.toThrow('💥');
-      expect(service.manifestInspect).toHaveBeenCalledOnceWith(
+      expect(service.manifestInspect).toHaveBeenCalledExactlyOnceWith(
         'myImage',
         expect.anything(),
       );
@@ -289,7 +289,9 @@ describe('DockerService', () => {
       const actualNetworkName = await service.createNetworkIfNeeded();
 
       expect(actualNetworkName).toEqual('someCustomNetworkName');
-      expect(service.networkCreate).toHaveBeenCalledOnceWith(actualNetworkName);
+      expect(service.networkCreate).toHaveBeenCalledExactlyOnceWith(
+        actualNetworkName,
+      );
       expect(service.networkLs).not.toHaveBeenCalled();
     });
 
@@ -301,7 +303,9 @@ describe('DockerService', () => {
       const actualNetworkName = await service.createNetworkIfNeeded();
 
       expect(actualNetworkName).toEqual('someCustomNetworkName');
-      expect(service.networkCreate).toHaveBeenCalledOnceWith(actualNetworkName);
+      expect(service.networkCreate).toHaveBeenCalledExactlyOnceWith(
+        actualNetworkName,
+      );
       expect(service.networkLs).not.toHaveBeenCalled();
     });
 
@@ -318,8 +322,10 @@ describe('DockerService', () => {
       const actualNetworkName = await service.createNetworkIfNeeded();
 
       expect(actualNetworkName).toEqual('someCustomNetworkName');
-      expect(service.networkCreate).toHaveBeenCalledOnceWith(actualNetworkName);
-      expect(service.networkLs).toHaveBeenCalledOnceWith({
+      expect(service.networkCreate).toHaveBeenCalledExactlyOnceWith(
+        actualNetworkName,
+      );
+      expect(service.networkLs).toHaveBeenCalledExactlyOnceWith({
         filter: 'name=someCustomNetworkName',
         quiet: true,
       });
@@ -338,10 +344,10 @@ describe('DockerService', () => {
       const actualPromise = service.createNetworkIfNeeded();
 
       await expect(actualPromise).rejects.toThrow(ProcessServiceExitCodeError);
-      expect(service.networkCreate).toHaveBeenCalledOnceWith(
+      expect(service.networkCreate).toHaveBeenCalledExactlyOnceWith(
         'someCustomNetworkName',
       );
-      expect(service.networkLs).toHaveBeenCalledOnceWith({
+      expect(service.networkLs).toHaveBeenCalledExactlyOnceWith({
         filter: 'name=someCustomNetworkName',
         quiet: true,
       });

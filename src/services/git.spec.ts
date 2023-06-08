@@ -34,7 +34,7 @@ describe('GitService', () => {
       const actualShortSha = await service.getCurrentShortSha();
 
       expect(actualShortSha).toEqual(expectedShortSha);
-      expect(service.git).toHaveBeenCalledOnceWith(
+      expect(service.git).toHaveBeenCalledExactlyOnceWith(
         'rev-parse',
         ['--short', 'HEAD'],
         expect.anything(),

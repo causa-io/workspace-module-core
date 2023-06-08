@@ -54,7 +54,7 @@ describe('InfrastructureProcessAndDeployForAll', () => {
       deployment: '🚀',
     });
 
-    expect(deployMock).toHaveBeenCalledOnceWith(context, {
+    expect(deployMock).toHaveBeenCalledExactlyOnceWith(context, {
       deployment: '🚀',
     });
   });
@@ -93,16 +93,16 @@ describe('InfrastructureProcessAndDeployForAll', () => {
       deployment: '🚀',
     });
 
-    expect(deployMock).toHaveBeenCalledOnceWith(clonedContext, {
+    expect(deployMock).toHaveBeenCalledExactlyOnceWith(clonedContext, {
       deployment: '🚀',
     });
-    expect(context.clone).toHaveBeenCalledOnceWith({
+    expect(context.clone).toHaveBeenCalledExactlyOnceWith({
       processors: expectedProcessorInstructions,
     });
-    expect(firstProcessorMock).toHaveBeenCalledOnceWith(clonedContext, {
+    expect(firstProcessorMock).toHaveBeenCalledExactlyOnceWith(clonedContext, {
       tearDown: true,
     });
-    expect(secondProcessorMock).toHaveBeenCalledOnceWith(clonedContext, {
+    expect(secondProcessorMock).toHaveBeenCalledExactlyOnceWith(clonedContext, {
       arg1: 'val1',
       arg2: 'val2',
       tearDown: true,

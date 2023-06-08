@@ -10,6 +10,7 @@ import { EventTopicListReferencedInProjectForServiceContainer } from './event-to
 import { EventTopicListForAll } from './event-topic-list.js';
 import { InfrastructureProcessAndDeployForAll } from './infrastructure-process-and-deploy.js';
 import { InfrastructureProcessAndPrepareForAll } from './infrastructure-process-and-prepare.js';
+import { ProjectInitForWorkspace } from './project-init-workspace.js';
 import { ProjectPublishArtefactForAll } from './project-publish-artefact.js';
 import { ProjectPushArtefactForServiceContainer } from './project-push-artefact-service-container.js';
 import { SecretFetchForEnvironmentVariable } from './secret-fetch-environment-variable.js';
@@ -27,6 +28,7 @@ export function registerFunctions(context: ModuleRegistrationContext) {
     EventTopicListForAll,
     InfrastructureProcessAndDeployForAll,
     InfrastructureProcessAndPrepareForAll,
+    ProjectInitForWorkspace,
     ProjectPublishArtefactForAll,
     ProjectPushArtefactForServiceContainer,
     SecretFetchForEnvironmentVariable,

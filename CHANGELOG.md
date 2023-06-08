@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+Features:
+
+- Define the `ProjectInit`, `ProjectTest`, `ProjectLint`, `ProjectDependenciesCheck`, and `ProjectSecurityCheck` workspace functions.
+- Implement `ProjectInit` for Causa workspaces.
+
 ## v0.6.0 (2023-06-01)
 
 Features:

@@ -80,10 +80,11 @@ describe('EnvironmentDeployForAll', () => {
 
     await context.call(EnvironmentDeploy, { deployment: '🚀' });
 
-    expect(processAndDeployMock).toHaveBeenCalledOnceWith(clonedContext, {
-      deployment: '🚀',
-    });
-    expect(context.clone).toHaveBeenCalledOnceWith({
+    expect(processAndDeployMock).toHaveBeenCalledExactlyOnceWith(
+      clonedContext,
+      { deployment: '🚀' },
+    );
+    expect(context.clone).toHaveBeenCalledExactlyOnceWith({
       workingDirectory: '/root/dir/somewhere/my/proj',
     });
   });
@@ -91,7 +92,7 @@ describe('EnvironmentDeployForAll', () => {
   it('should call process and deploy on the context if it is already set for the environment project', async () => {
     await context.call(EnvironmentDeploy, { deployment: '🚀' });
 
-    expect(processAndDeployMock).toHaveBeenCalledOnceWith(context, {
+    expect(processAndDeployMock).toHaveBeenCalledExactlyOnceWith(context, {
       deployment: '🚀',
     });
     expect(context.clone).not.toHaveBeenCalled();

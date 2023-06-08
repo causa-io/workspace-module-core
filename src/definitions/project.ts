@@ -1,4 +1,4 @@
-import { CliCommand, CliOption } from '@causa/cli';
+import { CliCommand, CliOption, ParentCliCommandDefinition } from '@causa/cli';
 import { WorkspaceFunction } from '@causa/workspace';
 import { AllowMissing } from '@causa/workspace/validation';
 import { IsBoolean, IsString } from 'class-validator';
@@ -162,17 +162,99 @@ export abstract class ProjectPublishArtefact extends WorkspaceFunction<
 }
 
 /**
- * Returns a URI to fetch (or display) the logs for the project.
- * This usually implies the `environment` being set in the context such that the logs can be appropriately filtered.
- * The URI could point to the console of the log service for example.
+ * Initializes an existing project locally.
+ * Depending on the project, this could install dependencies, set up a virtual environment, etc.
  */
 @CliCommand({
-  name: 'logs',
-  description: `Outputs the URI where logs for the project can be accessed.
-This usually implies the environment being set (using the -e option).`,
-  summary: 'Outputs the URI where logs for the project can be accessed.',
-  outputFn: console.log,
+  name: 'init',
+  description: `Initializes an existing project locally.
+Depending on the project, this could install dependencies, set up a virtual environment, etc.`,
+  summary: 'Initializes an existing project locally.',
 })
-export abstract class ProjectGetLogsUri extends WorkspaceFunction<
-  Promise<string>
+export abstract class ProjectInit extends WorkspaceFunction<Promise<void>> {
+  /**
+   * Whether the project should be re-initialized, even if it already is.
+   * Prior to running the initialization, this will clean up the project.
+   */
+  @IsBoolean()
+  @AllowMissing()
+  @CliOption({
+    flags: '-f, --force',
+    description: 'When set, re-initializes the project.',
+  })
+  readonly force?: boolean;
+}
+
+/**
+ * Runs the tests for the project.
+ * The project might need to be initialized first (see {@link ProjectInit}).
+ */
+@CliCommand({
+  name: 'test',
+  description: `Runs the tests for the project.
+The project might need to be initialized first (see the 'init' command).`,
+  summary: 'Runs the tests for the project.',
+})
+export abstract class ProjectTest extends WorkspaceFunction<Promise<void>> {
+  /**
+   * Computes test coverage.
+   */
+  @IsBoolean()
+  @AllowMissing()
+  @CliOption({
+    flags: '-c, --coverage',
+    description: 'Computes test coverage.',
+  })
+  readonly coverage?: boolean;
+}
+
+/**
+ * Runs the configured linter for the project.
+ */
+@CliCommand({
+  name: 'lint',
+  description: 'Runs the configured linter for the project.',
+})
+export abstract class ProjectLint extends WorkspaceFunction<Promise<void>> {}
+
+/**
+ * The `dependencies` parent command, grouping all commands related to managing a project's dependencies.
+ */
+export const dependenciesCommandDefinition: ParentCliCommandDefinition = {
+  name: 'dependencies',
+  description: 'Manages dependencies for a project.',
+  aliases: ['dep'],
+};
+
+/**
+ * Checks the project's dependencies for vulnerabilities.
+ */
+@CliCommand({
+  parent: dependenciesCommandDefinition,
+  name: 'check',
+  description: `Checks the project's dependencies for vulnerabilities.`,
+})
+export abstract class ProjectDependenciesCheck extends WorkspaceFunction<
+  Promise<void>
+> {}
+
+/**
+ * The `security` parent command, grouping all commands related to analyzing the security of a project.
+ */
+export const securityCommandDefinition: ParentCliCommandDefinition = {
+  name: 'security',
+  description: 'Analyzes the security of a project.',
+  aliases: ['sec'],
+};
+
+/**
+ * Scans the project's source code for vulnerabilities.
+ */
+@CliCommand({
+  parent: securityCommandDefinition,
+  name: 'check',
+  description: `Scans the project's source code for vulnerabilities.`,
+})
+export abstract class ProjectSecurityCheck extends WorkspaceFunction<
+  Promise<void>
 > {}

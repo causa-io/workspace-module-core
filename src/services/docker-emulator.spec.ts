@@ -36,12 +36,12 @@ describe('DockerEmulatorService', () => {
         {},
       );
 
-      expect(dockerService.rm).toHaveBeenCalledOnceWith(
+      expect(dockerService.rm).toHaveBeenCalledExactlyOnceWith(
         ['my-container'],
         expect.anything(),
       );
       expect(dockerService.createNetworkIfNeeded).toHaveBeenCalledOnce();
-      expect(dockerService.run).toHaveBeenCalledOnceWith(
+      expect(dockerService.run).toHaveBeenCalledExactlyOnceWith(
         'my-image',
         expect.objectContaining({
           detach: true,
@@ -57,7 +57,7 @@ describe('DockerEmulatorService', () => {
     it('should remove the container', async () => {
       await service.stop('my-container');
 
-      expect(dockerService.rm).toHaveBeenCalledOnceWith(
+      expect(dockerService.rm).toHaveBeenCalledExactlyOnceWith(
         ['my-container'],
         expect.objectContaining({ force: true, volumes: true, logging: null }),
       );

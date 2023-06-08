@@ -61,7 +61,7 @@ describe('InfrastructureProcessAndPrepareForAll', () => {
     });
 
     expect(actualResult).toEqual(expectedResult);
-    expect(prepareMock).toHaveBeenCalledOnceWith(context, {
+    expect(prepareMock).toHaveBeenCalledExactlyOnceWith(context, {
       print: true,
       output: '🚀',
     });
@@ -107,17 +107,17 @@ describe('InfrastructureProcessAndPrepareForAll', () => {
     });
 
     expect(actualResult).toEqual(expectedResult);
-    expect(prepareMock).toHaveBeenCalledOnceWith(clonedContext, {
+    expect(prepareMock).toHaveBeenCalledExactlyOnceWith(clonedContext, {
       print: true,
       output: '🚀',
     });
-    expect(context.clone).toHaveBeenCalledOnceWith({
+    expect(context.clone).toHaveBeenCalledExactlyOnceWith({
       processors: expectedProcessorInstructions,
     });
-    expect(firstProcessorMock).toHaveBeenCalledOnceWith(clonedContext, {
+    expect(firstProcessorMock).toHaveBeenCalledExactlyOnceWith(clonedContext, {
       tearDown: true,
     });
-    expect(secondProcessorMock).toHaveBeenCalledOnceWith(clonedContext, {
+    expect(secondProcessorMock).toHaveBeenCalledExactlyOnceWith(clonedContext, {
       arg1: 'val1',
       arg2: 'val2',
       tearDown: true,

@@ -106,7 +106,7 @@ describe('ProcessService', () => {
       expect(logger.trace).toHaveBeenCalledTimes(2);
       expect(logger.trace).toHaveBeenCalledWith('🎉');
       expect(logger.trace).toHaveBeenCalledWith('✨');
-      expect(logger.warn).toHaveBeenCalledOnceWith('💣');
+      expect(logger.warn).toHaveBeenCalledExactlyOnceWith('💣');
     });
 
     it('should throw and return the correct exit code', async () => {

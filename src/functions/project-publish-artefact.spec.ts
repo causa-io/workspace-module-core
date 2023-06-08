@@ -58,7 +58,7 @@ describe('ProjectPublishArtefactForAll', () => {
 
     expect(actualDestination).toEqual('dst/abcd');
     expect(gitService.getCurrentShortSha).toHaveBeenCalledOnce();
-    expect(pushArtefactMock).toHaveBeenCalledOnceWith(context, {
+    expect(pushArtefactMock).toHaveBeenCalledExactlyOnceWith(context, {
       artefact: '🍱',
       destination: 'dst/abcd',
       overwrite: undefined,
@@ -74,7 +74,7 @@ describe('ProjectPublishArtefactForAll', () => {
 
     expect(actualDestination).toEqual('dst/abcd');
     expect(gitService.getCurrentShortSha).toHaveBeenCalledOnce();
-    expect(pushArtefactMock).toHaveBeenCalledOnceWith(context, {
+    expect(pushArtefactMock).toHaveBeenCalledExactlyOnceWith(context, {
       artefact: 'myArtefact',
       destination: 'dst/abcd',
       overwrite: undefined,
@@ -91,7 +91,7 @@ describe('ProjectPublishArtefactForAll', () => {
 
     expect(actualDestination).toEqual('dst/abcd');
     expect(gitService.getCurrentShortSha).toHaveBeenCalledOnce();
-    expect(pushArtefactMock).toHaveBeenCalledOnceWith(context, {
+    expect(pushArtefactMock).toHaveBeenCalledExactlyOnceWith(context, {
       artefact: '🍱',
       destination: 'dst/abcd',
       overwrite: true,
@@ -107,7 +107,7 @@ describe('ProjectPublishArtefactForAll', () => {
 
     expect(actualDestination).toEqual('dst/🔖');
     expect(gitService.getCurrentShortSha).not.toHaveBeenCalled();
-    expect(pushArtefactMock).toHaveBeenCalledOnceWith(context, {
+    expect(pushArtefactMock).toHaveBeenCalledExactlyOnceWith(context, {
       artefact: '🍱',
       destination: 'dst/🔖',
       overwrite: undefined,

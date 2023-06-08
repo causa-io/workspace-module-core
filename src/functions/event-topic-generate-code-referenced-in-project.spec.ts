@@ -91,7 +91,7 @@ describe('EventTopicGenerateCodeReferencedInProjectForAll', () => {
     const expectedDefinitions = definitions.filter((d) =>
       actualTopicIds.includes(d.id),
     );
-    expect(generateCodeMock).toHaveBeenCalledOnceWith(context, {
+    expect(generateCodeMock).toHaveBeenCalledExactlyOnceWith(context, {
       definitions: expect.toContainAllValues(expectedDefinitions),
     });
   });

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.7.0 (2023-06-08)
+
 Features:
 
 - Define the `ProjectInit`, `ProjectTest`, `ProjectLint`, `ProjectDependenciesCheck`, and `ProjectSecurityCheck` workspace functions.

@@ -2,6 +2,10 @@
 
 This repository contains the source code for the `@causa/workspace-core` Causa module. It provides the implementations of many `cs` commands. It also provides definitions for commands that are meant to be implemented by other modules, depending on the project types and/or languages. For more information about the Causa CLI `cs`, checkout [its repository](https://github.com/causa-io/cli).
 
+## ➕ Requirements
+
+The core module requires Git and [Docker](https://www.docker.com/) for some of its operations (e.g. reading Git commit SHAs when publishing artefacts, pushing Docker image when publishing service containers, etc).
+
 ## 🎉 Installation
 
 Add `@causa/workspace-core` to your Causa configuration in `causa.modules`.

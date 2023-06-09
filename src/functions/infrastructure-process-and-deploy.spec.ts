@@ -47,7 +47,7 @@ describe('InfrastructureProcessAndDeployForAll', () => {
     const deployMock = registerMockFunction(
       functionRegistry,
       InfrastructureDeploy,
-      async () => {},
+      async () => {}, // eslint-disable-line @typescript-eslint/no-empty-function
     );
 
     await context.call(InfrastructureProcessAndDeploy, {
@@ -64,7 +64,7 @@ describe('InfrastructureProcessAndDeployForAll', () => {
     const deployMock = registerMockFunction(
       functionRegistry,
       InfrastructureDeploy,
-      async () => {},
+      async () => {}, // eslint-disable-line @typescript-eslint/no-empty-function
     );
     const firstProcessorMock = registerMockFunction(
       functionRegistry,

@@ -13,7 +13,7 @@ import {
 export class EmulatorStartManyForAll extends EmulatorStartMany {
   async _call(context: WorkspaceContext): Promise<EmulatorStartManyResult> {
     let emulatorStarts: EmulatorStart[];
-    let result: EmulatorStartManyResult = {
+    const result: EmulatorStartManyResult = {
       emulatorNames: [],
       configuration: {},
     };

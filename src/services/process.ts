@@ -173,7 +173,7 @@ export class ProcessService {
       stdio: shouldPipeStdio ? 'pipe' : 'ignore',
     });
 
-    let stdout: string[] = [];
+    const stdout: string[] = [];
     if ((stdoutLogLevel !== null || captureStdout) && childProcess.stdout) {
       this.pipeStdStream(
         childProcess.stdout,
@@ -182,7 +182,7 @@ export class ProcessService {
       );
     }
 
-    let stderr: string[] = [];
+    const stderr: string[] = [];
     if ((stderrLogLevel !== null || captureStderr) && childProcess.stderr) {
       this.pipeStdStream(
         childProcess.stderr,

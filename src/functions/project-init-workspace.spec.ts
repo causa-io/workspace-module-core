@@ -9,7 +9,7 @@ import { join, resolve } from 'path';
 import { ProjectInit } from '../definitions/index.js';
 import type { ProjectInitForWorkspace as ProjectInitForWorkspaceType } from './project-init-workspace.js';
 
-const setUpCausaFolderMock = jest.fn(async () => {});
+const setUpCausaFolderMock = jest.fn(async () => {}); // eslint-disable-line @typescript-eslint/no-empty-function
 jest.unstable_mockModule('@causa/workspace/initialization', () => ({
   setUpCausaFolder: setUpCausaFolderMock,
   CAUSA_FOLDER: '.causa',

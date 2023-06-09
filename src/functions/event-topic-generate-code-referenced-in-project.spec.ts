@@ -23,7 +23,7 @@ describe('EventTopicGenerateCodeReferencedInProjectForAll', () => {
   let functionRegistry: FunctionRegistry<WorkspaceContext>;
   let listInProjectMock: WorkspaceFunctionCallMock<EventTopicListReferencedInProject>;
   let generateCodeMock: WorkspaceFunctionCallMock<EventTopicGenerateCode>;
-  let definitions: EventTopicDefinition[] = [
+  const definitions: EventTopicDefinition[] = [
     {
       id: 'my.event.v1',
       formatParts: { domain: 'my', name: 'event', version: 'v1' },
@@ -61,7 +61,7 @@ describe('EventTopicGenerateCodeReferencedInProjectForAll', () => {
     generateCodeMock = registerMockFunction(
       functionRegistry,
       EventTopicGenerateCode,
-      async () => {},
+      async () => {}, // eslint-disable-line @typescript-eslint/no-empty-function
     );
   });
 

@@ -13,6 +13,7 @@ import { InfrastructureProcessAndPrepareForAll } from './infrastructure-process-
 import { ProjectInitForWorkspace } from './project-init-workspace.js';
 import { ProjectPublishArtefactForAll } from './project-publish-artefact.js';
 import { ProjectPushArtefactForServiceContainer } from './project-push-artefact-service-container.js';
+import { ProjectWriteConfigurations } from './project-write-configurations.js';
 import { SecretFetchForEnvironmentVariable } from './secret-fetch-environment-variable.js';
 
 export function registerFunctions(context: ModuleRegistrationContext) {
@@ -31,6 +32,7 @@ export function registerFunctions(context: ModuleRegistrationContext) {
     ProjectInitForWorkspace,
     ProjectPublishArtefactForAll,
     ProjectPushArtefactForServiceContainer,
+    ProjectWriteConfigurations,
     SecretFetchForEnvironmentVariable,
   );
 }

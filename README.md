@@ -64,3 +64,9 @@ This module implements some [services](./src/services/) used by itself, but whic
 - `GitService`: Runs `git` commands using the `ProcessService`.
 - `DockerService`: Runs `docker` commands using the `ProcessService`.
 - `DockerEmulatorService`: Provides a normalized way to starting and stopping containerized emulators. Also provides a way to wait for an emulator exposing an HTTP endpoint.
+
+## 🧱 Infrastructure processors
+
+### `ProjectWriteConfigurations`
+
+[ProjectWriteConfigurations](./src/functions/project-write-configurations.ts) is an infrastructure processor that writes the configuration of each and every project in the workspace to a single JSON file per project. This allows the configuration to be consumed by external systems that are not implemented in TypeScript and do not integrate directly with Causa. The output directory for the configuration files can be set in the `causa.projectConfigurationsDirectory` configuration, which defaults to `.causa/project-configurations`.

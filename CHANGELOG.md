@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.8.0 (2023-07-24)
+
 Features:
 
 - Implement the `ProjectWriteConfigurations` infrastructure processor.

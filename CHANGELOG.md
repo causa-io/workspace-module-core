@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+Features:
+
+- Define the `EventsConfiguration`, and add new fields to `ServiceContainerConfiguration`.
+
 ## v0.8.0 (2023-07-24)
 
 Features:

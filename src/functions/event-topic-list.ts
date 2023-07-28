@@ -1,4 +1,5 @@
 import { WorkspaceContext, listFilesAndFormat } from '@causa/workspace';
+import { EventsConfiguration } from '../configurations/index.js';
 import {
   DuplicateEventTopicError,
   EventTopicDefinition,
@@ -28,11 +29,12 @@ const DEFAULT_TOPIC_REGULAR_EXPRESSION =
  */
 export class EventTopicListForAll extends EventTopicList {
   async _call(context: WorkspaceContext): Promise<EventTopicDefinition[]> {
+    const eventsConf = context.asConfiguration<EventsConfiguration>();
     const format =
-      context.get('events.topics.format') ?? DEFAULT_TOPIC_ID_FORMAT;
-    const globs = context.get('events.topics.globs') ?? DEFAULT_TOPIC_GLOBS;
+      eventsConf.get('events.topics.format') ?? DEFAULT_TOPIC_ID_FORMAT;
+    const globs = eventsConf.get('events.topics.globs') ?? DEFAULT_TOPIC_GLOBS;
     const regExp =
-      context.get('events.topics.regularExpression') ??
+      eventsConf.get('events.topics.regularExpression') ??
       DEFAULT_TOPIC_REGULAR_EXPRESSION;
 
     const filesAndFormats = await listFilesAndFormat(

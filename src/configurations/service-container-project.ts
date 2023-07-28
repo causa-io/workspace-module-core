@@ -2,6 +2,13 @@
  * Configuration for service container projects.
  */
 export type ServiceContainerConfiguration = {
+  readonly project?: {
+    /**
+     * The deployed version of the service, which should correspond to a version tag in the container registry.
+     */
+    readonly activeVersion?: string;
+  };
+
   /**
    * Configuration for service container projects, i.e. services that are run as generic Docker containers.
    */
@@ -21,6 +28,41 @@ export type ServiceContainerConfiguration = {
      * Supports rendering.
      */
     readonly buildArgs?: Record<string, string>;
+
+    /**
+     * The endpoints exposed by the service.
+     */
+    readonly endpoints?: {
+      /**
+       * The HTTP endpoints exposed by the service.
+       */
+      readonly http?: string[];
+    };
+
+    /**
+     * The environment variables passed to the service.
+     */
+    readonly environmentVariables?: Record<string, string>;
+
+    /**
+     * The maximum CPU allowed to the container, as a "quantity" Kubernetes type.
+     */
+    readonly cpuLimit?: string;
+
+    /**
+     * The maximum memory allowed to the container, as a "quantity" Kubernetes type.
+     */
+    readonly memoryLimit?: string;
+
+    /**
+     * The minimum number of instances of the service that should be running.
+     */
+    readonly minInstances?: number;
+
+    /**
+     * The maximum number of instances of the service that should be running.
+     */
+    readonly maxInstances?: number;
 
     /**
      * A map of triggers that call the service's endpoints when they occur.

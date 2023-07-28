@@ -6,6 +6,10 @@ Features:
 
 - Define the `EventsConfiguration`, and add new fields to `ServiceContainerConfiguration`.
 
+Fixes:
+
+- Ensure the project configurations directory is emptied before writing configurations.
+
 ## v0.8.0 (2023-07-24)
 
 Features:

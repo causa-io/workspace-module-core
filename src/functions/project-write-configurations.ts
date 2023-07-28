@@ -47,48 +47,26 @@ export class ProjectWriteConfigurations
     );
   }
 
-  /**
-   * Removes the directory where project configurations are written.
-   * This is run when the `tearDown` option is set to `true`.
-   *
-   * @param context The {@link WorkspaceContext}.
-   * @returns An empty {@link ProcessorResult}.
-   */
-  private async tearDownConfigurationsDirectory(
-    context: WorkspaceContext,
-  ): Promise<ProcessorResult> {
+  async _call(context: WorkspaceContext): Promise<ProcessorResult> {
     const projectConfigurationsDirectory =
       this.getConfigurationsDirectory(context);
-
     const absoluteDirectory = resolve(
       context.rootPath,
       projectConfigurationsDirectory,
     );
-
-    context.logger.debug(
-      `🔧 Tearing down project configurations directory '${absoluteDirectory}'.`,
-    );
     await rm(absoluteDirectory, { recursive: true, force: true });
 
-    return { configuration: {} };
-  }
-
-  async _call(context: WorkspaceContext): Promise<ProcessorResult> {
     if (this.tearDown) {
-      return await this.tearDownConfigurationsDirectory(context);
+      context.logger.debug(
+        `🔧 Tore down project configurations directory '${absoluteDirectory}'.`,
+      );
+      return { configuration: {} };
     }
-
-    const projectConfigurationsDirectory =
-      this.getConfigurationsDirectory(context);
 
     context.logger.info('🔧 Rendering and writing project configurations.');
 
     const projectPaths = await context.listProjectPaths();
 
-    const absoluteDirectory = resolve(
-      context.rootPath,
-      projectConfigurationsDirectory,
-    );
     await mkdir(absoluteDirectory, { recursive: true });
 
     await Promise.all(

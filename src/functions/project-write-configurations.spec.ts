@@ -46,7 +46,6 @@ describe('ProjectWriteConfigurations', () => {
       'project-configurations',
       `${project}.json`,
     );
-    console.log('Reading from file', configurationFile);
     const bufferConfiguration = await readFile(configurationFile);
     return JSON.parse(bufferConfiguration.toString());
   }

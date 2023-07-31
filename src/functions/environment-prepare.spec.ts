@@ -96,12 +96,14 @@ describe('EnvironmentPrepareForAll', () => {
   it('should call process and deploy on the context if it is already set for the environment project', async () => {
     const actualResult = await context.call(EnvironmentPrepare, {
       print: false,
+      destroy: true,
       output: '🚄',
     });
 
     expect(actualResult).toEqual({ isDeploymentNeeded: true, output: '🚀' });
     expect(processAndPrepareMock).toHaveBeenCalledExactlyOnceWith(context, {
       print: false,
+      destroy: true,
       output: '🚄',
     });
     expect(context.clone).not.toHaveBeenCalled();

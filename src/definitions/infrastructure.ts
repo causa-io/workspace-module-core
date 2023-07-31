@@ -49,6 +49,13 @@ export abstract class InfrastructurePrepare extends WorkspaceFunction<
   readonly print?: boolean;
 
   /**
+   * If `true`, all infrastructure is destroyed instead of deploying changes.
+   */
+  @IsBoolean()
+  @AllowMissing()
+  readonly destroy?: boolean;
+
+  /**
    * The location where the description of the future deployment (e.g. Terraform plan) should be written.
    */
   @IsString()
@@ -96,13 +103,10 @@ After a deployment has been prepared, it can be deployed using the 'infrastructu
   summary: 'Prepares a future deployment of an infrastructure project.',
   outputFn: ({ output }) => console.log(output),
 })
-export abstract class InfrastructureProcessAndPrepare extends WorkspaceFunction<
-  Promise<PrepareResult>
-> {
-  /**
-   * If `true` and changes have been prepared, they are printed to the standard output.
-   * This should probably not be used when calling this function programmatically.
-   */
+export abstract class InfrastructureProcessAndPrepare
+  extends WorkspaceFunction<Promise<PrepareResult>>
+  implements InfrastructurePrepare
+{
   @IsBoolean()
   @AllowMissing()
   @CliOption({
@@ -112,9 +116,15 @@ export abstract class InfrastructureProcessAndPrepare extends WorkspaceFunction<
   })
   readonly print?: boolean;
 
-  /**
-   * The location where the description of the future deployment (e.g. Terraform plan) should be written.
-   */
+  @IsBoolean()
+  @AllowMissing()
+  @CliOption({
+    flags: '--destroy',
+    description:
+      'If set, all infrastructure is destroyed instead of deploying changes.',
+  })
+  readonly destroy?: boolean;
+
   @IsString()
   @AllowMissing()
   @CliOption({
@@ -136,12 +146,10 @@ export abstract class InfrastructureProcessAndPrepare extends WorkspaceFunction<
   description: `Deploys the infrastructure defined by the output of the 'infrastructure prepare' command.`,
   summary: `Deploys an infrastructure project.`,
 })
-export abstract class InfrastructureProcessAndDeploy extends WorkspaceFunction<
-  Promise<void>
-> {
-  /**
-   * The deployment changes to deploy (e.g. the path to a Terraform plan).
-   */
+export abstract class InfrastructureProcessAndDeploy
+  extends WorkspaceFunction<Promise<void>>
+  implements InfrastructureDeploy
+{
   @IsString()
   @CliArgument({
     name: 'deployment',

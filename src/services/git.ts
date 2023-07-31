@@ -94,6 +94,19 @@ export class GitService {
   }
 
   /**
+   * Runs `git diff --name-only` with the given options and returns the list of files in the diff.
+   *
+   * @param options Options for the diff.
+   * @returns The list of files in the diff.
+   */
+  async filesDiff(
+    options: Omit<GitDiffOptions, 'nameOnly'> = {},
+  ): Promise<string[]> {
+    const diff = await this.diff({ ...options, nameOnly: true });
+    return diff.split('\n').filter((path) => path.length > 0);
+  }
+
+  /**
    * Runs an arbitrary Git CLI command.
    *
    * @param command The command to run.

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.11.0 (2023-07-31)
+
 Features:
 
 - Implement `ProjectDependenciesUpdateAndTest` for all types of projects.

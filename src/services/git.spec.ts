@@ -41,4 +41,53 @@ describe('GitService', () => {
       );
     });
   });
+
+  describe('diff', () => {
+    it('should call git diff', async () => {
+      const expectedDiff = 'diff';
+      const gitSpy = jest
+        .spyOn(service, 'git')
+        .mockResolvedValueOnce({ code: 0, stdout: expectedDiff });
+
+      const actualDiff = await service.diff({
+        commit: 'abcd',
+        cached: true,
+        nameOnly: true,
+        paths: ['a', 'b'],
+      });
+
+      expect(actualDiff).toEqual(expectedDiff);
+      expect(service.git).toHaveBeenCalledOnce();
+      const [actualCommand, args] = gitSpy.mock.calls[0];
+      const actualArgs = args.join(' ');
+      expect(actualCommand).toEqual('diff');
+      expect(actualArgs).toContain('--name-only');
+      expect(actualArgs).toContain('--cached');
+      expect(actualArgs).toEndWith(' abcd -- a b');
+    });
+  });
+
+  describe('filesDiff', () => {
+    it('should call git diff', async () => {
+      const expectedDiff = 'file a\nfile b\n\n';
+      const gitSpy = jest
+        .spyOn(service, 'git')
+        .mockResolvedValueOnce({ code: 0, stdout: expectedDiff });
+
+      const actualDiff = await service.filesDiff({
+        commit: 'abcd..efgh',
+        cached: true,
+        paths: ['a', 'b'],
+      });
+
+      expect(actualDiff).toEqual(['file a', 'file b']);
+      expect(service.git).toHaveBeenCalledOnce();
+      const [actualCommand, args] = gitSpy.mock.calls[0];
+      const actualArgs = args.join(' ');
+      expect(actualCommand).toEqual('diff');
+      expect(actualArgs).toContain('--name-only');
+      expect(actualArgs).toContain('--cached');
+      expect(actualArgs).toEndWith(' abcd..efgh -- a b');
+    });
+  });
 });

@@ -10,6 +10,7 @@ import { EventTopicListReferencedInProjectForServiceContainer } from './event-to
 import { EventTopicListForAll } from './event-topic-list.js';
 import { InfrastructureProcessAndDeployForAll } from './infrastructure-process-and-deploy.js';
 import { InfrastructureProcessAndPrepareForAll } from './infrastructure-process-and-prepare.js';
+import { ProjectDependenciesUpdateAndTestForAll } from './project-dependencies-update-and-test.js';
 import { ProjectInitForWorkspace } from './project-init-workspace.js';
 import { ProjectPublishArtefactForAll } from './project-publish-artefact.js';
 import { ProjectPushArtefactForServiceContainer } from './project-push-artefact-service-container.js';
@@ -29,6 +30,7 @@ export function registerFunctions(context: ModuleRegistrationContext) {
     EventTopicListForAll,
     InfrastructureProcessAndDeployForAll,
     InfrastructureProcessAndPrepareForAll,
+    ProjectDependenciesUpdateAndTestForAll,
     ProjectInitForWorkspace,
     ProjectPublishArtefactForAll,
     ProjectPushArtefactForServiceContainer,

@@ -103,12 +103,14 @@ describe('InfrastructureProcessAndPrepareForAll', () => {
 
     const actualResult = await context.call(InfrastructureProcessAndPrepare, {
       print: true,
+      destroy: true,
       output: '🚀',
     });
 
     expect(actualResult).toEqual(expectedResult);
     expect(prepareMock).toHaveBeenCalledExactlyOnceWith(clonedContext, {
       print: true,
+      destroy: true,
       output: '🚀',
     });
     expect(context.clone).toHaveBeenCalledExactlyOnceWith({

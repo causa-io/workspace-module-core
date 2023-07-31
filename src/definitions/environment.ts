@@ -7,7 +7,11 @@ import {
 import { WorkspaceFunction } from '@causa/workspace';
 import { AllowMissing } from '@causa/workspace/validation';
 import { IsBoolean, IsString } from 'class-validator';
-import { PrepareResult } from './infrastructure.js';
+import {
+  InfrastructureDeploy,
+  InfrastructurePrepare,
+  PrepareResult,
+} from './infrastructure.js';
 
 /**
  * The `environment` parent command, grouping all commands related to managing deployment environments.
@@ -30,13 +34,10 @@ After a deployment has been prepared, it can be deployed using the 'environment 
   summary: 'Prepares a future deployment of the environment.',
   outputFn: ({ output }) => console.log(output),
 })
-export abstract class EnvironmentPrepare extends WorkspaceFunction<
-  Promise<PrepareResult>
-> {
-  /**
-   * If `true` and changes have been prepared, they are printed to the standard output.
-   * This should probably not be used when calling this function programmatically.
-   */
+export abstract class EnvironmentPrepare
+  extends WorkspaceFunction<Promise<PrepareResult>>
+  implements InfrastructurePrepare
+{
   @IsBoolean()
   @AllowMissing()
   @CliOption({
@@ -46,9 +47,15 @@ export abstract class EnvironmentPrepare extends WorkspaceFunction<
   })
   readonly print?: boolean;
 
-  /**
-   * The location where the description of the future deployment (e.g. Terraform plan) should be written.
-   */
+  @IsBoolean()
+  @AllowMissing()
+  @CliOption({
+    flags: '--destroy',
+    description:
+      'If set, all infrastructure is destroyed instead of deploying changes.',
+  })
+  readonly destroy?: boolean;
+
   @IsString()
   @AllowMissing()
   @CliOption({
@@ -69,12 +76,10 @@ export abstract class EnvironmentPrepare extends WorkspaceFunction<
   description: `Deploys the infrastructure defined by the output of the 'environment prepare' command.`,
   summary: `Deploys an environment.`,
 })
-export abstract class EnvironmentDeploy extends WorkspaceFunction<
-  Promise<void>
-> {
-  /**
-   * The deployment changes to deploy (e.g. the path to a Terraform plan).
-   */
+export abstract class EnvironmentDeploy
+  extends WorkspaceFunction<Promise<void>>
+  implements InfrastructureDeploy
+{
   @IsString()
   @CliArgument({
     name: 'deployment',

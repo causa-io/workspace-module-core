@@ -16,6 +16,7 @@ export class InfrastructureProcessAndPrepareForAll extends InfrastructureProcess
     return await wrapInfrastructureOperation(context, (context) =>
       context.call(InfrastructurePrepare, {
         print: this.print,
+        destroy: this.destroy,
         output: this.output,
       }),
     );

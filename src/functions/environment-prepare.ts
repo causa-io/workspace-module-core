@@ -18,6 +18,7 @@ export class EnvironmentPrepareForAll extends EnvironmentPrepare {
     return await context.call(InfrastructureProcessAndPrepare, {
       print: this.print,
       output: this.output,
+      destroy: this.destroy,
     });
   }
 

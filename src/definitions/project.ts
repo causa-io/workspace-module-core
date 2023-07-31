@@ -239,6 +239,42 @@ export abstract class ProjectDependenciesCheck extends WorkspaceFunction<
 > {}
 
 /**
+ * Updates the project's dependencies.
+ * Depending on the provider, this might search for new versions online and install them, or simply update a lock file
+ * following a manual update of the dependencies.
+ */
+export abstract class ProjectDependenciesUpdate extends WorkspaceFunction<
+  Promise<void>
+> {}
+
+/**
+ * Updates the project's dependencies and runs tests to ensure there is no regression.
+ * Depending on the provider, this might search for new versions online and install them, or simply update a lock file
+ * following a manual update of the dependencies.
+ */
+@CliCommand({
+  parent: dependenciesCommandDefinition,
+  name: 'update',
+  description: `Updates the project's dependencies and runs tests to ensure there is no regression.
+Depending on the provider, this might search for new versions online and install them, or simply update a lock file following a manual update of the dependencies.`,
+  summary: `Updates the project's dependencies and run tests.`,
+})
+export abstract class ProjectDependenciesUpdateAndTest extends WorkspaceFunction<
+  Promise<void>
+> {
+  /**
+   * Skips running the tests before and after updating the dependencies.
+   */
+  @IsBoolean()
+  @AllowMissing()
+  @CliOption({
+    flags: '--skip-test',
+    description: `Skips running the tests before and after updating the dependencies.`,
+  })
+  readonly skipTest?: boolean;
+}
+
+/**
  * The `security` parent command, grouping all commands related to analyzing the security of a project.
  */
 export const securityCommandDefinition: ParentCliCommandDefinition = {

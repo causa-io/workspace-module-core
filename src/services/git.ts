@@ -6,6 +6,32 @@ import {
 } from './process.js';
 
 /**
+ * Options for {@link GitService.diff}.
+ */
+type GitDiffOptions = {
+  /**
+   * The commit to compare to. This can also accept several commits.
+   * See https://git-scm.com/docs/git-diff for more information.
+   */
+  commit?: string;
+
+  /**
+   * Lists the staged changes.
+   */
+  cached?: boolean;
+
+  /**
+   * Shows only the names of changed files.
+   */
+  nameOnly?: boolean;
+
+  /**
+   * Limits the diff to the given paths.
+   */
+  paths?: string[];
+};
+
+/**
  * A service exposing the Git CLI.
  */
 export class GitService {
@@ -30,6 +56,41 @@ export class GitService {
     });
 
     return result.stdout?.trim() ?? '';
+  }
+
+  /**
+   * Runs `git diff` with the given options.
+   *
+   * @param options Options for the diff.
+   * @returns The output of `git diff`.
+   */
+  async diff(options: GitDiffOptions = {}): Promise<string> {
+    const args: string[] = [];
+
+    if (options.cached) {
+      args.push('--cached');
+    }
+
+    if (options.nameOnly) {
+      args.push('--name-only');
+    }
+
+    // This should be placed after all other options...
+    if (options.commit) {
+      args.push(options.commit);
+    }
+
+    // Except paths, placed after a separator.
+    if (options.paths && options.paths.length > 0) {
+      args.push('--', ...options.paths);
+    }
+
+    const result = await this.git('diff', args, {
+      capture: { stdout: true },
+      logging: null,
+    });
+
+    return result.stdout ?? '';
   }
 
   /**

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+Features:
+
+- Define the `--destroy` option for the `infrastructure` and `environment prepare` commands.
+- Define the `ProjectDependenciesUpdate` and `ProjectDependenciesUpdateAndTest` functions, which define the `dependencies update` command.
+
 ## v0.9.0 (2023-07-28)
 
 Features:

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.12.0 (2023-08-01)
+
 Breaking changes:
 
 - `ProjectDependenciesUpdate` should now return a boolean indicating whether at least one dependency was updated.

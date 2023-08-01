@@ -38,7 +38,7 @@ describe('ProjectDependenciesUpdateAndTestForAll', () => {
     dependenciesUpdateMock = registerMockFunction(
       functionRegistry,
       ProjectDependenciesUpdate,
-      async () => {},
+      async () => true,
     );
   });
 
@@ -99,6 +99,16 @@ describe('ProjectDependenciesUpdateAndTestForAll', () => {
     await context.call(ProjectDependenciesUpdateAndTest, {});
 
     expect(testMock).toHaveBeenCalledTimes(2);
+    expect(dependenciesUpdateMock).toHaveBeenCalledExactlyOnceWith(context, {});
+  });
+
+  it('should not run tests a second time if no dependency was updated', async () => {
+    registerTestMock();
+    dependenciesUpdateMock.mockImplementation(async () => false);
+
+    await context.call(ProjectDependenciesUpdateAndTest, {});
+
+    expect(testMock).toHaveBeenCalledExactlyOnceWith(context, {});
     expect(dependenciesUpdateMock).toHaveBeenCalledExactlyOnceWith(context, {});
   });
 });

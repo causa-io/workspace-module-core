@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+Breaking changes:
+
+- `ProjectDependenciesUpdate` should now return a boolean indicating whether at least one dependency was updated.
+
+Features:
+
+- Do not run tests again if no dependency was updated.
+
 ## v0.11.0 (2023-07-31)
 
 Features:

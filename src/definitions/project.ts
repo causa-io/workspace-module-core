@@ -242,9 +242,10 @@ export abstract class ProjectDependenciesCheck extends WorkspaceFunction<
  * Updates the project's dependencies.
  * Depending on the provider, this might search for new versions online and install them, or simply update a lock file
  * following a manual update of the dependencies.
+ * Returns `true` if at least one dependency was updated, `false` otherwise.
  */
 export abstract class ProjectDependenciesUpdate extends WorkspaceFunction<
-  Promise<void>
+  Promise<boolean>
 > {}
 
 /**

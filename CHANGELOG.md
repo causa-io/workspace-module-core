@@ -5,6 +5,7 @@
 Breaking changes:
 
 - `ProjectDependenciesUpdate` should now return a boolean indicating whether at least one dependency was updated.
+- Make `GitService.diff` accept spawn options and return a process result.
 
 Features:
 

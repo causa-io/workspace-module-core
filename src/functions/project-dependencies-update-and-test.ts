@@ -35,19 +35,28 @@ export class ProjectDependenciesUpdateAndTestForAll extends ProjectDependenciesU
       }
     }
 
-    await context.call(ProjectDependenciesUpdate, {});
+    const didUpdate = await context.call(ProjectDependenciesUpdate, {});
 
-    if (shouldRunTests) {
-      try {
-        context.logger.debug('Running tests after updating dependencies.');
-        await context.call(ProjectTest, {});
-      } catch (error) {
-        context.logger.error(
-          '❌ Tests failed after updating dependencies, you may want to rollback the update or fix the tests before continuing.',
-        );
+    if (!shouldRunTests) {
+      return;
+    }
 
-        throw error;
-      }
+    if (!didUpdate) {
+      context.logger.debug(
+        'Dependencies were not updated, skipping tests after updating dependencies.',
+      );
+      return;
+    }
+
+    try {
+      context.logger.debug('Running tests after updating dependencies.');
+      await context.call(ProjectTest, {});
+    } catch (error) {
+      context.logger.error(
+        '❌ Tests failed after updating dependencies, you may want to rollback the update or fix the tests before continuing.',
+      );
+
+      throw error;
     }
   }
 

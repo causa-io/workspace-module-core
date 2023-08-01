@@ -3,6 +3,7 @@ import { createContext } from '@causa/workspace/testing';
 import { jest } from '@jest/globals';
 import 'jest-extended';
 import { GitService } from './git.js';
+import { SpawnedProcessResult } from './process.js';
 
 describe('GitService', () => {
   let context: WorkspaceContext;
@@ -44,19 +45,19 @@ describe('GitService', () => {
 
   describe('diff', () => {
     it('should call git diff', async () => {
-      const expectedDiff = 'diff';
+      const expectedResult: SpawnedProcessResult = { code: 0, stdout: '' };
       const gitSpy = jest
         .spyOn(service, 'git')
-        .mockResolvedValueOnce({ code: 0, stdout: expectedDiff });
+        .mockResolvedValueOnce(expectedResult);
 
-      const actualDiff = await service.diff({
+      const actualResult = await service.diff({
         commit: 'abcd',
         cached: true,
         nameOnly: true,
         paths: ['a', 'b'],
       });
 
-      expect(actualDiff).toEqual(expectedDiff);
+      expect(actualResult).toBe(expectedResult);
       expect(service.git).toHaveBeenCalledOnce();
       const [actualCommand, args] = gitSpy.mock.calls[0];
       const actualArgs = args.join(' ');
@@ -81,13 +82,13 @@ describe('GitService', () => {
       });
 
       expect(actualDiff).toEqual(['file a', 'file b']);
-      expect(service.git).toHaveBeenCalledOnce();
-      const [actualCommand, args] = gitSpy.mock.calls[0];
+      const [actualCommand, args, options] = gitSpy.mock.calls[0];
       const actualArgs = args.join(' ');
       expect(actualCommand).toEqual('diff');
       expect(actualArgs).toContain('--name-only');
       expect(actualArgs).toContain('--cached');
       expect(actualArgs).toEndWith(' abcd..efgh -- a b');
+      expect(options).toEqual({ capture: { stdout: true }, logging: null });
     });
   });
 });

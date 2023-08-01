@@ -62,35 +62,30 @@ export class GitService {
    * Runs `git diff` with the given options.
    *
    * @param options Options for the diff.
-   * @returns The output of `git diff`.
+   * @returns The result of the `git diff` process.
    */
-  async diff(options: GitDiffOptions = {}): Promise<string> {
-    const args: string[] = [];
+  async diff(
+    options: GitDiffOptions & SpawnOptions = {},
+  ): Promise<SpawnedProcessResult> {
+    const { cached, commit, nameOnly, paths, ...spawnOptions } = options;
 
-    if (options.cached) {
+    const args: string[] = [];
+    if (cached) {
       args.push('--cached');
     }
-
-    if (options.nameOnly) {
+    if (nameOnly) {
       args.push('--name-only');
     }
-
     // This should be placed after all other options...
-    if (options.commit) {
-      args.push(options.commit);
+    if (commit) {
+      args.push(commit);
     }
-
     // Except paths, placed after a separator.
-    if (options.paths && options.paths.length > 0) {
-      args.push('--', ...options.paths);
+    if (paths && paths.length > 0) {
+      args.push('--', ...paths);
     }
 
-    const result = await this.git('diff', args, {
-      capture: { stdout: true },
-      logging: null,
-    });
-
-    return result.stdout ?? '';
+    return await this.git('diff', args, spawnOptions);
   }
 
   /**
@@ -102,8 +97,13 @@ export class GitService {
   async filesDiff(
     options: Omit<GitDiffOptions, 'nameOnly'> = {},
   ): Promise<string[]> {
-    const diff = await this.diff({ ...options, nameOnly: true });
-    return diff.split('\n').filter((path) => path.length > 0);
+    const result = await this.diff({
+      ...options,
+      nameOnly: true,
+      capture: { stdout: true },
+      logging: null,
+    });
+    return (result.stdout ?? '').split('\n').filter((path) => path.length > 0);
   }
 
   /**

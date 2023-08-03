@@ -4,6 +4,7 @@ import { EmulatorStartManyForAll } from './emulator-start-many.js';
 import { EmulatorStopManyForAll } from './emulator-stop-many.js';
 import { EnvironmentDeployForAll } from './environment-deploy.js';
 import { EnvironmentPrepareForAll } from './environment-prepare.js';
+import { EventTopicCleanBackfillForAll } from './event-topic-clean-backfill.js';
 import { EventTopicGenerateCodeReferencedInProjectForAll } from './event-topic-generate-code-referenced-in-project.js';
 import { EventTopicListReferencedInProjectForServerlessFunctions } from './event-topic-list-referenced-in-project-serverless-functions.js';
 import { EventTopicListReferencedInProjectForServiceContainer } from './event-topic-list-referenced-in-project-service-container.js';
@@ -24,6 +25,7 @@ export function registerFunctions(context: ModuleRegistrationContext) {
     EmulatorStopManyForAll,
     EnvironmentDeployForAll,
     EnvironmentPrepareForAll,
+    EventTopicCleanBackfillForAll,
     EventTopicGenerateCodeReferencedInProjectForAll,
     EventTopicListReferencedInProjectForServerlessFunctions,
     EventTopicListReferencedInProjectForServiceContainer,

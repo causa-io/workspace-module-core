@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.13.0 (2023-08-03)
+
 Features:
 
 - Define backfill-related workspace functions: `EventTopicBackfill`, `EventTopicCleanBackfill`, `EventTopicBrokerCreateTopic`, `EventTopicBrokerGetTopicId`, `EventTopicBrokerCreateTrigger`, `EventTopicBrokerPublishEvents`, `EventTopicBrokerDeleteTriggerResource`, and `EventTopicBrokerDeleteTopic`.

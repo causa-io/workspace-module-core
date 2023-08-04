@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.14.0 (2023-08-04)
+
 Features:
 
 - Define and implement backfilling utilities: `BackfillEvent`, `BackfillEventsSource`, `BackfillEventPublisher`, and `JsonFilesEventSource`.

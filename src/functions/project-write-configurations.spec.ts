@@ -4,14 +4,15 @@ import { createContext } from '@causa/workspace/testing';
 import { existsSync } from 'fs';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'fs/promises';
 import 'jest-extended';
-import { dirname, join, resolve } from 'path';
+import { tmpdir } from 'os';
+import { dirname, join } from 'path';
 import { ProjectWriteConfigurations } from './project-write-configurations.js';
 
 describe('ProjectWriteConfigurations', () => {
   let context: WorkspaceContext;
 
   beforeEach(async () => {
-    const rootPath = resolve(await mkdtemp('causa-tests-'));
+    const rootPath = await mkdtemp(join(tmpdir(), 'causa-tests-'));
     ({ context } = createContext({
       rootPath,
       configuration: { workspace: { name: '🏷️' } },

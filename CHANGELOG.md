@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+Fixes:
+
+- Add missing decorators on `EventTopicBackfill.output` argument.
+
 ## v0.13.0 (2023-08-03)
 
 Features:

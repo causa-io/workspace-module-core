@@ -228,6 +228,8 @@ export abstract class EventTopicBackfill extends WorkspaceFunction<
     flags: '-o, --output <output>',
     description: `The path to the file that will be written with the temporary resources to delete. This is used by the 'cleanBackfill' command.`,
   })
+  @IsString()
+  @AllowMissing()
   readonly output?: string;
 }
 

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+Features:
+
+- Define and implement backfilling utilities: `BackfillEvent`, `BackfillEventsSource`, `BackfillEventPublisher`, and `JsonFilesEventSource`.
+
 Fixes:
 
 - Add missing decorators on `EventTopicBackfill.output` argument.

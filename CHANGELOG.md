@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+Fixes:
+
+- Make the backfill command in the logs reflect the selected environment (e.g. `cs events cleanBackfill -e dev "file.json"`).
+
 ## v0.14.0 (2023-08-04)
 
 Features:

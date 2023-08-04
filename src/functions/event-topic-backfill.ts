@@ -118,7 +118,13 @@ export class EventTopicBackfillForAll extends EventTopicBackfill {
     );
 
     const backfillFile = this.output ?? `backfill-${backfillId}.json`;
-    const cleanBackfillCommand = `cs events cleanBackfill "${backfillFile}"`;
+    const cleanBackfillCommand = [
+      'cs',
+      'events',
+      'cleanBackfill',
+      ...(context.environment ? ['-e', context.environment] : []),
+      `"${backfillFile}"`,
+    ].join(' ');
 
     try {
       await this.createTriggers(context, backfillId, topicId, temporaryData);

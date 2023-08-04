@@ -73,3 +73,7 @@ This module implements some [services](./src/services/) used by itself, but whic
 ### `ProjectWriteConfigurations`
 
 [ProjectWriteConfigurations](./src/functions/project-write-configurations.ts) is an infrastructure processor that writes the configuration of each and every project in the workspace to a single JSON file per project. This allows the configuration to be consumed by external systems that are not implemented in TypeScript and do not integrate directly with Causa. The output directory for the configuration files can be set in the `causa.projectConfigurationsDirectory` configuration, which defaults to `.causa/project-configurations`.
+
+## 📫 Backfilling utilities
+
+One of Causa's features is the ability to backfill events to be processed by services. Although there is always some stack-specific logic, some part of the backfilling flow can be implemented in a generic manner. The [backfill](./src/backfill/) folder contains utilities that may be reused by other Causa modules to provide backfilling functionalities.

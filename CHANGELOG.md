@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+Features:
+
+- Define the `OpenApiGenerateSpecification` workspace function (`cs openapi genSpec`) and provide its workspace-level implementation, which merges all OpenAPI specifications in a single file.
+
 ## v0.14.1 (2023-08-04)
 
 Fixes:

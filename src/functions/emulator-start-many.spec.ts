@@ -1,5 +1,8 @@
 import { WorkspaceContext } from '@causa/workspace';
 import { createContext } from '@causa/workspace/testing';
+import { jest } from '@jest/globals';
+import 'jest-extended';
+import { LogFn } from 'pino';
 import {
   EmulatorStart,
   EmulatorStartMany,
@@ -43,11 +46,13 @@ class Emulator2 extends EmulatorStart {
 
 describe('EmulatorStartManyForAll', () => {
   let context: WorkspaceContext;
+  let infoLogSpy: jest.SpiedFunction<LogFn>;
 
   beforeEach(() => {
     ({ context } = createContext({
       functions: [Emulator1, Emulator2, EmulatorStartManyForAll],
     }));
+    infoLogSpy = jest.spyOn(context.logger, 'info');
   });
 
   it('should return an empty result when there is no emulator to run', async () => {
@@ -58,6 +63,9 @@ describe('EmulatorStartManyForAll', () => {
     });
 
     expect(actualResult).toEqual({ emulatorNames: [], configuration: {} });
+    expect(infoLogSpy.mock.calls.map((c) => c[0]).join(' ')).not.toContain(
+      'Configuration',
+    );
   });
 
   it('should call all EmulatorStart and return names and configuration', async () => {
@@ -73,6 +81,9 @@ describe('EmulatorStartManyForAll', () => {
       config1: '🔧',
       config2: '🗃️',
     });
+    expect(infoLogSpy.mock.calls.map((c) => c[0]).join(' ')).toContain(
+      'config1=🔧\nconfig2=🗃️',
+    );
   });
 
   it('should only call the specified emulator', async () => {
@@ -82,6 +93,9 @@ describe('EmulatorStartManyForAll', () => {
 
     expect(actualResult.emulatorNames).toEqual(['emulator1']);
     expect(actualResult.configuration).toEqual({ config1: '🔧' });
+    expect(infoLogSpy.mock.calls.map((c) => c[0]).join(' ')).toContain(
+      'config1=🔧',
+    );
   });
 
   it('should throw when the emulator cannot be found', async () => {

@@ -42,15 +42,20 @@ export class EmulatorStartManyForAll extends EmulatorStartMany {
     const emulatorResults = await Promise.all(
       emulatorStarts.map((emulatorStart) => emulatorStart._call(context)),
     );
+    result.emulatorNames = emulatorResults.map((r) => r.name);
+    result.configuration = Object.assign(
+      {},
+      ...emulatorResults.map((r) => r.configuration),
+    );
 
-    return emulatorResults.reduce((results, result) => {
-      results.emulatorNames.push(result.name);
-      results.configuration = {
-        ...results.configuration,
-        ...result.configuration,
-      };
-      return results;
-    }, result);
+    if (Object.keys(result.configuration).length > 0) {
+      const confStr = Object.entries(result.configuration)
+        .map(([k, v]) => `${k}=${v}`)
+        .join('\n');
+      context.logger.info(`🔧 Configuration for emulators:\n${confStr}`);
+    }
+
+    return result;
   }
 
   _supports(): boolean {

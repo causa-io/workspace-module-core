@@ -7,6 +7,7 @@ Features:
 - Define the `OpenApiGenerateSpecification` workspace function (`cs openapi genSpec`) and provide its workspace-level implementation, which merges all OpenAPI specifications in a single file.
 - Support the `envFile` options for `DockerService.run`.
 - Log the emulators configuration after starting them using `cs emulators start`.
+- Suggest an authorization issue when failing to push a Docker image for a service container.
 
 ## v0.14.1 (2023-08-04)
 

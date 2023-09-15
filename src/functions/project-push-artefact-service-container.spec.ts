@@ -7,7 +7,10 @@ import {
   ArtefactAlreadyExistsError,
   ProjectPushArtefact,
 } from '../definitions/index.js';
-import { DockerService } from '../services/index.js';
+import {
+  DockerService,
+  ProcessServiceExitCodeError,
+} from '../services/index.js';
 import { ProjectPushArtefactForServiceContainer } from './project-push-artefact-service-container.js';
 
 describe('ProjectPushArtefactForServiceContainer', () => {
@@ -83,6 +86,27 @@ describe('ProjectPushArtefactForServiceContainer', () => {
       destination,
     );
     expect(dockerService.push).toHaveBeenCalledExactlyOnceWith(destination);
+  });
+
+  it('should log an error that points to permission issues when pushing fails', async () => {
+    const artefact = 'myLocalTag';
+    const destination = 'remote/tag:1234';
+    jest.spyOn(dockerService, 'exists').mockResolvedValueOnce(false);
+    jest.spyOn(dockerService, 'tag').mockResolvedValueOnce({} as any);
+    jest
+      .spyOn(dockerService, 'push')
+      .mockRejectedValueOnce(
+        new ProcessServiceExitCodeError('docker', ['push'], { code: 1 }),
+      );
+
+    const actualPromise = context.call(ProjectPushArtefact, {
+      artefact,
+      destination,
+    });
+
+    await expect(actualPromise).rejects.toThrow(
+      `Pushing the Docker image failed. A possible reason is that Docker is not authorized to push to '${destination}'.`,
+    );
   });
 
   it('should not support other project types than service container', async () => {

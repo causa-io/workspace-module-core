@@ -3,7 +3,10 @@ import {
   ArtefactAlreadyExistsError,
   ProjectPushArtefact,
 } from '../definitions/index.js';
-import { DockerService } from '../services/index.js';
+import {
+  DockerService,
+  ProcessServiceExitCodeError,
+} from '../services/index.js';
 
 /**
  * An implementation of the {@link ProjectPushArtefact} function handling `serviceContainer` projects.
@@ -28,7 +31,21 @@ export class ProjectPushArtefactForServiceContainer extends ProjectPushArtefact 
     await dockerService.tag(localTag, remoteTag);
 
     context.logger.info(`🚚 Pushing Docker image to the remote registry.`);
-    await dockerService.push(remoteTag);
+
+    try {
+      await dockerService.push(remoteTag);
+    } catch (error) {
+      if (
+        error instanceof ProcessServiceExitCodeError &&
+        error.command === 'docker'
+      ) {
+        throw new Error(
+          `Pushing the Docker image failed. A possible reason is that Docker is not authorized to push to '${remoteTag}'.`,
+        );
+      }
+
+      throw error;
+    }
 
     context.logger.info(
       `🚚 Successfully pushed Docker image to '${remoteTag}'.`,

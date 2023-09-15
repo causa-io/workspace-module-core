@@ -17,7 +17,7 @@ export class EventTopicCleanBackfillForAll extends EventTopicCleanBackfill {
     const dataBuffer = await readFile(this.file);
     const data: BackfillTemporaryData = JSON.parse(dataBuffer.toString());
 
-    context.logger.info('🔥 Removing temporary trigger resources.');
+    context.logger.info('🔥 Removing temporary backfill resources.');
 
     const resourceIdsAndPromises = data.temporaryTriggerResourceIds.map(
       (id) => ({

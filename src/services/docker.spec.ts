@@ -218,6 +218,7 @@ describe('DockerService', () => {
           },
         ],
         env: { FIRST_ENV: '😍', SECOND_ENV: undefined },
+        envFile: '/some/file',
         rm: true,
         network: 'someNetwork',
       });
@@ -240,6 +241,7 @@ describe('DockerService', () => {
       expect(actualArgs).toContain('--env SECOND_ENV');
       expect(actualArgs).toContain('--rm');
       expect(actualArgs).toContain('--network someNetwork');
+      expect(actualArgs).toContain('--env-file /some/file');
     });
   });
 

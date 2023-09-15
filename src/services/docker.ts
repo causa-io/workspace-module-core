@@ -305,6 +305,11 @@ export class DockerService {
       env?: Record<string, string | undefined>;
 
       /**
+       * The path to a file containing environment variables to pass to the container.
+       */
+      envFile?: string;
+
+      /**
        * Automatically removes the container when it exits.
        */
       rm?: boolean;
@@ -321,6 +326,7 @@ export class DockerService {
       workdir,
       mounts,
       env,
+      envFile,
       name,
       detach,
       publish,
@@ -351,6 +357,10 @@ export class DockerService {
       }
       args.splice(0, 0, '--env', envArg);
     });
+
+    if (envFile) {
+      args.splice(0, 0, '--env-file', envFile);
+    }
 
     if (rm) {
       args.splice(0, 0, '--rm');

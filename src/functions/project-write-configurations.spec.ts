@@ -77,18 +77,16 @@ describe('ProjectWriteConfigurations', () => {
         },
       },
     });
-    const actualFirstProjectConf = await readActualProjectConfiguration(
-      'my-first-project',
-    );
+    const actualFirstProjectConf =
+      await readActualProjectConfiguration('my-first-project');
     expect(actualFirstProjectConf).toEqual({
       workspace: { name: '🏷️' },
       someBaseConf: '🔧',
       project: { name: 'my-first-project', type: '🐳', language: '🐍' },
       someFirstProjectConf: '🥇',
     });
-    const actualSecondProjectConf = await readActualProjectConfiguration(
-      'my-second-project',
-    );
+    const actualSecondProjectConf =
+      await readActualProjectConfiguration('my-second-project');
     expect(actualSecondProjectConf).toEqual({
       workspace: { name: '🏷️' },
       someBaseConf: '🔧',
@@ -150,9 +148,8 @@ describe('ProjectWriteConfigurations', () => {
 
     await context.call(ProjectWriteConfigurations, {});
 
-    const actualFirstProjectConf = await readActualProjectConfiguration(
-      'my-project',
-    );
+    const actualFirstProjectConf =
+      await readActualProjectConfiguration('my-project');
     expect(actualFirstProjectConf).toEqual({
       workspace: { name: '🏷️' },
       project: { name: 'my-project', type: '🐳', language: '🐍' },

@@ -114,7 +114,7 @@ export class OpenApiGenerateSpecificationForWorkspace extends OpenApiGenerateSpe
 
     const globalSpecs = context
       .asConfiguration<OpenApiConfiguration>()
-      .get('openApi.global');
+      .get('openApi.global') as any;
     if (globalSpecs) {
       inputs.unshift({ oas: globalSpecs });
     }
@@ -124,6 +124,13 @@ export class OpenApiGenerateSpecificationForWorkspace extends OpenApiGenerateSpe
       throw new Error(
         `Could not merge OpenAPI specifications: '${result.message}'.`,
       );
+    }
+
+    const mergedSpecs = result.output;
+
+    // `openapi-merge` does not merge the `openapi` version property.
+    if (globalSpecs?.openapi) {
+      mergedSpecs.openapi = globalSpecs.openapi;
     }
 
     return result.output;

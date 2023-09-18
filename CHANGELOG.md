@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+Features:
+
+- Support overriding the OpenAPI version in the `openApi.global` document.
+- Support generating the list of OpenAPI servers from the list of environments.
+
 ## v0.15.0 (2023-09-15)
 
 Features:

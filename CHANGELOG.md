@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.16.0 (2023-09-18)
+
 Features:
 
 - Support overriding the OpenAPI version in the `openApi.global` document.

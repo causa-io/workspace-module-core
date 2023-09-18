@@ -121,4 +121,39 @@ describe('OpenApiGenerateDocumentationForWorkspace ', () => {
       },
     });
   });
+
+  it('should list servers from the environment configuration', async () => {
+    createContextWithMocks({
+      openApi: { serversFromEnvironmentConfiguration: 'api.url' },
+      environments: {
+        dev: {
+          name: '🚧',
+          configuration: { api: { url: 'http://localhost:8080' } },
+        },
+        prod: {
+          name: '🚀',
+          configuration: { api: { url: 'https://api.example.com' } },
+        },
+      },
+    });
+    const output = join(context.rootPath, 'openapi.yaml');
+
+    const actualResult = await context.call(OpenApiGenerateSpecification, {
+      output,
+    });
+
+    expect(actualResult).toEqual(output);
+    const actualMergedSpecification = load((await readFile(output)).toString());
+    expect(actualMergedSpecification).toEqual({
+      openapi: expect.any(String),
+      servers: [
+        { url: 'http://localhost:8080', description: '🚧' },
+        { url: 'https://api.example.com', description: '🚀' },
+      ],
+      paths: {
+        '/project1': { get: {} },
+        '/project2': { get: {} },
+      },
+    });
+  });
 });

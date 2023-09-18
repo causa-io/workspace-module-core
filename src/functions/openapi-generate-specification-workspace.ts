@@ -112,18 +112,40 @@ export class OpenApiGenerateSpecificationForWorkspace extends OpenApiGenerateSpe
   ): object {
     const inputs = specifications.map((spec) => ({ oas: spec as any }));
 
-    const globalSpecs = context
-      .asConfiguration<OpenApiConfiguration>()
-      .get('openApi.global');
-    if (globalSpecs) {
-      inputs.unshift({ oas: globalSpecs });
+    const openApiConf = context.asConfiguration<OpenApiConfiguration>();
+
+    const globalSpecs: any = openApiConf.get('openApi.global') ?? {};
+    const serversFromEnvironmentConfiguration = openApiConf.get(
+      'openApi.serversFromEnvironmentConfiguration',
+    );
+
+    if (serversFromEnvironmentConfiguration) {
+      globalSpecs.servers = Object.entries(
+        context.getOrThrow('environments'),
+      ).map(([key, environment]) => {
+        return {
+          description: environment.name,
+          url: context.getOrThrow(
+            `environments.${key}.configuration.${serversFromEnvironmentConfiguration}`,
+          ),
+        };
+      });
     }
+
+    inputs.unshift({ oas: globalSpecs });
 
     const result = merge(inputs);
     if (isErrorResult(result)) {
       throw new Error(
         `Could not merge OpenAPI specifications: '${result.message}'.`,
       );
+    }
+
+    const mergedSpecs = result.output;
+
+    // `openapi-merge` does not merge the `openapi` version property.
+    if (globalSpecs?.openapi) {
+      mergedSpecs.openapi = globalSpecs.openapi;
     }
 
     return result.output;

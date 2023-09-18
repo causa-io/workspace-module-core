@@ -1,4 +1,4 @@
-import { WorkspaceContext } from '@causa/workspace';
+import { BaseConfiguration, WorkspaceContext } from '@causa/workspace';
 import { NoImplementationFoundError } from '@causa/workspace/function-registry';
 import { createContext, registerMockFunction } from '@causa/workspace/testing';
 import { jest } from '@jest/globals';
@@ -10,15 +10,23 @@ import { OpenApiGenerateSpecification } from '../definitions/index.js';
 import { OpenApiGenerateSpecificationForWorkspace } from './openapi-generate-specification-workspace.js';
 
 describe('OpenApiGenerateDocumentationForWorkspace ', () => {
+  let rootPath: string;
   let context: WorkspaceContext;
 
   beforeEach(async () => {
-    const rootPath = await mkdtemp(join(tmpdir(), 'causa-tests-'));
+    rootPath = await mkdtemp(join(tmpdir(), 'causa-tests-'));
+    createContextWithMocks();
+  });
+
+  function createContextWithMocks(
+    configuration: Partial<BaseConfiguration> & Record<string, any> = {},
+  ) {
     ({ context } = createContext({
       rootPath,
       configuration: {
         workspace: { name: '🏷️' },
         openApi: { global: { info: { title: '🎉' } } },
+        ...configuration,
       },
       functions: [OpenApiGenerateSpecificationForWorkspace],
     }));
@@ -54,10 +62,10 @@ describe('OpenApiGenerateDocumentationForWorkspace ', () => {
 
       return cloned.context;
     });
-  });
+  }
 
   afterEach(async () => {
-    await rm(context.rootPath, { recursive: true, force: true });
+    await rm(rootPath, { recursive: true, force: true });
   });
 
   it('should not support generation for a specific project', async () => {
@@ -84,8 +92,64 @@ describe('OpenApiGenerateDocumentationForWorkspace ', () => {
     expect(actualResult).toEqual(output);
     const actualMergedSpecification = load((await readFile(output)).toString());
     expect(actualMergedSpecification).toEqual({
-      openapi: '3.0.3',
+      openapi: expect.any(String),
       info: { title: '🎉' },
+      paths: {
+        '/project1': { get: {} },
+        '/project2': { get: {} },
+      },
+    });
+  });
+
+  it('should use the OpenAPI version from the global configuration', async () => {
+    createContextWithMocks({
+      openApi: { global: { openapi: '3.1.0' } },
+    });
+    const output = join(context.rootPath, 'openapi.yaml');
+
+    const actualResult = await context.call(OpenApiGenerateSpecification, {
+      output,
+    });
+
+    expect(actualResult).toEqual(output);
+    const actualMergedSpecification = load((await readFile(output)).toString());
+    expect(actualMergedSpecification).toEqual({
+      openapi: '3.1.0',
+      paths: {
+        '/project1': { get: {} },
+        '/project2': { get: {} },
+      },
+    });
+  });
+
+  it('should list servers from the environment configuration', async () => {
+    createContextWithMocks({
+      openApi: { serversFromEnvironmentConfiguration: 'api.url' },
+      environments: {
+        dev: {
+          name: '🚧',
+          configuration: { api: { url: 'http://localhost:8080' } },
+        },
+        prod: {
+          name: '🚀',
+          configuration: { api: { url: 'https://api.example.com' } },
+        },
+      },
+    });
+    const output = join(context.rootPath, 'openapi.yaml');
+
+    const actualResult = await context.call(OpenApiGenerateSpecification, {
+      output,
+    });
+
+    expect(actualResult).toEqual(output);
+    const actualMergedSpecification = load((await readFile(output)).toString());
+    expect(actualMergedSpecification).toEqual({
+      openapi: expect.any(String),
+      servers: [
+        { url: 'http://localhost:8080', description: '🚧' },
+        { url: 'https://api.example.com', description: '🚀' },
+      ],
       paths: {
         '/project1': { get: {} },
         '/project2': { get: {} },

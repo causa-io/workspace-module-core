@@ -1,4 +1,22 @@
 /**
+ * The definition of a secret to pass to the Docker build command.
+ */
+export type BuildSecret =
+  | {
+      /**
+       * The source file for the secret.
+       */
+      readonly file: string;
+    }
+  | {
+      /**
+       * The value of the secret.
+       * In this case the value will be passed as an environment variable to the Docker command.
+       */
+      readonly value: string;
+    };
+
+/**
  * Configuration for service container projects.
  */
 export type ServiceContainerConfiguration = {
@@ -24,10 +42,22 @@ export type ServiceContainerConfiguration = {
     readonly platform?: string;
 
     /**
+     * The Dockerfile used to build the image for the service.
+     * Language-specific modules may provide a default value for this.
+     */
+    readonly buildFile?: string;
+
+    /**
      * Docker build arguments when building the image for the service.
      * Supports rendering.
      */
     readonly buildArgs?: Record<string, string>;
+
+    /**
+     * Docker build `--secret` arguments to pass when building the image for the service.
+     * Supports rendering.
+     */
+    readonly buildSecrets?: Record<string, BuildSecret>;
 
     /**
      * The endpoints exposed by the service.

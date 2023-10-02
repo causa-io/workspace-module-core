@@ -51,6 +51,7 @@ describe('DockerService', () => {
         file: 'MyDockerfile',
         platform: 'powerpc',
         buildArgs: { SOME_ARG: 'VALUE1', SOME_OTHER_ARG: undefined },
+        secrets: { secret1: { source: '/some/file' }, secret2: { env: '🗝️' } },
         tags: ['tag1', 'tag2'],
       });
 
@@ -64,6 +65,8 @@ describe('DockerService', () => {
       expect(actualArgs).toContain('--platform powerpc');
       expect(actualArgs).toContain('--build-arg SOME_ARG=VALUE1');
       expect(actualArgs).toContain('--build-arg SOME_OTHER_ARG');
+      expect(actualArgs).toContain('--secret id=secret1,source=/some/file');
+      expect(actualArgs).toContain('--secret id=secret2,env=🗝️');
       expect(actualArgs).toContain('--tag tag1');
       expect(actualArgs).toContain('--tag tag2');
     });

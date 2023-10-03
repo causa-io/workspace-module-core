@@ -32,6 +32,9 @@ export class ProjectPublishArtefactForAll extends ProjectPublishArtefact {
         tag = await gitService.getCurrentShortSha();
         break;
     }
+    if (this.tagPrefix) {
+      tag = `${this.tagPrefix}${tag}`;
+    }
 
     const destination = await context.call(ProjectGetArtefactDestination, {
       tag,

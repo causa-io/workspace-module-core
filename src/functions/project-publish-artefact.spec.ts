@@ -99,7 +99,7 @@ describe('ProjectPublishArtefactForAll', () => {
   });
 
   it('should use the semantic version', async () => {
-    jest.spyOn(gitService, 'getCurrentShortSha').mockResolvedValueOnce('abcd');
+    jest.spyOn(gitService, 'getCurrentShortSha');
 
     const actualDestination = await context.call(ProjectPublishArtefact, {
       tag: ProjectPublishArtefact.TagFormatSemantic,
@@ -110,6 +110,23 @@ describe('ProjectPublishArtefactForAll', () => {
     expect(pushArtefactMock).toHaveBeenCalledExactlyOnceWith(context, {
       artefact: '🍱',
       destination: 'dst/🔖',
+      overwrite: undefined,
+    });
+  });
+
+  it('should add a prefix to the tag', async () => {
+    jest.spyOn(gitService, 'getCurrentShortSha');
+
+    const actualDestination = await context.call(ProjectPublishArtefact, {
+      tag: ProjectPublishArtefact.TagFormatSemantic,
+      tagPrefix: 'v',
+    });
+
+    expect(actualDestination).toEqual('dst/v🔖');
+    expect(gitService.getCurrentShortSha).not.toHaveBeenCalled();
+    expect(pushArtefactMock).toHaveBeenCalledExactlyOnceWith(context, {
+      artefact: '🍱',
+      destination: 'dst/v🔖',
       overwrite: undefined,
     });
   });

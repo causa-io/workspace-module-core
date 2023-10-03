@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+Features:
+
+- Define the `serviceContainer.buildFile` and `serviceContainer.buildSecrets` configuration parameters.
+- Implement the `ServiceContainerBuilderService`.
+
 ## v0.16.0 (2023-09-18)
 
 Features:

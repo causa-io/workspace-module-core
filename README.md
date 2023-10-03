@@ -71,6 +71,7 @@ This module implements some [services](./src/services/) used by itself, but whic
 - `GitService`: Runs `git` commands using the `ProcessService`.
 - `DockerService`: Runs `docker` commands using the `ProcessService`.
 - `DockerEmulatorService`: Provides a normalized way to starting and stopping containerized emulators. Also provides a way to wait for an emulator exposing an HTTP endpoint.
+- `ServiceContainerBuilderService`: Provides the base logic to build service container images (using the `DockerService`). Language-specific modules can use this service and customize build parameters.
 
 ## 🧱 Infrastructure processors
 

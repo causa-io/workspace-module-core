@@ -132,11 +132,25 @@ export abstract class ProjectPublishArtefact extends WorkspaceFunction<
   @CliOption({
     flags: '-t, --tag <tag>',
     description: `The tag used to determine the remote destination for the artefact.
+This can be any string, or one of the following:
 '${ProjectPublishArtefact.TagFormatSemantic}' for the current project version.
-'${ProjectPublishArtefact.TagFormatShortSha}' for the current Git short SHA.`,
+'${ProjectPublishArtefact.TagFormatShortSha}' for the current Git short SHA (default).`,
   })
   @AllowMissing()
   readonly tag?: string;
+
+  /**
+   * A prefix to add to the tag being published.
+   * This is only useful when the tag is automatically generated and is not yet known when calling the function.
+   */
+  @IsString()
+  @CliOption({
+    flags: '--tagPrefix <tagPrefix>',
+    description: `A prefix to add to the tag being published.
+This is mostly useful when using one of the predefined tag formats.`,
+  })
+  @AllowMissing()
+  readonly tagPrefix?: string;
 
   /**
    * Whether the remote artefact should be overwritten.

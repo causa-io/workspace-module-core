@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.18.0 (2023-10-03)
+
 Features:
 
 - Allow specifying a prefix for the tag passed to `ProjectPublishArtefact` (`--tagPrefix` when using the CLI).

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.17.0 (2023-10-03)
+
 Features:
 
 - Define the `serviceContainer.buildFile` and `serviceContainer.buildSecrets` configuration parameters.

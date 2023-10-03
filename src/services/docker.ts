@@ -118,6 +118,26 @@ export class DockerService {
       buildArgs?: Record<string, string | undefined>;
 
       /**
+       * Secrets passed to the Dockerfile.
+       * Keys are secret IDs and must be provided, contrary to the Docker command line.
+       */
+      secrets?: Record<
+        string,
+        | {
+            /**
+             * The secret filename.
+             */
+            source: string;
+          }
+        | {
+            /**
+             * The secret environment variable.
+             */
+            env: string;
+          }
+      >;
+
+      /**
        * A list of tags to assign to the image.
        */
       tags?: string[];
@@ -143,6 +163,19 @@ export class DockerService {
           '--build-arg',
           value === undefined ? key : `${key}=${value}`,
         ]),
+      );
+    }
+
+    if (options.secrets) {
+      args.push(
+        ...Object.entries(options.secrets).flatMap(([id, secret]) => {
+          return [
+            '--secret',
+            'source' in secret
+              ? `id=${id},source=${secret.source}`
+              : `id=${id},env=${secret.env}`,
+          ];
+        }),
       );
     }
 

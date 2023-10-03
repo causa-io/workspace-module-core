@@ -14,3 +14,4 @@ export {
   SpawnOptions,
   SpawnedProcessResult,
 } from './process.js';
+export { ServiceContainerBuilderService } from './service-container-builder.js';

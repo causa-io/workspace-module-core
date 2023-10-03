@@ -4,4 +4,7 @@ export { EventsConfiguration } from './events.js';
 export { InfrastructureConfiguration } from './infrastructure-project.js';
 export { OpenApiConfiguration } from './openapi.js';
 export { ServerlessFunctionsConfiguration } from './serverless-functions-project.js';
-export { ServiceContainerConfiguration } from './service-container-project.js';
+export {
+  BuildSecret,
+  ServiceContainerConfiguration,
+} from './service-container-project.js';

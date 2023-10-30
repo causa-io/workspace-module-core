@@ -11,8 +11,8 @@ project:
 
 causa:
   modules:
-    '@causa/workspace-core': '>= 0.13.0'
-    '@causa/workspace-typescript': '>= 0.4.0'
+    '@causa/workspace-core': '>= 0.18.0'
+    '@causa/workspace-typescript': '>= 0.6.0'
 
 javascript:
   dependencies:

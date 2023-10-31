@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.19.0 (2023-10-31)
+
 Breaking changes:
 
 - Language-specific modules are no longer expected to implement `EventTopicGenerateCode` directly, at least for JSONSchema topic definitions. `EventTopicGenerateCode` is now implemented by this module using [quicktype](https://github.com/glideapps/quicktype). Language modules should implement `EventTopicMakeCodeGenerationTargetLanguage` instead and return a quicktype `TargetLanguage`.

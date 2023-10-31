@@ -7,6 +7,7 @@ import {
 import { WorkspaceFunction } from '@causa/workspace';
 import { AllowMissing } from '@causa/workspace/validation';
 import { IsBoolean, IsObject, IsString } from 'class-validator';
+import { TargetLanguageWithWriter } from '../code-generation/index.js';
 
 /**
  * The definition for an event topic.
@@ -107,6 +108,14 @@ Make sure the project correctly defines its triggers, inputs, and outputs to hav
 })
 export abstract class EventTopicGenerateCodeReferencedInProject extends WorkspaceFunction<
   Promise<string[]>
+> {}
+
+/**
+ * Returns the {@link TargetLanguageWithWriter} for the programming language used in the current context, which can be
+ * passed to `quicktype` to generate code from event (JSON) schemas.
+ */
+export abstract class EventTopicMakeCodeGenerationTargetLanguage extends WorkspaceFunction<
+  Promise<TargetLanguageWithWriter>
 > {}
 
 /**

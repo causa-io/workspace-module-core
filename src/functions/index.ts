@@ -11,6 +11,7 @@ import {
 import {
   EventTopicBackfillForAll,
   EventTopicCleanBackfillForAll,
+  EventTopicGenerateCodeForJsonSchema,
   EventTopicGenerateCodeReferencedInProjectForAll,
   EventTopicListForAll,
   EventTopicListReferencedInProjectForServerlessFunctions,
@@ -39,6 +40,7 @@ export function registerFunctions(context: ModuleRegistrationContext) {
     EnvironmentPrepareForAll,
     EventTopicBackfillForAll,
     EventTopicCleanBackfillForAll,
+    EventTopicGenerateCodeForJsonSchema,
     EventTopicGenerateCodeReferencedInProjectForAll,
     EventTopicListReferencedInProjectForServerlessFunctions,
     EventTopicListReferencedInProjectForServiceContainer,

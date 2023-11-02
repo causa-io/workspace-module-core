@@ -124,15 +124,21 @@ describe('EventTopicGenerateCodeForJsonSchema', () => {
     await writeFile(
       schemaFilePath,
       JSON.stringify({
-        title: 'MyDummyObject',
-        type: 'object',
-        causa: { someObjAttribute: '🎉' },
-        properties: {
-          myProp: {
-            type: 'string',
-            causa: { somePropAttribute: '🔧' },
+        // Having a union type here helps test `CausaTypeAttributeKind.combine`, which should propagate attributes.
+        oneOf: [
+          { type: 'null' },
+          {
+            title: 'MyDummyObject',
+            type: 'object',
+            causa: { someObjAttribute: '🎉' },
+            properties: {
+              myProp: {
+                type: 'string',
+                causa: { somePropAttribute: '🔧' },
+              },
+            },
           },
-        },
+        ],
       }),
     );
     const definitions: EventTopicDefinition[] = [

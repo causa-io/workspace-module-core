@@ -28,7 +28,11 @@ export class MissingEventTopicDefinitionsError extends Error {
  */
 export class EventTopicGenerateCodeReferencedInProjectForAll extends EventTopicGenerateCodeReferencedInProject {
   async _call(context: WorkspaceContext): Promise<string[]> {
-    context.getProjectPathOrThrow();
+    const projectPath = context.getProjectPathOrThrow();
+
+    context.logger.info(
+      `🔨 Generating code for event topics referenced by project at path '${projectPath}'.`,
+    );
 
     const topicDefinitions = await context.call(EventTopicList, {});
     const existingTopicIds = new Set(topicDefinitions.map((d) => d.id));

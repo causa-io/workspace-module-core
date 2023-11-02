@@ -64,6 +64,7 @@ export class EventTopicGenerateCodeForJsonSchema extends EventTopicGenerateCode 
     const result = await quicktype({ inputData, lang });
     const outputLines = result.lines.join('\n');
 
+    context.logger.info('🔨 Writing generated code to output file.');
     await lang.writeFile(outputLines);
   }
 

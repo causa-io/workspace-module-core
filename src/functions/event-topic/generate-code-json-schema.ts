@@ -31,14 +31,14 @@ export class EventTopicGenerateCodeForJsonSchema extends EventTopicGenerateCode 
       causaJsonSchemaAttributeProducer,
     ]);
 
-    const sources: JSONSchemaSourceData[] = await Promise.all(
-      this.definitions.map(async (definition) => ({
+    const sources: JSONSchemaSourceData[] = this.definitions.map(
+      (definition) => ({
         // There is an inconsistent behavior in naming when passing a single schema file to quicktype.
         // Setting the name as `undefined` ensures the `title` JSONSchema attribute is used as the class name for the
         // top-level type in the schema.
         name: undefined as any,
         uris: [definition.schemaFilePath],
-      })),
+      }),
     );
 
     for (const source of sources) {
@@ -64,6 +64,7 @@ export class EventTopicGenerateCodeForJsonSchema extends EventTopicGenerateCode 
     const result = await quicktype({ inputData, lang });
     const outputLines = result.lines.join('\n');
 
+    context.logger.info('🔨 Writing generated code to output file.');
     await lang.writeFile(outputLines);
   }
 

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+Fixes:
+
+- Handle Causa attributes being combined with a null type during JSONSchema-based code generation.
+
 ## v0.19.0 (2023-10-31)
 
 Breaking changes:

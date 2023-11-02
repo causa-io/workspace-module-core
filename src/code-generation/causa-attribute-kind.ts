@@ -33,11 +33,15 @@ export class CausaTypeAttributeKind extends TypeAttributeKind<CausaAttribute> {
     super('causa');
   }
 
-  combine(): CausaAttribute | undefined {
-    return undefined;
+  combine(attributes: CausaAttribute[]): CausaAttribute | undefined {
+    // This handles unions of the class (object) type with the `null` type.
+    // This is counter-intuitive because `null` is not an object type and won't have any attributes.
+    // However tests prove this is needed.
+    return attributes[0];
   }
 
   makeInferred(): CausaAttribute | undefined {
+    // Trying to handle the union with a `null` type here does not work, or at least not in all cases.
     return undefined;
   }
 

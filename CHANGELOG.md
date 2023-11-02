@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.19.1 (2023-11-02)
+
 Fixes:
 
 - Handle Causa attributes being combined with a null type during JSONSchema-based code generation.

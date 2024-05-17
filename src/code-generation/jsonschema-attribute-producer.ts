@@ -1,3 +1,4 @@
+import 'quicktype-core';
 import { JSONSchemaAttributeProducer } from 'quicktype-core/dist/input/JSONSchemaInput.js';
 import { causaTypeAttributeKind } from './causa-attribute-kind.js';
 

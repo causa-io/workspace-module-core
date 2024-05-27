@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+Breaking change:
+
+- Ignore symbolic links in the `JsonFilesEventSource`.
+
 ## v0.20.0 (2024-05-17)
 
 Breaking change:

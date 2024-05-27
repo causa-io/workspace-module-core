@@ -155,7 +155,10 @@ export class JsonFilesEventSource implements BackfillEventsSource {
       throw new Error('Filtering JSON events from files is not supported.');
     }
 
-    const files = await globby(match.groups.glob, { onlyFiles: true });
+    const files = await globby(match.groups.glob, {
+      onlyFiles: true,
+      followSymbolicLinks: false,
+    });
 
     return new JsonFilesEventSource(context, files.sort());
   }

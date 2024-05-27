@@ -1,7 +1,7 @@
 import { WorkspaceContext } from '@causa/workspace';
 import { createContext } from '@causa/workspace/testing';
 import { jest } from '@jest/globals';
-import { mkdtemp, rm, writeFile } from 'fs/promises';
+import { mkdtemp, rm, symlink, writeFile } from 'fs/promises';
 import 'jest-extended';
 import { resolve } from 'path';
 import { BackfillEvent } from './event.js';
@@ -46,12 +46,13 @@ describe('JsonFilesEventSource', () => {
       );
     });
 
-    it('should initialize the source', async () => {
+    it('should initialize the source and ignore symlinks', async () => {
       const file1 = resolve(tmpDir, 'file1.json');
       const file2 = resolve(tmpDir, 'file2.json');
       await writeFile(file1, '1️⃣');
       await writeFile(file2, '2️⃣');
       await writeFile(resolve(tmpDir, 'file3.txt'), '❌');
+      await symlink(file1, resolve(tmpDir, 'symlink.json'));
 
       const actualSource = await JsonFilesEventSource.fromSourceAndFilter(
         context,

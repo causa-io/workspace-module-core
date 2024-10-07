@@ -24,6 +24,7 @@ import {
 import { OpenApiGenerateSpecificationForWorkspace } from './openapi/index.js';
 import {
   ProjectDependenciesUpdateAndTestForAll,
+  ProjectDiffForAll,
   ProjectInitForWorkspace,
   ProjectPublishArtefactForAll,
   ProjectPushArtefactForServiceContainer,
@@ -49,6 +50,7 @@ export function registerFunctions(context: ModuleRegistrationContext) {
     InfrastructureProcessAndPrepareForAll,
     OpenApiGenerateSpecificationForWorkspace,
     ProjectDependenciesUpdateAndTestForAll,
+    ProjectDiffForAll,
     ProjectInitForWorkspace,
     ProjectPublishArtefactForAll,
     ProjectPushArtefactForServiceContainer,

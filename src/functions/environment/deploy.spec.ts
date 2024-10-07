@@ -34,7 +34,7 @@ describe('EnvironmentDeployForAll', () => {
     processAndDeployMock = registerMockFunction(
       functionRegistry,
       InfrastructureProcessAndDeploy,
-      async () => {}, // eslint-disable-line @typescript-eslint/no-empty-function
+      async () => {},
     );
     jest.spyOn(context, 'clone').mockResolvedValue(context);
   });

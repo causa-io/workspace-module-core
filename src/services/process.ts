@@ -156,9 +156,9 @@ export class ProcessService {
     const cwd = options.workingDirectory ?? this.defaultWorkingDirectory;
     const logging = options.logging !== undefined ? options.logging : 'debug';
     const stdoutLogLevel =
-      typeof logging === 'string' ? logging : logging?.stdout ?? null;
+      typeof logging === 'string' ? logging : (logging?.stdout ?? null);
     const stderrLogLevel =
-      typeof logging === 'string' ? logging : logging?.stderr ?? null;
+      typeof logging === 'string' ? logging : (logging?.stderr ?? null);
     const captureStdout = options.capture?.stdout ?? false;
     const captureStderr = options.capture?.stderr ?? false;
     const shouldPipeStdio =

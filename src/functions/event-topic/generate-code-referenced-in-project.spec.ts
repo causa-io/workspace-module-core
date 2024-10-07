@@ -61,7 +61,7 @@ describe('EventTopicGenerateCodeReferencedInProjectForAll', () => {
     generateCodeMock = registerMockFunction(
       functionRegistry,
       EventTopicGenerateCode,
-      async () => {}, // eslint-disable-line @typescript-eslint/no-empty-function
+      async () => {},
     );
   });
 

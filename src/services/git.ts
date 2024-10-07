@@ -59,6 +59,30 @@ export class GitService {
   }
 
   /**
+   * Gets the root path of the Git repository.
+   * Defaults to searching from the current working directory.
+   *
+   * @param options Options for the operation.
+   * @returns The root path of the Git repository.
+   */
+  async getRepositoryRootPath(
+    options: {
+      /**
+       * The directory to search from, assumed to be part of a repository.
+       */
+      directory?: string;
+    } = {},
+  ): Promise<string> {
+    const result = await this.git('rev-parse', ['--show-toplevel'], {
+      workingDirectory: options.directory,
+      capture: { stdout: true },
+      logging: null,
+    });
+
+    return result.stdout?.trim() ?? '';
+  }
+
+  /**
    * Runs `git diff` with the given options.
    *
    * @param options Options for the diff.

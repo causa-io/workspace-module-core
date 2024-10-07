@@ -10,10 +10,10 @@ import {
  */
 type GitDiffOptions = {
   /**
-   * The commit to compare to. This can also accept several commits.
+   * The commits to compare.
    * See https://git-scm.com/docs/git-diff for more information.
    */
-  commit?: string;
+  commits?: string[];
 
   /**
    * Lists the staged changes.
@@ -91,7 +91,7 @@ export class GitService {
   async diff(
     options: GitDiffOptions & SpawnOptions = {},
   ): Promise<SpawnedProcessResult> {
-    const { cached, commit, nameOnly, paths, ...spawnOptions } = options;
+    const { cached, commits, nameOnly, paths, ...spawnOptions } = options;
 
     const args: string[] = [];
     if (cached) {
@@ -101,8 +101,8 @@ export class GitService {
       args.push('--name-only');
     }
     // This should be placed after all other options...
-    if (commit) {
-      args.push(commit);
+    if (commits) {
+      args.push(...commits);
     }
     // Except paths, placed after a separator.
     if (paths && paths.length > 0) {

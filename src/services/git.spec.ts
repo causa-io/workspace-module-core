@@ -87,7 +87,7 @@ describe('GitService', () => {
         .mockResolvedValueOnce(expectedResult);
 
       const actualResult = await service.diff({
-        commit: 'abcd',
+        commits: ['abcd'],
         cached: true,
         nameOnly: true,
         paths: ['a', 'b'],
@@ -112,7 +112,7 @@ describe('GitService', () => {
         .mockResolvedValueOnce({ code: 0, stdout: expectedDiff });
 
       const actualDiff = await service.filesDiff({
-        commit: 'abcd..efgh',
+        commits: ['abcd', 'efgh'],
         cached: true,
         paths: ['a', 'b'],
       });
@@ -123,7 +123,7 @@ describe('GitService', () => {
       expect(actualCommand).toEqual('diff');
       expect(actualArgs).toContain('--name-only');
       expect(actualArgs).toContain('--cached');
-      expect(actualArgs).toEndWith(' abcd..efgh -- a b');
+      expect(actualArgs).toEndWith(' abcd efgh -- a b');
       expect(options).toEqual({ capture: { stdout: true }, logging: null });
     });
   });

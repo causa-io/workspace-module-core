@@ -10,10 +10,10 @@ import {
  */
 type GitDiffOptions = {
   /**
-   * The commit to compare to. This can also accept several commits.
+   * The commits to compare.
    * See https://git-scm.com/docs/git-diff for more information.
    */
-  commit?: string;
+  commits?: string[];
 
   /**
    * Lists the staged changes.
@@ -59,6 +59,30 @@ export class GitService {
   }
 
   /**
+   * Gets the root path of the Git repository.
+   * Defaults to searching from the current working directory.
+   *
+   * @param options Options for the operation.
+   * @returns The root path of the Git repository.
+   */
+  async getRepositoryRootPath(
+    options: {
+      /**
+       * The directory to search from, assumed to be part of a repository.
+       */
+      directory?: string;
+    } = {},
+  ): Promise<string> {
+    const result = await this.git('rev-parse', ['--show-toplevel'], {
+      workingDirectory: options.directory,
+      capture: { stdout: true },
+      logging: null,
+    });
+
+    return result.stdout?.trim() ?? '';
+  }
+
+  /**
    * Runs `git diff` with the given options.
    *
    * @param options Options for the diff.
@@ -67,7 +91,7 @@ export class GitService {
   async diff(
     options: GitDiffOptions & SpawnOptions = {},
   ): Promise<SpawnedProcessResult> {
-    const { cached, commit, nameOnly, paths, ...spawnOptions } = options;
+    const { cached, commits, nameOnly, paths, ...spawnOptions } = options;
 
     const args: string[] = [];
     if (cached) {
@@ -77,8 +101,8 @@ export class GitService {
       args.push('--name-only');
     }
     // This should be placed after all other options...
-    if (commit) {
-      args.push(commit);
+    if (commits) {
+      args.push(...commits);
     }
     // Except paths, placed after a separator.
     if (paths && paths.length > 0) {

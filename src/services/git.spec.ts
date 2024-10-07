@@ -43,6 +43,42 @@ describe('GitService', () => {
     });
   });
 
+  describe('getRepositoryRootPath', () => {
+    it('should call git rev-parse', async () => {
+      const expectedRootPath = '/root/dir';
+      jest
+        .spyOn(service, 'git')
+        .mockResolvedValueOnce({ code: 0, stdout: `${expectedRootPath}\n` });
+
+      const actualRootPath = await service.getRepositoryRootPath();
+
+      expect(actualRootPath).toEqual(expectedRootPath);
+      expect(service.git).toHaveBeenCalledExactlyOnceWith(
+        'rev-parse',
+        ['--show-toplevel'],
+        expect.anything(),
+      );
+    });
+
+    it('should run from the specified directory', async () => {
+      const expectedRootPath = '/root/dir';
+      jest
+        .spyOn(service, 'git')
+        .mockResolvedValueOnce({ code: 0, stdout: `${expectedRootPath}\n` });
+
+      const actualRootPath = await service.getRepositoryRootPath({
+        directory: '/some/other/dir',
+      });
+
+      expect(actualRootPath).toEqual(expectedRootPath);
+      expect(service.git).toHaveBeenCalledExactlyOnceWith(
+        'rev-parse',
+        ['--show-toplevel'],
+        expect.objectContaining({ workingDirectory: '/some/other/dir' }),
+      );
+    });
+  });
+
   describe('diff', () => {
     it('should call git diff', async () => {
       const expectedResult: SpawnedProcessResult = { code: 0, stdout: '' };
@@ -51,7 +87,7 @@ describe('GitService', () => {
         .mockResolvedValueOnce(expectedResult);
 
       const actualResult = await service.diff({
-        commit: 'abcd',
+        commits: ['abcd'],
         cached: true,
         nameOnly: true,
         paths: ['a', 'b'],
@@ -76,7 +112,7 @@ describe('GitService', () => {
         .mockResolvedValueOnce({ code: 0, stdout: expectedDiff });
 
       const actualDiff = await service.filesDiff({
-        commit: 'abcd..efgh',
+        commits: ['abcd', 'efgh'],
         cached: true,
         paths: ['a', 'b'],
       });
@@ -87,7 +123,7 @@ describe('GitService', () => {
       expect(actualCommand).toEqual('diff');
       expect(actualArgs).toContain('--name-only');
       expect(actualArgs).toContain('--cached');
-      expect(actualArgs).toEndWith(' abcd..efgh -- a b');
+      expect(actualArgs).toEndWith(' abcd efgh -- a b');
       expect(options).toEqual({ capture: { stdout: true }, logging: null });
     });
   });

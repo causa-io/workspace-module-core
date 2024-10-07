@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.22.0 (2024-10-07)
+
 Breaking change:
 
 - Change `GitService.diff` option to `commits`, to explicitly handle several commits.

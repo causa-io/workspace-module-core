@@ -1,7 +1,7 @@
 import { WorkspaceContext } from '@causa/workspace';
 import axios from 'axios';
-import { Logger } from 'pino';
-import { DockerContainerPublish, DockerService } from './docker.js';
+import type { Logger } from 'pino';
+import { type DockerContainerPublish, DockerService } from './docker.js';
 
 /**
  * A service that can be used to start and stop containerized emulators.

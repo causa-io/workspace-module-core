@@ -1,11 +1,11 @@
 import { WorkspaceContext } from '@causa/workspace';
-import { Logger } from 'pino';
-import { DockerConfiguration } from '../configurations/index.js';
+import type { Logger } from 'pino';
+import type { DockerConfiguration } from '../configurations/index.js';
 import {
   ProcessService,
   ProcessServiceExitCodeError,
-  SpawnOptions,
-  SpawnedProcessResult,
+  type SpawnOptions,
+  type SpawnedProcessResult,
 } from './process.js';
 
 /**

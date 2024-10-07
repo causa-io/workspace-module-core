@@ -1,8 +1,8 @@
 import { WorkspaceContext } from '@causa/workspace';
 import { FunctionRegistry } from '@causa/workspace/function-registry';
 import {
-  WorkspaceFunctionCallMock,
-  WorkspaceFunctionMockImplementation,
+  type WorkspaceFunctionCallMock,
+  type WorkspaceFunctionMockImplementation,
   createContext,
   registerMockFunction,
 } from '@causa/workspace/testing';

@@ -2,7 +2,7 @@ import { EnvironmentNotSetError, WorkspaceContext } from '@causa/workspace';
 import { ConfigurationValueNotFoundError } from '@causa/workspace/configuration';
 import { FunctionRegistry } from '@causa/workspace/function-registry';
 import {
-  WorkspaceFunctionCallMock,
+  type WorkspaceFunctionCallMock,
   createContext,
   registerMockFunction,
 } from '@causa/workspace/testing';

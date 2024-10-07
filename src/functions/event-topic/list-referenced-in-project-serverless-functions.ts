@@ -1,9 +1,9 @@
 import { WorkspaceContext } from '@causa/workspace';
 import {
   EventTopicListReferencedInProject,
-  ReferencedEventTopics,
+  type ReferencedEventTopics,
 } from '../../definitions/index.js';
-import { ServerlessFunctionsConfiguration } from '../../index.js';
+import type { ServerlessFunctionsConfiguration } from '../../index.js';
 
 /**
  * Implements the {@link EventTopicListReferencedInProject} function for serverless functions.

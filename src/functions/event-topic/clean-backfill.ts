@@ -1,7 +1,7 @@
 import { WorkspaceContext } from '@causa/workspace';
 import { readFile } from 'fs/promises';
 import {
-  BackfillTemporaryData,
+  type BackfillTemporaryData,
   EventTopicBrokerDeleteTopic,
   EventTopicBrokerDeleteTriggerResource,
   EventTopicCleanBackfill,

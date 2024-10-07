@@ -2,7 +2,7 @@ import {
   CliArgument,
   CliCommand,
   CliOption,
-  ParentCliCommandDefinition,
+  type ParentCliCommandDefinition,
 } from '@causa/cli';
 import { WorkspaceFunction } from '@causa/workspace';
 import { AllowMissing } from '@causa/workspace/validation';
@@ -10,7 +10,7 @@ import { IsBoolean, IsString } from 'class-validator';
 import {
   InfrastructureDeploy,
   InfrastructurePrepare,
-  PrepareResult,
+  type PrepareResult,
 } from './infrastructure.js';
 
 /**

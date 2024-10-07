@@ -3,7 +3,7 @@ import { wrapInfrastructureOperation } from '../../context-utils.js';
 import {
   InfrastructurePrepare,
   InfrastructureProcessAndPrepare,
-  PrepareResult,
+  type PrepareResult,
 } from '../../definitions/index.js';
 
 /**

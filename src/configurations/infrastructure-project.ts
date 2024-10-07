@@ -1,4 +1,4 @@
-import { ProcessorInstruction } from '@causa/workspace';
+import type { ProcessorInstruction } from '@causa/workspace';
 
 /**
  * Configuration for infrastructure projects.

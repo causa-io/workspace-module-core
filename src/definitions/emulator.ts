@@ -1,7 +1,7 @@
 import {
   CliArgument,
   CliCommand,
-  ParentCliCommandDefinition,
+  type ParentCliCommandDefinition,
 } from '@causa/cli';
 import { WorkspaceFunction } from '@causa/workspace';
 import { AllowMissing } from '@causa/workspace/validation';

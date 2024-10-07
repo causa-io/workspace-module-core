@@ -1,7 +1,7 @@
 import { WorkspaceContext } from '@causa/workspace';
 import { randomBytes } from 'crypto';
 import { resolve } from 'path';
-import {
+import type {
   BuildSecret,
   ServiceContainerConfiguration,
 } from '../configurations/index.js';

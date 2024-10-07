@@ -2,12 +2,12 @@ import {
   CliArgument,
   CliCommand,
   CliOption,
-  ParentCliCommandDefinition,
+  type ParentCliCommandDefinition,
 } from '@causa/cli';
 import { WorkspaceFunction } from '@causa/workspace';
 import { AllowMissing } from '@causa/workspace/validation';
 import { IsBoolean, IsObject, IsString } from 'class-validator';
-import { TargetLanguageWithWriter } from '../code-generation/index.js';
+import type { TargetLanguageWithWriter } from '../code-generation/index.js';
 
 /**
  * The definition for an event topic.

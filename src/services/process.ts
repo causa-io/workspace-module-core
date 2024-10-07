@@ -1,6 +1,6 @@
 import { WorkspaceContext } from '@causa/workspace';
 import { ChildProcess, spawn } from 'child_process';
-import { Level, Logger } from 'pino';
+import type { Level, Logger } from 'pino';
 import { Readable } from 'stream';
 
 /**

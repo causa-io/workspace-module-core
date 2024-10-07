@@ -1,6 +1,6 @@
 import { WorkspaceContext } from '@causa/workspace';
 import { join } from 'path';
-import { InfrastructureConfiguration } from './configurations/index.js';
+import type { InfrastructureConfiguration } from './configurations/index.js';
 
 /**
  * Returns a context configured with the environment project.

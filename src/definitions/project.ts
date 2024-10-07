@@ -1,4 +1,8 @@
-import { CliCommand, CliOption, ParentCliCommandDefinition } from '@causa/cli';
+import {
+  CliCommand,
+  CliOption,
+  type ParentCliCommandDefinition,
+} from '@causa/cli';
 import { WorkspaceFunction } from '@causa/workspace';
 import { AllowMissing } from '@causa/workspace/validation';
 import { IsBoolean, IsString } from 'class-validator';

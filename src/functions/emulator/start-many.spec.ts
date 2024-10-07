@@ -2,11 +2,11 @@ import { WorkspaceContext } from '@causa/workspace';
 import { createContext } from '@causa/workspace/testing';
 import { jest } from '@jest/globals';
 import 'jest-extended';
-import { LogFn } from 'pino';
+import type { LogFn } from 'pino';
 import {
   EmulatorStart,
   EmulatorStartMany,
-  EmulatorStartResult,
+  type EmulatorStartResult,
 } from '../../definitions/index.js';
 import { EmulatorStartManyForAll } from './start-many.js';
 

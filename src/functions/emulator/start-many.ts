@@ -3,7 +3,7 @@ import { NoImplementationFoundError } from '@causa/workspace/function-registry';
 import {
   EmulatorStart,
   EmulatorStartMany,
-  EmulatorStartManyResult,
+  type EmulatorStartManyResult,
 } from '../../definitions/index.js';
 
 /**

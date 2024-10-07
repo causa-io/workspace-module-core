@@ -2,7 +2,7 @@ import { WorkspaceContext } from '@causa/workspace';
 import { randomBytes } from 'crypto';
 import { writeFile } from 'fs/promises';
 import {
-  BackfillTemporaryData,
+  type BackfillTemporaryData,
   EventTopicBackfill,
   EventTopicBrokerCreateTopic,
   EventTopicBrokerCreateTrigger,

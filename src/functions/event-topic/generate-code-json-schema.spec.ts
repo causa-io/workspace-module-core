@@ -13,17 +13,17 @@ import {
   ConvenienceRenderer,
   Namer,
   Option,
-  RenderContext,
+  type RenderContext,
   TargetLanguage,
   funPrefixNamer,
 } from 'quicktype-core';
 import { Renderer } from 'quicktype-core/dist/Renderer.js';
 import {
-  TargetLanguageWithWriter,
+  type TargetLanguageWithWriter,
   causaTypeAttributeKind,
 } from '../../code-generation/index.js';
 import {
-  EventTopicDefinition,
+  type EventTopicDefinition,
   EventTopicGenerateCode,
   EventTopicMakeCodeGenerationTargetLanguage,
 } from '../../definitions/index.js';

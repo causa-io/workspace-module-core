@@ -3,11 +3,11 @@ import {
   FetchingJSONSchemaStore,
   InputData,
   JSONSchemaInput,
-  JSONSchemaSourceData,
+  type JSONSchemaSourceData,
   quicktype,
 } from 'quicktype-core';
 import { causaJsonSchemaAttributeProducer } from '../../code-generation/index.js';
-import { EventsConfiguration } from '../../configurations/index.js';
+import type { EventsConfiguration } from '../../configurations/index.js';
 import {
   EventTopicGenerateCode,
   EventTopicMakeCodeGenerationTargetLanguage,

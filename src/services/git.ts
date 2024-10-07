@@ -1,8 +1,8 @@
 import { WorkspaceContext } from '@causa/workspace';
 import {
   ProcessService,
-  SpawnOptions,
-  SpawnedProcessResult,
+  type SpawnOptions,
+  type SpawnedProcessResult,
 } from './process.js';
 
 /**

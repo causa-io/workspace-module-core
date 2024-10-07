@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+Breaking change:
+
+- Change `GitService.diff` option to `commits`, to explicitly handle several commits.
+
+Features:
+
+- Implement `GitService.getRepositoryRootPath`.
+
 ## v0.21.0 (2024-05-27)
 
 Breaking change:

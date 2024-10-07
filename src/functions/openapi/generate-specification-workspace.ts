@@ -3,7 +3,7 @@ import { NoImplementationFoundError } from '@causa/workspace/function-registry';
 import { writeFile } from 'fs/promises';
 import { dump, load } from 'js-yaml';
 import { isErrorResult, merge } from 'openapi-merge';
-import { OpenApiConfiguration } from '../../configurations/index.js';
+import type { OpenApiConfiguration } from '../../configurations/index.js';
 import { OpenApiGenerateSpecification } from '../../definitions/index.js';
 
 /**

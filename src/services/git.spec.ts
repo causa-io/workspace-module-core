@@ -3,7 +3,7 @@ import { createContext } from '@causa/workspace/testing';
 import { jest } from '@jest/globals';
 import 'jest-extended';
 import { GitService } from './git.js';
-import { SpawnedProcessResult } from './process.js';
+import type { SpawnedProcessResult } from './process.js';
 
 describe('GitService', () => {
   let context: WorkspaceContext;

@@ -1,8 +1,8 @@
 import { WorkspaceContext } from '@causa/workspace';
-import { ServiceContainerConfiguration } from '../../configurations/index.js';
+import type { ServiceContainerConfiguration } from '../../configurations/index.js';
 import {
   EventTopicListReferencedInProject,
-  ReferencedEventTopics,
+  type ReferencedEventTopics,
 } from '../../definitions/index.js';
 
 /**

@@ -3,7 +3,7 @@ import { createContext } from '@causa/workspace/testing';
 import { jest } from '@jest/globals';
 import 'jest-extended';
 import { dirname } from 'path';
-import { Logger } from 'pino';
+import type { Logger } from 'pino';
 import { fileURLToPath } from 'url';
 import { ProcessService, ProcessServiceExitCodeError } from './process.js';
 

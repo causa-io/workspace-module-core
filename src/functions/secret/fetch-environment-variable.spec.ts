@@ -1,5 +1,5 @@
 import {
-  BaseConfiguration,
+  type BaseConfiguration,
   InvalidSecretDefinitionError,
   SecretBackendNotFoundError,
   SecretValueNotFoundError,

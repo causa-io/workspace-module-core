@@ -4,7 +4,7 @@ import { jest } from '@jest/globals';
 import { mkdtemp, rm, symlink, writeFile } from 'fs/promises';
 import 'jest-extended';
 import { resolve } from 'path';
-import { BackfillEvent } from './event.js';
+import type { BackfillEvent } from './event.js';
 import { JsonFilesEventSource } from './json-files-source.js';
 
 describe('JsonFilesEventSource', () => {

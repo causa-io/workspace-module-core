@@ -1,5 +1,5 @@
 import {
-  ProcessorResult,
+  type ProcessorResult,
   WorkspaceContext,
   WorkspaceFunction,
 } from '@causa/workspace';
@@ -8,8 +8,8 @@ import { AllowMissing } from '@causa/workspace/validation';
 import { IsBoolean } from 'class-validator';
 import { mkdir, rm, writeFile } from 'fs/promises';
 import { join, resolve } from 'path';
-import { CausaConfiguration } from '../../configurations/index.js';
-import { InfrastructureProcessor } from '../../definitions/index.js';
+import type { CausaConfiguration } from '../../configurations/index.js';
+import type { InfrastructureProcessor } from '../../definitions/index.js';
 
 /**
  * The default directory where project configurations are written, relative to the workspace root.

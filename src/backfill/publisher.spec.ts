@@ -3,9 +3,9 @@ import { createContext } from '@causa/workspace/testing';
 import { jest } from '@jest/globals';
 import 'jest-extended';
 import { setTimeout } from 'timers/promises';
-import { BackfillEvent } from './event.js';
+import type { BackfillEvent } from './event.js';
 import { BackfillEventPublisher } from './publisher.js';
-import { BackfillEventsSource } from './source.js';
+import type { BackfillEventsSource } from './source.js';
 
 class MyPublisher extends BackfillEventPublisher {
   publishEvent(): Promise<void> | null {

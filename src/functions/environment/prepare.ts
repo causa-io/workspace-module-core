@@ -3,7 +3,7 @@ import { cloneContextForEnvironmentProjectIfNeeded } from '../../context-utils.j
 import {
   EnvironmentPrepare,
   InfrastructureProcessAndPrepare,
-  PrepareResult,
+  type PrepareResult,
 } from '../../definitions/index.js';
 
 /**

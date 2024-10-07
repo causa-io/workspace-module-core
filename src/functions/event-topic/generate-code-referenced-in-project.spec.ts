@@ -1,13 +1,13 @@
 import { WorkspaceContext } from '@causa/workspace';
 import { FunctionRegistry } from '@causa/workspace/function-registry';
 import {
-  WorkspaceFunctionCallMock,
+  type WorkspaceFunctionCallMock,
   createContext,
   registerMockFunction,
 } from '@causa/workspace/testing';
 import 'jest-extended';
 import {
-  EventTopicDefinition,
+  type EventTopicDefinition,
   EventTopicGenerateCode,
   EventTopicGenerateCodeReferencedInProject,
   EventTopicList,
@@ -61,7 +61,7 @@ describe('EventTopicGenerateCodeReferencedInProjectForAll', () => {
     generateCodeMock = registerMockFunction(
       functionRegistry,
       EventTopicGenerateCode,
-      async () => {}, // eslint-disable-line @typescript-eslint/no-empty-function
+      async () => {},
     );
   });
 

@@ -1,4 +1,4 @@
-import { BaseConfiguration, WorkspaceContext } from '@causa/workspace';
+import { type BaseConfiguration, WorkspaceContext } from '@causa/workspace';
 import { NoImplementationFoundError } from '@causa/workspace/function-registry';
 import { createContext, registerMockFunction } from '@causa/workspace/testing';
 import { jest } from '@jest/globals';

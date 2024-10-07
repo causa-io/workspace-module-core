@@ -1,10 +1,10 @@
 import { WorkspaceContext } from '@causa/workspace';
 import { once } from 'events';
-import { FileHandle, open } from 'fs/promises';
+import { type FileHandle, open } from 'fs/promises';
 import { globby } from 'globby';
 import { Interface } from 'readline';
-import { BackfillEvent } from './event.js';
-import { BackfillEventsSource } from './source.js';
+import type { BackfillEvent } from './event.js';
+import type { BackfillEventsSource } from './source.js';
 
 /**
  * The approximate size of a batch of events fetched from the source.

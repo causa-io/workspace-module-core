@@ -1,8 +1,8 @@
 import { WorkspaceContext, listFilesAndFormat } from '@causa/workspace';
-import { EventsConfiguration } from '../../configurations/index.js';
+import type { EventsConfiguration } from '../../configurations/index.js';
 import {
   DuplicateEventTopicError,
-  EventTopicDefinition,
+  type EventTopicDefinition,
   EventTopicList,
 } from '../../definitions/index.js';
 

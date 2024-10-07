@@ -1,6 +1,6 @@
 import { WorkspaceContext } from '@causa/workspace';
-import { BackfillEvent } from './event.js';
-import { BackfillEventsSource } from './source.js';
+import type { BackfillEvent } from './event.js';
+import type { BackfillEventsSource } from './source.js';
 
 /**
  * A publisher that publishes events to backfill by getting batches of events from a source.

@@ -1,5 +1,5 @@
-import { BaseConfiguration, WorkspaceContext } from '@causa/workspace';
-import { PartialConfiguration } from '@causa/workspace/configuration';
+import { type BaseConfiguration, WorkspaceContext } from '@causa/workspace';
+import type { PartialConfiguration } from '@causa/workspace/configuration';
 import { createContext } from '@causa/workspace/testing';
 import { existsSync } from 'fs';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'fs/promises';

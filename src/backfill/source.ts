@@ -1,4 +1,4 @@
-import { BackfillEvent } from './event.js';
+import type { BackfillEvent } from './event.js';
 
 /**
  * A source that retrieves events to publish in batch.

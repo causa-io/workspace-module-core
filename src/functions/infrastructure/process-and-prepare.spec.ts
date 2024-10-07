@@ -1,6 +1,6 @@
 import {
-  ProcessorInstruction,
-  ProcessorResult,
+  type ProcessorInstruction,
+  type ProcessorResult,
   WorkspaceFunction,
 } from '@causa/workspace';
 import { createContext, registerMockFunction } from '@causa/workspace/testing';
@@ -11,8 +11,8 @@ import 'jest-extended';
 import {
   InfrastructurePrepare,
   InfrastructureProcessAndPrepare,
-  InfrastructureProcessor,
-  PrepareResult,
+  type InfrastructureProcessor,
+  type PrepareResult,
 } from '../../definitions/index.js';
 import { InfrastructureProcessAndPrepareForAll } from './process-and-prepare.js';
 

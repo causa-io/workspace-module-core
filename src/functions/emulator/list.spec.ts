@@ -3,7 +3,7 @@ import { createContext } from '@causa/workspace/testing';
 import {
   EmulatorList,
   EmulatorStart,
-  EmulatorStartResult,
+  type EmulatorStartResult,
 } from '../../definitions/index.js';
 import { EmulatorListForAll } from './list.js';
 

@@ -38,6 +38,7 @@ The core module defines and implements many base `cs` commands. As a Causa user,
 - `cs infrastructure`: Provides the `prepare` and `deploy` commands. Those commands run "infrastructure processors" before the actual infrastructure operation, and tear those down afterwards. The core module does not implement actual infrastructure operations, which depend on the project's language, e.g. `terraform`.
 - `cs publish`: While many base commands (e.g. `cs build`) are straightforward and should be implemented by the modules handling the corresponding project types and languages, `cs publish` provides some logic around these base commands to both build and push a project's artefact. The artefact is tagged according to the passed value or format, e.g. `my-custom-tag` or `semantic`. (The latter will use the project's version as the tag.)
 - `cs openapi generateSpecification`: Provides the implementation at the workspace level, which triggers the generation of the specification in each project, and merges together the outputs. Does not provide any project type-specific implementation.
+- `cs diff`: Lists changed projects based on the output of `git diff`. This can be useful for CI workflows. This module entirely implements the logic, and no other module is expected to provide an implementation.
 
 ### Secrets backend
 

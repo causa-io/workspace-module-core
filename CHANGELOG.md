@@ -9,6 +9,7 @@ Breaking change:
 Features:
 
 - Implement `GitService.getRepositoryRootPath`.
+- Define `ProjectDiff` and implement it for any projects and workspace.
 
 ## v0.21.0 (2024-05-27)
 

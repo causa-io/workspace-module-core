@@ -1,11 +1,12 @@
 import {
+  CliArgument,
   CliCommand,
   CliOption,
   type ParentCliCommandDefinition,
 } from '@causa/cli';
-import { WorkspaceFunction } from '@causa/workspace';
+import { WorkspaceFunction, type BaseConfiguration } from '@causa/workspace';
 import { AllowMissing } from '@causa/workspace/validation';
-import { IsBoolean, IsString } from 'class-validator';
+import { IsArray, IsBoolean, IsString } from 'class-validator';
 
 /**
  * Builds the artefact for a project.
@@ -313,3 +314,71 @@ export const securityCommandDefinition: ParentCliCommandDefinition = {
 export abstract class ProjectSecurityCheck extends WorkspaceFunction<
   Promise<void>
 > {}
+
+/**
+ * A dictionary of changes to projects in a workspace.
+ * Keys are project paths, relative to the workspace root.
+ */
+export type ProjectDiffResult = Record<
+  string,
+  {
+    /**
+     * The list of files belonging to the project that have changes.
+     */
+    readonly diff: string[];
+
+    /**
+     * The `project` configuration of the project.
+     */
+    readonly configuration: BaseConfiguration['project'];
+  }
+>;
+
+/**
+ * Lists the projects with changes in the workspace.
+ * This is based on git diff and accepts commits as arguments in the same way.
+ * A project is detected as having changes if any of the files within it has changes.
+ * A project can also use `project.externalFiles` to define files on which it depends and make it change.
+ */
+@CliCommand({
+  name: 'diff',
+  description: `Lists the projects with changes in the workspace. This is based on git diff and accepts commits as arguments in the same way.
+A project is detected as having changes if any of the files within it has changes. A project can also define "external files" on which it depends and make it change.`,
+  summary: `Lists the projects with changes in the workspace.`,
+  outputFn: (diff, { json }) =>
+    console.log(
+      json ? JSON.stringify(diff, null, 2) : Object.keys(diff).join('\n'),
+    ),
+})
+export abstract class ProjectDiff extends WorkspaceFunction<
+  Promise<ProjectDiffResult>
+> {
+  /**
+   * The commits to compare.
+   * The default behavior is similar to git: compare the working directory with the last commit.
+   * At most two commits can be compared.
+   */
+  @CliArgument({
+    name: '[commits...]',
+    position: 0,
+    description:
+      'The commits to compare. The default behavior is similar to git: compare the working directory with the last commit. At most two commits can be compared.',
+  })
+  @IsArray()
+  @IsString({ each: true })
+  @AllowMissing()
+  readonly commits?: string[];
+
+  /**
+   * Changes the output format of the CLI command.
+   * This is not used when the function is called programmatically.
+   */
+  @CliOption({
+    flags: '--json',
+    description:
+      'Returns a detailed diff as JSON instead of a list of projects.',
+  })
+  @IsBoolean()
+  @AllowMissing()
+  readonly json?: boolean;
+}

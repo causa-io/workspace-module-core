@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## v0.22.1 (2024-10-09)
+
+Fixes:
+
+- Fix `outputFn` in commands that would log the arguments to the output.
+
 ## v0.22.0 (2024-10-07)
 
 Breaking change:

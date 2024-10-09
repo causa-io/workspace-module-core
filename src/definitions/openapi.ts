@@ -28,7 +28,7 @@ export const openApiCommandDefinition: ParentCliCommandDefinition = {
   description: `Generates the OpenAPI specification for the service or workspace.
 When run at the workspace level, the specifications for all services are generated and merged.`,
   summary: 'Generates the OpenAPI specification for the service or workspace.',
-  outputFn: console.log,
+  outputFn: (path) => console.log(path),
 })
 export abstract class OpenApiGenerateSpecification extends WorkspaceFunction<
   Promise<string>

@@ -17,7 +17,7 @@ import { IsArray, IsBoolean, IsString } from 'class-validator';
   description: `Builds the artefact for the project.
 Returns the name/identifier of the built artefact.`,
   summary: 'Builds the artefact for the project.',
-  outputFn: console.log,
+  outputFn: (name) => console.log(name),
 })
 export abstract class ProjectBuildArtefact extends WorkspaceFunction<
   Promise<string>
@@ -107,7 +107,7 @@ export abstract class ProjectGetArtefactDestination extends WorkspaceFunction<
 See the -t option to determine the versioning strategy.
 Returns the artefact's destination (remote location).`,
   summary: 'Builds and pushes the artefact for the given project.',
-  outputFn: console.log,
+  outputFn: (location) => console.log(location),
 })
 export abstract class ProjectPublishArtefact extends WorkspaceFunction<
   Promise<string>

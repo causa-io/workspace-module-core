@@ -64,7 +64,11 @@ class DummyTargetLanguage
   implements TargetLanguageWithWriter
 {
   constructor() {
-    super('dummy', ['dummy'], 'dummy');
+    super({
+      displayName: 'dummy',
+      names: ['dummy'],
+      extension: 'dummy',
+    });
   }
 
   protected getOptions(): Option<any>[] {

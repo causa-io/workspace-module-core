@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+Breaking changes:
+
+- Upgrade the minimum Node.js version to `20`.
+
 ## v0.22.3 (2025-05-12)
 
 Chore:

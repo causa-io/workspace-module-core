@@ -1,9 +1,3 @@
-import { WorkspaceContext } from '@causa/workspace';
-import {
-  FunctionRegistry,
-  NoImplementationFoundError,
-} from '@causa/workspace/function-registry';
-import { createContext, registerMockFunction } from '@causa/workspace/testing';
 import { jest } from '@jest/globals';
 import { mkdtemp, rm, writeFile } from 'fs/promises';
 import 'jest-extended';
@@ -18,16 +12,12 @@ import {
   funPrefixNamer,
 } from 'quicktype-core';
 import { Renderer } from 'quicktype-core/dist/Renderer.js';
+import { causaTypeAttributeKind } from './causa-attribute-kind.js';
 import {
-  type TargetLanguageWithWriter,
-  causaTypeAttributeKind,
-} from '../../code-generation/index.js';
-import {
-  type EventTopicDefinition,
-  EventTopicGenerateCode,
-  EventTopicMakeCodeGenerationTargetLanguage,
-} from '../../definitions/index.js';
-import { EventTopicGenerateCodeForJsonSchema } from './generate-code-json-schema.js';
+  generateCodeForSchemas,
+  makeJsonSchemaInputData,
+} from './generate-schema.js';
+import type { TargetLanguageWithWriter } from './target-language-with-writer.js';
 
 class DummyRenderer extends ConvenienceRenderer {
   protected makeNamedTypeNamer(): Namer {
@@ -53,6 +43,11 @@ class DummyRenderer extends ConvenienceRenderer {
       // This checks that the `causaJsonSchemaAttributeProducer` has been set up on the input.
       objects[classType.getCombinedName()] =
         causaTypeAttributeKind.tryGetInAttributes(classType.getAttributes());
+    });
+
+    this.forEachEnum('none', (enumType) => {
+      objects[enumType.getCombinedName()] =
+        causaTypeAttributeKind.tryGetInAttributes(enumType.getAttributes());
     });
 
     this.emitLine(JSON.stringify(objects));
@@ -82,45 +77,19 @@ class DummyTargetLanguage
   async writeFile(): Promise<void> {}
 }
 
-describe('EventTopicGenerateCodeForJsonSchema', () => {
+describe('generateCodeForSchemas', () => {
   let rootPath: string;
   let targetLanguage: DummyTargetLanguage;
-  let context: WorkspaceContext;
-  let functionRegistry: FunctionRegistry<WorkspaceContext>;
 
   beforeEach(async () => {
     targetLanguage = new DummyTargetLanguage();
     jest.spyOn(targetLanguage, 'writeFile').mockResolvedValue();
 
     rootPath = await mkdtemp(join(tmpdir(), 'causa-tests-'));
-    ({ context, functionRegistry } = createContext({
-      rootPath,
-      configuration: {
-        workspace: { name: '🏷️' },
-        events: { format: 'json' },
-      },
-      functions: [EventTopicGenerateCodeForJsonSchema],
-    }));
-    registerMockFunction(
-      functionRegistry,
-      EventTopicMakeCodeGenerationTargetLanguage,
-      async () => targetLanguage,
-    );
   });
 
   afterEach(async () => {
     await rm(rootPath, { recursive: true, force: true });
-  });
-
-  it('should not support event formats other than JSON', async () => {
-    ({ context, functionRegistry } = createContext({
-      configuration: { events: { format: 'protobuf' } },
-      functions: [EventTopicGenerateCodeForJsonSchema],
-    }));
-
-    expect(() =>
-      context.call(EventTopicGenerateCode, { definitions: [] }),
-    ).toThrow(NoImplementationFoundError);
   });
 
   it('should prepare the inputs, generate the code, and write it to the file', async () => {
@@ -143,13 +112,20 @@ describe('EventTopicGenerateCodeForJsonSchema', () => {
             },
           },
         ],
+        $defs: {
+          MyEnum: {
+            type: 'string',
+            enum: ['A', 'B', 'C'],
+            causa: { someEnumAttribute: '💡' },
+          },
+        },
       }),
     );
-    const definitions: EventTopicDefinition[] = [
-      { id: 'my-event', formatParts: {}, schemaFilePath },
-    ];
 
-    await context.call(EventTopicGenerateCode, { definitions });
+    const inputData = await makeJsonSchemaInputData([schemaFilePath], {
+      nestedSchemasFragments: ['#/$defs/'],
+    });
+    await generateCodeForSchemas(targetLanguage, inputData);
 
     expect(targetLanguage.writeFile).toHaveBeenCalledOnce();
     const actualSource = JSON.parse(
@@ -160,6 +136,11 @@ describe('EventTopicGenerateCodeForJsonSchema', () => {
         uri: `${schemaFilePath}#/oneOf/1`,
         objectAttributes: { someObjAttribute: '🎉' },
         propertiesAttributes: { myProp: { somePropAttribute: '🔧' } },
+      },
+      MyEnum: {
+        uri: `${schemaFilePath}#/$defs/MyEnum`,
+        objectAttributes: { someEnumAttribute: '💡' },
+        propertiesAttributes: {},
       },
     });
   });

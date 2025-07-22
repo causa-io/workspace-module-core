@@ -15,7 +15,14 @@ export type CausaPropertyAttributes = Record<string, any>;
  */
 export type CausaAttribute = {
   /**
+   * The URI where the type is defined.
+   * This is usually the file path of the JSON schema, with an optional fragment.
+   */
+  uri: string;
+
+  /**
    * The attributes for the object type itself.
+   * This is also available for enums.
    */
   objectAttributes: CausaObjectAttributes;
 

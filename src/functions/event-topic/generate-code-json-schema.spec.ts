@@ -71,8 +71,8 @@ class DummyTargetLanguage
     });
   }
 
-  protected getOptions(): Option<any>[] {
-    return [];
+  protected getOptions(): Record<string, Option<string, unknown>> {
+    return {};
   }
 
   protected makeRenderer(renderContext: RenderContext): Renderer {
@@ -157,6 +157,7 @@ describe('EventTopicGenerateCodeForJsonSchema', () => {
     );
     expect(actualSource).toEqual({
       MyDummyObject: {
+        uri: `${schemaFilePath}#/oneOf/1`,
         objectAttributes: { someObjAttribute: '🎉' },
         propertiesAttributes: { myProp: { somePropAttribute: '🔧' } },
       },

@@ -9,6 +9,7 @@ Breaking changes:
 Features:
 
 - Provide `generateCodeForSchemas` and `makeJsonSchemaInputData` as utilities for future code generators.
+- Implement the `findTypeForUri` `quicktype` utility.
 
 ## v0.22.3 (2025-05-12)
 

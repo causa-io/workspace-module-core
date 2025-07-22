@@ -21,6 +21,7 @@ import {
   InfrastructureProcessAndDeployForAll,
   InfrastructureProcessAndPrepareForAll,
 } from './infrastructure/index.js';
+import { ModelGenerateCodeForAll } from './model/generate-code.js';
 import { OpenApiGenerateSpecificationForWorkspace } from './openapi/index.js';
 import {
   ProjectDependenciesUpdateAndTestForAll,
@@ -48,6 +49,7 @@ export function registerFunctions(context: ModuleRegistrationContext) {
     EventTopicListForAll,
     InfrastructureProcessAndDeployForAll,
     InfrastructureProcessAndPrepareForAll,
+    ModelGenerateCodeForAll,
     OpenApiGenerateSpecificationForWorkspace,
     ProjectDependenciesUpdateAndTestForAll,
     ProjectDiffForAll,

@@ -2,11 +2,14 @@
   "name": "@causa/workspace-core",
   "version": "0.22.3",
   "description": "The Causa workspace module providing core function definitions and some implementations.",
-  "repository": "github:causa-io/workspace-module-core",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/causa-io/workspace-module-core.git"
+  },
   "license": "ISC",
   "type": "module",
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

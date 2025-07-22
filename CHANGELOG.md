@@ -6,6 +6,10 @@ Breaking changes:
 
 - Upgrade the minimum Node.js version to `20`.
 
+Features:
+
+- Provide `generateCodeForSchemas` and `makeJsonSchemaInputData` as utilities for future code generators.
+
 ## v0.22.3 (2025-05-12)
 
 Chore:

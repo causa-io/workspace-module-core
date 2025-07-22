@@ -12,4 +12,5 @@ export {
   makeJsonSchemaInputData,
 } from './generate-schema.js';
 export { causaJsonSchemaAttributeProducer } from './jsonschema-attribute-producer.js';
+export { findTypeForUri } from './quicktype-utils.js';
 export type { TargetLanguageWithWriter } from './target-language-with-writer.js';

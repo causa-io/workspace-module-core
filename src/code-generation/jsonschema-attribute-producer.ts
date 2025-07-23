@@ -22,21 +22,24 @@ export const causaJsonSchemaAttributeProducer: JSONSchemaAttributeProducer = (
   const objectAttributes: Record<string, string> =
     'causa' in schema && typeof schema.causa === 'object' ? schema.causa : {};
   const propertiesAttributes: Record<string, Record<string, string>> = {};
+  const constProperties: string[] = [];
 
   const properties: Record<string, any> =
     'properties' in schema && typeof schema.properties === 'object'
       ? schema.properties
       : {};
   Object.entries(properties).forEach(([propertyName, propertySchema]) => {
-    if (
-      typeof propertySchema !== 'object' ||
-      !('causa' in propertySchema) ||
-      typeof propertySchema.causa !== 'object'
-    ) {
+    if (typeof propertySchema !== 'object') {
       return;
     }
 
-    propertiesAttributes[propertyName] = propertySchema.causa;
+    if ('const' in propertySchema) {
+      constProperties.push(propertyName);
+    }
+
+    if ('causa' in propertySchema && typeof propertySchema.causa === 'object') {
+      propertiesAttributes[propertyName] = propertySchema.causa;
+    }
   });
 
   return {
@@ -44,6 +47,7 @@ export const causaJsonSchemaAttributeProducer: JSONSchemaAttributeProducer = (
       uri,
       objectAttributes,
       propertiesAttributes,
+      constProperties,
     }),
   };
 };

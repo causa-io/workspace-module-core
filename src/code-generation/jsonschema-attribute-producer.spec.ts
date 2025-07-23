@@ -40,6 +40,7 @@ describe('causaJsonSchemaAttributeProducer', () => {
       uri: '/some/file#/$defs/MySchema',
       objectAttributes: {},
       propertiesAttributes: {},
+      constProperties: [],
     });
   });
 
@@ -56,6 +57,7 @@ describe('causaJsonSchemaAttributeProducer', () => {
       uri: '/some/file#/$defs/MySchema',
       objectAttributes: { myObjectAttribute: '👽' },
       propertiesAttributes: {},
+      constProperties: [],
     });
   });
 
@@ -68,6 +70,7 @@ describe('causaJsonSchemaAttributeProducer', () => {
           type: 'string',
           causa: { myOtherPropertyAttribute: '2️⃣' },
         },
+        myConstProperty: { type: 'string', const: 'value' },
       },
     };
 
@@ -81,6 +84,7 @@ describe('causaJsonSchemaAttributeProducer', () => {
         myProperty: { myPropertyAttribute: '1️⃣' },
         myOtherProperty: { myOtherPropertyAttribute: '2️⃣' },
       },
+      constProperties: ['myConstProperty'],
     });
   });
 
@@ -98,6 +102,7 @@ describe('causaJsonSchemaAttributeProducer', () => {
       uri: '/some/file#/$defs/MySchema',
       objectAttributes: { myEnumAttribute: '💡' },
       propertiesAttributes: {},
+      constProperties: [],
     });
   });
 });

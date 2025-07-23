@@ -72,6 +72,12 @@ export type CausaAttribute = {
    * The attributes for the properties of the object type, where keys are the property names.
    */
   propertiesAttributes: Record<string, CausaPropertyAttributes>;
+
+  /**
+   * The (JSON) names of the properties that are defined as `const` in the schema.
+   * This is otherwise lost by `quicktype`, which converts them to enums.
+   */
+  constProperties: string[];
 };
 
 /**

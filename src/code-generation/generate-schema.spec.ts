@@ -136,11 +136,13 @@ describe('generateCodeForSchemas', () => {
         uri: `${schemaFilePath}#/oneOf/1`,
         objectAttributes: { someObjAttribute: '🎉' },
         propertiesAttributes: { myProp: { somePropAttribute: '🔧' } },
+        constProperties: [],
       },
       MyEnum: {
         uri: `${schemaFilePath}#/$defs/MyEnum`,
         objectAttributes: { someEnumAttribute: '💡' },
         propertiesAttributes: {},
+        constProperties: [],
       },
     });
   });

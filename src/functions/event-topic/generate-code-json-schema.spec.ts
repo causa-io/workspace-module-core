@@ -160,6 +160,7 @@ describe('EventTopicGenerateCodeForJsonSchema', () => {
         uri: `${schemaFilePath}#/oneOf/1`,
         objectAttributes: { someObjAttribute: '🎉' },
         propertiesAttributes: { myProp: { somePropAttribute: '🔧' } },
+        constProperties: [],
       },
     });
   });

@@ -22,6 +22,8 @@ This module also exposes the [`DockerConfiguration`](./src/configurations/docker
 
 It also exposes the [`EventsConfiguration`](./src/configurations/events.ts), which defines the configuration related to events and their topics (e.g. how to find topic schema files in the workspace).
 
+The [`ModelConfiguration`](./src/configurations/model.ts) defines the configuration for business model definitions, and the related code generation utilities.
+
 For OpenAPI generation, the [`OpenApiConfiguration`](./src/configurations/openapi.ts) defines a global (base) specification for workspace-wide information (e.g. `info`, `securitySchemes`, etc).
 
 ## ✨ Supported project types and commands
@@ -39,6 +41,7 @@ The core module defines and implements many base `cs` commands. As a Causa user,
 - `cs publish`: While many base commands (e.g. `cs build`) are straightforward and should be implemented by the modules handling the corresponding project types and languages, `cs publish` provides some logic around these base commands to both build and push a project's artefact. The artefact is tagged according to the passed value or format, e.g. `my-custom-tag` or `semantic`. (The latter will use the project's version as the tag.)
 - `cs openapi generateSpecification`: Provides the implementation at the workspace level, which triggers the generation of the specification in each project, and merges together the outputs. Does not provide any project type-specific implementation.
 - `cs diff`: Lists changed projects based on the output of `git diff`. This can be useful for CI workflows. This module entirely implements the logic, and no other module is expected to provide an implementation.
+- `cs model generateCode`: Runs the code generators defined in the `model.codeGenerators` configuration.
 
 ### Secrets backend
 
@@ -61,6 +64,7 @@ This section provides pointers for Causa module developers. Workspace function d
 - [Environment](./src/definitions/environment.ts): Functions mapping to `cs environment` commands. Those are not meant to be implemented by other modules.
 - [Event topic](./src/definitions/event-topic.ts): Functions related to event topics, backfilling, and code generation. Modules providing support for a programming language should implement `EventTopicMakeCodeGenerationTargetLanguage`. Modules providing support for a new project type should implement `EventTopicListReferencedInProject`. Modules providing tech stack or cloud provider support should implement the `EventTopicBroker*` functions.
 - [Infrastructure](./src/definitions/infrastructure.ts): Modules providing support for an Infrastructure as Code tool (e.g. Terraform, Pulumi) should implement the `InfrastructurePrepare` and `InfrastructureDeploy` functions.
+- [Model](./src/definitions/model.ts): Modules providing support for a programming language can implement new code generators by extending `ModelRunCodeGenerator`.
 - [Project](./src/definitions/project.ts): Many of the definitions in this file should be implemented by modules providing support for a language and/or project type, e.g. `ProjectBuildArtefact`, `ProjectReadVersion`, `ProjectPushArtefact`, `ProjectGetArtefactDestination`.
 - [OpenAPI](./src/definitions/openapi.ts): Functions related to OpenAPI specifications. `OpenApiGenerateSpecification` should be implemented by Causa modules providing support for a language / project type (if relevant).
 

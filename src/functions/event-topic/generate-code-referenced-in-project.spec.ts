@@ -13,15 +13,11 @@ import {
   EventTopicList,
   EventTopicListReferencedInProject,
 } from '../../definitions/index.js';
-import {
-  EventTopicGenerateCodeReferencedInProjectForAll,
-  MissingEventTopicDefinitionsError,
-} from './generate-code-referenced-in-project.js';
+import { EventTopicGenerateCodeReferencedInProjectForAll } from './generate-code-referenced-in-project.js';
 
 describe('EventTopicGenerateCodeReferencedInProjectForAll', () => {
   let context: WorkspaceContext;
   let functionRegistry: FunctionRegistry<WorkspaceContext>;
-  let listInProjectMock: WorkspaceFunctionCallMock<EventTopicListReferencedInProject>;
   let generateCodeMock: WorkspaceFunctionCallMock<EventTopicGenerateCode>;
   const definitions: EventTopicDefinition[] = [
     {
@@ -50,34 +46,18 @@ describe('EventTopicGenerateCodeReferencedInProjectForAll', () => {
       EventTopicList,
       async () => definitions,
     );
-    listInProjectMock = registerMockFunction(
+    registerMockFunction(
       functionRegistry,
       EventTopicListReferencedInProject,
       async () => ({
-        consumed: ['my.event.v1'],
-        produced: ['my.event.v1', 'my.other-event.v1'],
+        consumed: [definitions[0]],
+        produced: [definitions[0], definitions[2]],
       }),
     );
     generateCodeMock = registerMockFunction(
       functionRegistry,
       EventTopicGenerateCode,
       async () => {},
-    );
-  });
-
-  it('should throw if an event topic cannot be found', async () => {
-    listInProjectMock.mockResolvedValueOnce({
-      consumed: ['my.event.v1', 'nope.event.v1'],
-      produced: ['my.event.v1', 'my.other-event.v1'],
-    });
-
-    const actualPromise = context.call(
-      EventTopicGenerateCodeReferencedInProject,
-      {},
-    );
-
-    await expect(actualPromise).rejects.toThrow(
-      MissingEventTopicDefinitionsError,
     );
   });
 

@@ -4,7 +4,7 @@ import {
   CliOption,
   type ParentCliCommandDefinition,
 } from '@causa/cli';
-import { WorkspaceFunction } from '@causa/workspace';
+import { WorkspaceContext, WorkspaceFunction } from '@causa/workspace';
 import { AllowMissing } from '@causa/workspace/validation';
 import { IsBoolean, IsObject, IsString } from 'class-validator';
 import type { TargetLanguageWithWriter } from '../code-generation/index.js';
@@ -41,12 +41,12 @@ export type ReferencedEventTopics = {
   /**
    * The IDs of the topics that are consumed by the project.
    */
-  readonly consumed: string[];
+  readonly consumed: EventTopicDefinition[];
 
   /**
    * The IDs of the topics to which the project publishes events.
    */
-  readonly produced: string[];
+  readonly produced: EventTopicDefinition[];
 };
 
 /**
@@ -69,6 +69,19 @@ export class EventTopicError extends Error {}
 export class DuplicateEventTopicError extends EventTopicError {
   constructor(readonly topicId: string) {
     super(`Found duplicate topic '${topicId}'.`);
+  }
+}
+
+/**
+ * An error thrown when the schema definition for the given event topics cannot be found.
+ */
+export class MissingEventTopicDefinitionsError extends Error {
+  constructor(readonly topicIds: string[]) {
+    super(
+      `Missing definitions for topics ${topicIds
+        .map((id) => `'${id}'`)
+        .join(', ')}.`,
+    );
   }
 }
 
@@ -123,7 +136,46 @@ export abstract class EventTopicMakeCodeGenerationTargetLanguage extends Workspa
  */
 export abstract class EventTopicListReferencedInProject extends WorkspaceFunction<
   Promise<ReferencedEventTopics>
-> {}
+> {
+  /**
+   * Maps the ID of the consumed and produced topics to their definitions, and returns the corresponding
+   * {@link ReferencedEventTopics}.
+   * This is a utility method that can be used by implementations that only retrieve the IDs of the topics from the
+   * project's configuration.
+   *
+   * @param context The workspace context.
+   * @param consumedIds The IDs of the topics that are consumed by the project.
+   * @param producedIds The IDs of the topics that are produced by the project.
+   * @returns The {@link ReferencedEventTopics} for the project.
+   */
+  protected async mapToDefinitions(
+    context: WorkspaceContext,
+    consumedIds: string[],
+    producedIds: string[],
+  ): Promise<ReferencedEventTopics> {
+    const allDefinitions = await context.call(EventTopicList, {});
+
+    const missingDefinitions: string[] = [];
+    const mapTopics = (topics: string[]) =>
+      topics.flatMap((topic) => {
+        const definition = allDefinitions.find((d) => d.id === topic);
+        if (!definition) {
+          missingDefinitions.push(topic);
+          return [];
+        }
+        return definition;
+      });
+
+    const consumed = mapTopics(consumedIds);
+    const produced = mapTopics(producedIds);
+
+    if (missingDefinitions.length > 0) {
+      throw new MissingEventTopicDefinitionsError(missingDefinitions);
+    }
+
+    return { consumed, produced };
+  }
+}
 
 /**
  * Temporary data stored in the backfill file, listing the resources that should be cleaned up when the backfill is

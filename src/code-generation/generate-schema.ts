@@ -9,6 +9,11 @@ import { causaJsonSchemaAttributeProducer } from './jsonschema-attribute-produce
 import type { TargetLanguageWithWriter } from './target-language-with-writer.js';
 
 /**
+ * Default fragments that will be searched in each schema file to generate schemas other than the top-level one.
+ */
+const DEFAULT_NESTED_SCHEMAS_FRAGMENTS = ['#/$defs/', '#/definitions/'];
+
+/**
  * Constructs an {@link InputData} object that lists JSONSchema files, which can be used by
  * {@link generateCodeForSchemas}.
  *
@@ -23,10 +28,14 @@ export async function makeJsonSchemaInputData(
      * Fragments that will be added to each schema file to generate schemas other than the top-level one.
      * This is only needed for the nested schemas that are not referenced by top-level schemas.
      * To include all schemas under a given JSON path, end the fragment with a `/`, e.g. `#/$defs/`.
+     * Defaults to `#/$defs/` and `#/definitions/`.
      */
     nestedSchemasFragments?: string[];
   } = {},
 ): Promise<InputData> {
+  const nestedSchemasFragments =
+    options.nestedSchemasFragments ?? DEFAULT_NESTED_SCHEMAS_FRAGMENTS;
+
   const input = new JSONSchemaInput(new FetchingJSONSchemaStore(), [
     causaJsonSchemaAttributeProducer,
   ]);
@@ -37,9 +46,7 @@ export async function makeJsonSchemaInputData(
     // top-level type in the schema.
     name: undefined as any,
     uris: [
-      ...(options.nestedSchemasFragments ?? []).map(
-        (fragment) => `${file}${fragment}`,
-      ),
+      ...nestedSchemasFragments.map((fragment) => `${file}${fragment}`),
       file,
     ],
   }));

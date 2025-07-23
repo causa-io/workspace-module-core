@@ -5,11 +5,14 @@
 Breaking changes:
 
 - Upgrade the minimum Node.js version to `20`.
+- Return lists of `EventTopicDefinition`s in `EventTopicListReferencedInProject` rather than IDs.
 
 Features:
 
 - Provide `generateCodeForSchemas` and `makeJsonSchemaInputData` as utilities for future code generators.
 - Implement the `findTypeForUri` `quicktype` utility.
+- Define the `ModelGenerateCode` (including implementation) and `ModelRunCodeGenerator` workspace functions.
+- Define the `ModelConfiguration`.
 
 ## v0.22.3 (2025-05-12)
 

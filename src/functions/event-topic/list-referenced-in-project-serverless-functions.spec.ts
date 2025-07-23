@@ -1,17 +1,60 @@
 import { NoImplementationFoundError } from '@causa/workspace/function-registry';
 import { createContext } from '@causa/workspace/testing';
 import 'jest-extended';
-import { EventTopicListReferencedInProject } from '../../definitions/index.js';
+import {
+  EventTopicList,
+  EventTopicListReferencedInProject,
+  MissingEventTopicDefinitionsError,
+  type EventTopicDefinition,
+} from '../../definitions/index.js';
 import { EventTopicListReferencedInProjectForServerlessFunctions } from './list-referenced-in-project-serverless-functions.js';
 
 describe('EventTopicListReferencedInProjectForServerlessFunctions', () => {
+  const myFirstEventDefinition = {
+    id: 'my.first-event.v1',
+    formatParts: { domain: 'my', name: 'first-event', version: 'v1' },
+    schemaFilePath: 'my/first-event/v1.yaml',
+  };
+  const mySecondEventDefinition = {
+    id: 'my.second-event.v1',
+    formatParts: { domain: 'my', name: 'second-event', version: 'v1' },
+    schemaFilePath: 'my/second-event/v1.yaml',
+  };
+  const myOtherEventDefinition = {
+    id: 'my.other-event.v1',
+    formatParts: { domain: 'my', name: 'other-event', version: 'v1' },
+    schemaFilePath: 'my/other-event/v1.yaml',
+  };
+
+  class EventTopicListMock extends EventTopicList {
+    async _call(): Promise<EventTopicDefinition[]> {
+      return [
+        myFirstEventDefinition,
+        mySecondEventDefinition,
+        myOtherEventDefinition,
+      ];
+    }
+
+    _supports(): boolean {
+      return true;
+    }
+  }
+
+  const baseConfiguration = {
+    workspace: { name: '🏷️' },
+    project: { type: 'serverlessFunctions', language: 'ts', name: '🧪' },
+  };
+
   it('should not handle a project of type other than serverless functions', async () => {
     const { context } = createContext({
       configuration: {
-        workspace: { name: '🏷️' },
+        ...baseConfiguration,
         project: { type: 'serviceContainer', language: 'ts', name: '🧪' },
       },
-      functions: [EventTopicListReferencedInProjectForServerlessFunctions],
+      functions: [
+        EventTopicListReferencedInProjectForServerlessFunctions,
+        EventTopicListMock,
+      ],
     });
 
     expect(() => context.call(EventTopicListReferencedInProject, {})).toThrow(
@@ -21,11 +64,11 @@ describe('EventTopicListReferencedInProjectForServerlessFunctions', () => {
 
   it('should return empty lists', async () => {
     const { context } = createContext({
-      configuration: {
-        workspace: { name: '🏷️' },
-        project: { type: 'serverlessFunctions', language: 'ts', name: '🧪' },
-      },
-      functions: [EventTopicListReferencedInProjectForServerlessFunctions],
+      configuration: baseConfiguration,
+      functions: [
+        EventTopicListReferencedInProjectForServerlessFunctions,
+        EventTopicListMock,
+      ],
     });
 
     const actualTopics = await context.call(
@@ -36,50 +79,59 @@ describe('EventTopicListReferencedInProjectForServerlessFunctions', () => {
     expect(actualTopics).toEqual({ consumed: [], produced: [] });
   });
 
-  it('should return the consumed and produced topic', async () => {
+  it('should throw if a non-existing event topic is referenced', async () => {
     const { context } = createContext({
       configuration: {
-        workspace: { name: '🏷️' },
-        project: { type: 'serverlessFunctions', language: 'ts', name: '🧪' },
+        ...baseConfiguration,
         serverlessFunctions: {
           functions: {
-            myFirstFunction: {
-              trigger: {
-                type: 'event',
-                topic: 'my.first-event.v1',
-              },
-              outputs: {
-                eventTopics: ['my.first-event.v1'],
-              },
-            },
-            mySecondFunction: {
-              trigger: {
-                type: 'event',
-                topic: 'my.second-event.v1',
-              },
-              outputs: {
-                eventTopics: ['my.first-event.v1'],
-              },
-            },
-            myThirdFunction: {
-              trigger: {
-                type: 'event',
-                topic: 'my.second-event.v1',
-              },
-            },
-            notAnEventFunction: {
-              trigger: {
-                type: 'cron',
-                schedule: '* * * * *',
-              },
-              outputs: {
-                eventTopics: ['my.other-event.v1'],
-              },
+            myFunction: {
+              trigger: { type: 'event', topic: 'my.non-existing-event.v1' },
             },
           },
         },
       },
-      functions: [EventTopicListReferencedInProjectForServerlessFunctions],
+      functions: [
+        EventTopicListReferencedInProjectForServerlessFunctions,
+        EventTopicListMock,
+      ],
+    });
+
+    const actualPromise = context.call(EventTopicListReferencedInProject, {});
+
+    await expect(actualPromise).rejects.toThrow(
+      MissingEventTopicDefinitionsError,
+    );
+  });
+
+  it('should return the consumed and produced topic', async () => {
+    const { context } = createContext({
+      configuration: {
+        ...baseConfiguration,
+        serverlessFunctions: {
+          functions: {
+            myFirstFunction: {
+              trigger: { type: 'event', topic: 'my.first-event.v1' },
+              outputs: { eventTopics: ['my.first-event.v1'] },
+            },
+            mySecondFunction: {
+              trigger: { type: 'event', topic: 'my.second-event.v1' },
+              outputs: { eventTopics: ['my.first-event.v1'] },
+            },
+            myThirdFunction: {
+              trigger: { type: 'event', topic: 'my.second-event.v1' },
+            },
+            notAnEventFunction: {
+              trigger: { type: 'cron', schedule: '* * * * *' },
+              outputs: { eventTopics: ['my.other-event.v1'] },
+            },
+          },
+        },
+      },
+      functions: [
+        EventTopicListReferencedInProjectForServerlessFunctions,
+        EventTopicListMock,
+      ],
     });
 
     const actualTopics = await context.call(
@@ -88,13 +140,13 @@ describe('EventTopicListReferencedInProjectForServerlessFunctions', () => {
     );
 
     expect(actualTopics).toEqual({
-      consumed: expect.toContainAllValues([
-        'my.first-event.v1',
-        'my.second-event.v1',
+      consumed: expect.toIncludeSameMembers([
+        myFirstEventDefinition,
+        mySecondEventDefinition,
       ]),
-      produced: expect.toContainAllValues([
-        'my.first-event.v1',
-        'my.other-event.v1',
+      produced: expect.toIncludeSameMembers([
+        myFirstEventDefinition,
+        myOtherEventDefinition,
       ]),
     });
   });

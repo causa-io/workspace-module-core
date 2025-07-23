@@ -30,7 +30,7 @@ export class EventTopicListReferencedInProjectForServiceContainer extends EventT
       ),
     ];
 
-    return { consumed, produced };
+    return await this.mapToDefinitions(context, consumed, produced);
   }
 
   _supports(context: WorkspaceContext): boolean {

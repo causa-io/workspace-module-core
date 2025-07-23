@@ -30,7 +30,7 @@ export class EventTopicListReferencedInProjectForServerlessFunctions extends Eve
       ...new Set(functions.flatMap((fn) => fn.outputs?.eventTopics ?? [])),
     ];
 
-    return { consumed, produced };
+    return await this.mapToDefinitions(context, consumed, produced);
   }
 
   _supports(context: WorkspaceContext) {

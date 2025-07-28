@@ -21,7 +21,10 @@ import {
   InfrastructureProcessAndDeployForAll,
   InfrastructureProcessAndPrepareForAll,
 } from './infrastructure/index.js';
-import { ModelGenerateCodeForAll } from './model/generate-code.js';
+import {
+  ModelGenerateCodeForAll,
+  ModelParseCodeGeneratorInputsForAll,
+} from './model/index.js';
 import { OpenApiGenerateSpecificationForWorkspace } from './openapi/index.js';
 import {
   ProjectDependenciesUpdateAndTestForAll,
@@ -50,6 +53,7 @@ export function registerFunctions(context: ModuleRegistrationContext) {
     InfrastructureProcessAndDeployForAll,
     InfrastructureProcessAndPrepareForAll,
     ModelGenerateCodeForAll,
+    ModelParseCodeGeneratorInputsForAll,
     OpenApiGenerateSpecificationForWorkspace,
     ProjectDependenciesUpdateAndTestForAll,
     ProjectDiffForAll,

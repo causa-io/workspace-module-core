@@ -14,6 +14,7 @@ Features:
 - Define the `ModelGenerateCode` (including implementation) and `ModelRunCodeGenerator` workspace functions.
 - Define the `ModelConfiguration`.
 - Define and provide additional properties in `CausaAttribute` to enable new features in code generators.
+- Implement the `ModelParseCodeGeneratorInputs` workspace function.
 
 ## v0.22.3 (2025-05-12)
 

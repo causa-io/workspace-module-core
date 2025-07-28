@@ -4,6 +4,7 @@ import type { ModelConfiguration } from '../../configurations/index.js';
 import {
   ModelGenerateCode,
   ModelRunCodeGenerator,
+  type GeneratorsOutput,
 } from '../../definitions/index.js';
 
 /**
@@ -11,36 +12,36 @@ import {
  * This should be the only implementation, as it only iterates over the configured code generators generically.
  */
 export class ModelGenerateCodeForAll extends ModelGenerateCode {
-  async _call(context: WorkspaceContext): Promise<string[]> {
+  async _call(context: WorkspaceContext): Promise<GeneratorsOutput> {
     const generators =
       context
         .asConfiguration<ModelConfiguration>()
         .get('model.codeGenerators') ?? [];
     if (generators.length === 0) {
-      return [];
+      return {};
     }
 
     const missingGenerators: string[] = [];
+    const output: GeneratorsOutput = {};
 
-    const files = await Promise.all(
-      generators.map(async (generatorAndConfiguration) => {
-        const { generator, ...configuration } = generatorAndConfiguration;
+    for (const generatorAndConfiguration of generators) {
+      const { generator, ...configuration } = generatorAndConfiguration;
 
-        try {
-          return await context.call(ModelRunCodeGenerator, {
-            generator,
-            configuration,
-          });
-        } catch (error) {
-          if (error instanceof NoImplementationFoundError) {
-            missingGenerators.push(generator);
-            return [];
-          }
-
-          throw error;
+      try {
+        output[generator] = await context.call(ModelRunCodeGenerator, {
+          generator,
+          configuration,
+          previousGeneratorsOutput: output,
+        });
+      } catch (error) {
+        if (error instanceof NoImplementationFoundError) {
+          missingGenerators.push(generator);
+          continue;
         }
-      }),
-    );
+
+        throw error;
+      }
+    }
 
     if (missingGenerators.length === generators.length) {
       throw new Error(
@@ -54,7 +55,7 @@ export class ModelGenerateCodeForAll extends ModelGenerateCode {
       );
     }
 
-    return files.flat();
+    return output;
   }
 
   _supports(): boolean {

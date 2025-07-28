@@ -17,6 +17,7 @@ describe('ModelGenerateCodeForAll', () => {
   let context: WorkspaceContext;
   let functionRegistry: FunctionRegistry<WorkspaceContext>;
   let gen1Mock: WorkspaceFunctionCallMock<ModelRunCodeGenerator>;
+  let gen2Mock: WorkspaceFunctionCallMock<ModelRunCodeGenerator>;
 
   function initContext(configuration: Record<string, any>) {
     ({ context, functionRegistry } = createContext({
@@ -26,13 +27,23 @@ describe('ModelGenerateCodeForAll', () => {
     gen1Mock = registerMockFunction(
       functionRegistry,
       ModelRunCodeGenerator,
-      async (_, args) => [`1️⃣: ${JSON.stringify(args.configuration)}`],
+      async (_, args) => ({
+        'schema1.json': {
+          name: 'Schema1',
+          file: `gen1-${JSON.stringify(args.configuration)}.ts`,
+        },
+      }),
       { supports: (_, { generator }) => generator === 'gen1' },
     );
-    registerMockFunction(
+    gen2Mock = registerMockFunction(
       functionRegistry,
       ModelRunCodeGenerator,
-      async (_, args) => [`2️⃣: ${JSON.stringify(args.configuration)}`],
+      async (_, args) => ({
+        'schema2.json': {
+          name: 'Schema2',
+          file: `gen2-${JSON.stringify(args.configuration)}.ts`,
+        },
+      }),
       { supports: (_, { generator }) => generator === 'gen2' },
     );
   }
@@ -46,23 +57,38 @@ describe('ModelGenerateCodeForAll', () => {
     },
   };
 
-  it('should do nothing if there is no configured code generator', async () => {
+  it('should return an empty output if there is no configured code generator', async () => {
     initContext({});
 
-    const actualFiles = await context.call(ModelGenerateCode, {});
+    const actualOutput = await context.call(ModelGenerateCode, {});
 
-    expect(actualFiles).toBeEmpty();
+    expect(actualOutput).toEqual({});
   });
 
-  it('should run all code generators and return the generated files', async () => {
+  it('should run all code generators and return the generated schemas', async () => {
     initContext(configuration);
 
-    const actualFiles = await context.call(ModelGenerateCode, {});
+    const actualOutput = await context.call(ModelGenerateCode, {});
 
-    expect(actualFiles).toIncludeSameMembers([
-      '1️⃣: {"val1":"🤖"}',
-      '2️⃣: {"val2":"🔧"}',
-    ]);
+    const expectedGeneratorsOutput = {
+      gen1: {
+        'schema1.json': { name: 'Schema1', file: 'gen1-{"val1":"🤖"}.ts' },
+      },
+      gen2: {
+        'schema2.json': { name: 'Schema2', file: 'gen2-{"val2":"🔧"}.ts' },
+      },
+    };
+    expect(actualOutput).toEqual(expectedGeneratorsOutput);
+    expect(gen1Mock).toHaveBeenCalledWith(context, {
+      generator: 'gen1',
+      configuration: { val1: '🤖' },
+      previousGeneratorsOutput: {},
+    });
+    expect(gen2Mock).toHaveBeenCalledWith(context, {
+      generator: 'gen2',
+      configuration: { val2: '🔧' },
+      previousGeneratorsOutput: { gen1: expectedGeneratorsOutput.gen1 },
+    });
   });
 
   it('should log a warning if a code generator cannot be found', async () => {
@@ -73,14 +99,23 @@ describe('ModelGenerateCodeForAll', () => {
     gen1Mock = registerMockFunction(
       functionRegistry,
       ModelRunCodeGenerator,
-      async (_, args) => [`1️⃣: ${JSON.stringify(args.configuration)}`],
+      async (_, args) => ({
+        'schema1.json': {
+          name: 'Schema1',
+          file: `gen1-${JSON.stringify(args.configuration)}.ts`,
+        },
+      }),
       { supports: (_, { generator }) => generator === 'gen1' },
     );
     jest.spyOn(context.logger, 'warn');
 
-    const actualFiles = await context.call(ModelGenerateCode, {});
+    const actualOutput = await context.call(ModelGenerateCode, {});
 
-    expect(actualFiles).toIncludeSameMembers(['1️⃣: {"val1":"🤖"}']);
+    expect(actualOutput).toEqual({
+      gen1: {
+        'schema1.json': { name: 'Schema1', file: 'gen1-{"val1":"🤖"}.ts' },
+      },
+    });
     expect(context.logger.warn).toHaveBeenCalledWith(
       `The following generators were not found or do not match the current project configuration: 'gen2'.`,
     );

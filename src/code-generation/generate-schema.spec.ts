@@ -10,6 +10,7 @@ import {
   type RenderContext,
   TargetLanguage,
   funPrefixNamer,
+  panic,
 } from 'quicktype-core';
 import { Renderer } from 'quicktype-core/dist/Renderer.js';
 import { causaTypeAttributeKind } from './causa-attribute-kind.js';
@@ -40,6 +41,10 @@ class DummyRenderer extends ConvenienceRenderer {
     const objects: Record<string, any> = {};
 
     this.forEachObject('none', (classType) => {
+      if (classType.getCombinedName() === 'Boom') {
+        panic('💥');
+      }
+
       // This checks that the `causaJsonSchemaAttributeProducer` has been set up on the input.
       objects[classType.getCombinedName()] =
         causaTypeAttributeKind.tryGetInAttributes(classType.getAttributes());
@@ -94,6 +99,7 @@ describe('generateCodeForSchemas', () => {
 
   it('should prepare the inputs, generate the code, and write it to the file', async () => {
     const schemaFilePath = join(rootPath, 'schema.json');
+    const referencedPath = join(rootPath, 'referenced.json');
     await writeFile(
       schemaFilePath,
       JSON.stringify({
@@ -109,10 +115,13 @@ describe('generateCodeForSchemas', () => {
                 type: 'string',
                 causa: { somePropAttribute: '🔧' },
               },
+              myOtherProp: {
+                oneOf: [{ $ref: './referenced.json' }],
+              },
             },
           },
         ],
-        $defs: {
+        myCustomSchemas: {
           MyEnum: {
             type: 'string',
             enum: ['A', 'B', 'C'],
@@ -121,9 +130,28 @@ describe('generateCodeForSchemas', () => {
         },
       }),
     );
+    await writeFile(
+      referencedPath,
+      JSON.stringify({
+        title: 'MyReferencedObject',
+        type: 'object',
+        properties: {
+          myReferencedProp: { type: 'string' },
+        },
+        myCustomSchemas: {
+          NestedTypeInReferenced: {
+            title: 'NestedTypeInReferenced',
+            type: 'object',
+            properties: {
+              anotherProp: { type: 'string' },
+            },
+          },
+        },
+      }),
+    );
 
     const inputData = await makeJsonSchemaInputData([schemaFilePath], {
-      nestedSchemasFragments: ['#/$defs/'],
+      nestedSchemas: ['myCustomSchemas'],
     });
     await generateCodeForSchemas(targetLanguage, inputData);
 
@@ -139,11 +167,42 @@ describe('generateCodeForSchemas', () => {
         constProperties: [],
       },
       MyEnum: {
-        uri: `${schemaFilePath}#/$defs/MyEnum`,
+        uri: `${schemaFilePath}#/myCustomSchemas/MyEnum`,
         objectAttributes: { someEnumAttribute: '💡' },
         propertiesAttributes: {},
         constProperties: [],
       },
+      MyReferencedObject: {
+        constProperties: [],
+        objectAttributes: {},
+        propertiesAttributes: {},
+        uri: `${referencedPath}#`,
+      },
+      NestedTypeInReferenced: {
+        uri: `${referencedPath}#/myCustomSchemas/NestedTypeInReferenced`,
+        objectAttributes: {},
+        propertiesAttributes: {},
+        constProperties: [],
+      },
     });
+  });
+
+  it('should catch a quicktype error and throw a new error with the message', async () => {
+    const schemaFilePath = join(rootPath, 'schema.json');
+    await writeFile(
+      schemaFilePath,
+      JSON.stringify({
+        type: 'object',
+        title: 'Boom',
+        properties: {
+          myProp: { type: 'string' },
+        },
+      }),
+    );
+
+    const inputData = await makeJsonSchemaInputData([schemaFilePath]);
+    const actualPromise = generateCodeForSchemas(targetLanguage, inputData);
+
+    await expect(actualPromise).rejects.toThrow('💥');
   });
 });

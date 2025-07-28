@@ -4,6 +4,7 @@ import type { ModelConfiguration } from '../../configurations/index.js';
 import {
   ModelGenerateCode,
   ModelRunCodeGenerator,
+  type GeneratorsOutput,
 } from '../../definitions/index.js';
 
 /**
@@ -11,30 +12,31 @@ import {
  * This should be the only implementation, as it only iterates over the configured code generators generically.
  */
 export class ModelGenerateCodeForAll extends ModelGenerateCode {
-  async _call(context: WorkspaceContext): Promise<string[]> {
+  async _call(context: WorkspaceContext): Promise<GeneratorsOutput> {
     const generators =
       context
         .asConfiguration<ModelConfiguration>()
         .get('model.codeGenerators') ?? [];
     if (generators.length === 0) {
-      return [];
+      return {};
     }
 
     const missingGenerators: string[] = [];
+    const output: GeneratorsOutput = {};
 
-    const files = await Promise.all(
+    await Promise.all(
       generators.map(async (generatorAndConfiguration) => {
         const { generator, ...configuration } = generatorAndConfiguration;
 
         try {
-          return await context.call(ModelRunCodeGenerator, {
+          output[generator] = await context.call(ModelRunCodeGenerator, {
             generator,
             configuration,
           });
         } catch (error) {
           if (error instanceof NoImplementationFoundError) {
             missingGenerators.push(generator);
-            return [];
+            return;
           }
 
           throw error;
@@ -54,7 +56,7 @@ export class ModelGenerateCodeForAll extends ModelGenerateCode {
       );
     }
 
-    return files.flat();
+    return output;
   }
 
   _supports(): boolean {

@@ -17,6 +17,7 @@ describe('ModelGenerateCodeForAll', () => {
   let context: WorkspaceContext;
   let functionRegistry: FunctionRegistry<WorkspaceContext>;
   let gen1Mock: WorkspaceFunctionCallMock<ModelRunCodeGenerator>;
+  let gen2Mock: WorkspaceFunctionCallMock<ModelRunCodeGenerator>;
 
   function initContext(configuration: Record<string, any>) {
     ({ context, functionRegistry } = createContext({
@@ -34,7 +35,7 @@ describe('ModelGenerateCodeForAll', () => {
       }),
       { supports: (_, { generator }) => generator === 'gen1' },
     );
-    registerMockFunction(
+    gen2Mock = registerMockFunction(
       functionRegistry,
       ModelRunCodeGenerator,
       async (_, args) => ({
@@ -69,13 +70,24 @@ describe('ModelGenerateCodeForAll', () => {
 
     const actualOutput = await context.call(ModelGenerateCode, {});
 
-    expect(actualOutput).toEqual({
+    const expectedGeneratorsOutput = {
       gen1: {
         'schema1.json': { name: 'Schema1', file: 'gen1-{"val1":"🤖"}.ts' },
       },
       gen2: {
         'schema2.json': { name: 'Schema2', file: 'gen2-{"val2":"🔧"}.ts' },
       },
+    };
+    expect(actualOutput).toEqual(expectedGeneratorsOutput);
+    expect(gen1Mock).toHaveBeenCalledWith(context, {
+      generator: 'gen1',
+      configuration: { val1: '🤖' },
+      previousGeneratorsOutput: {},
+    });
+    expect(gen2Mock).toHaveBeenCalledWith(context, {
+      generator: 'gen2',
+      configuration: { val2: '🔧' },
+      previousGeneratorsOutput: { gen1: expectedGeneratorsOutput.gen1 },
     });
   });
 

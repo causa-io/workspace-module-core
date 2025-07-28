@@ -76,6 +76,12 @@ export abstract class ModelRunCodeGenerator extends WorkspaceFunction<
    */
   @IsObject()
   readonly configuration!: Record<string, unknown>;
+
+  /**
+   * The output of all previous generators that have run.
+   */
+  @IsObject()
+  readonly previousGeneratorsOutput!: GeneratorsOutput;
 }
 
 /**

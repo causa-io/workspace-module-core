@@ -24,25 +24,24 @@ export class ModelGenerateCodeForAll extends ModelGenerateCode {
     const missingGenerators: string[] = [];
     const output: GeneratorsOutput = {};
 
-    await Promise.all(
-      generators.map(async (generatorAndConfiguration) => {
-        const { generator, ...configuration } = generatorAndConfiguration;
+    for (const generatorAndConfiguration of generators) {
+      const { generator, ...configuration } = generatorAndConfiguration;
 
-        try {
-          output[generator] = await context.call(ModelRunCodeGenerator, {
-            generator,
-            configuration,
-          });
-        } catch (error) {
-          if (error instanceof NoImplementationFoundError) {
-            missingGenerators.push(generator);
-            return;
-          }
-
-          throw error;
+      try {
+        output[generator] = await context.call(ModelRunCodeGenerator, {
+          generator,
+          configuration,
+          previousGeneratorsOutput: output,
+        });
+      } catch (error) {
+        if (error instanceof NoImplementationFoundError) {
+          missingGenerators.push(generator);
+          continue;
         }
-      }),
-    );
+
+        throw error;
+      }
+    }
 
     if (missingGenerators.length === generators.length) {
       throw new Error(

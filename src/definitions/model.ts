@@ -45,3 +45,58 @@ export abstract class ModelRunCodeGenerator extends WorkspaceFunction<
   @IsObject()
   readonly configuration!: Record<string, unknown>;
 }
+
+/**
+ * Inputs for a code generator, parsed from its configuration.
+ */
+export type CodeGeneratorInputs = {
+  /**
+   * Whether to include schema files for events referenced in the project.
+   * This is only provided for information. If this is `true`, {@link CodeGeneratorInputs.files} will contain the schema
+   * files for the events.
+   */
+  includeEvents: boolean;
+
+  /**
+   * The globs to use to find schema files.
+   * This is only provided for information. If this is set, {@link CodeGeneratorInputs.files} will contain the schema
+   * files matching the globs.
+   */
+  globs: string[];
+
+  /**
+   * The files to use as input for the code generator.
+   */
+  files: string[];
+
+  /**
+   * A list of properties that may exist in JSONSchema files and contain nested schemas.
+   * This should be passed to the code generator configuration.
+   */
+  nestedSchemas?: string[];
+
+  /**
+   * If `true`, JSONSchema files that are referenced by other schemas should be included in the input data, along with
+   * their nested schemas.
+   * This should be passed to the code generator configuration.
+   */
+  includeFullReferences?: boolean;
+};
+
+/**
+ * Parses the inputs for a code generator, based on its configuration.
+ * This expects standard properties in the configuration (all are optional):
+ * - `includeEvents`: boolean.
+ * - `globs`: string[].
+ * - `nestedSchemas`: string[].
+ * - `includeReferences`: boolean.
+ */
+export abstract class ModelParseCodeGeneratorInputs extends WorkspaceFunction<
+  Promise<CodeGeneratorInputs>
+> {
+  /**
+   * The configuration for the code generator.
+   */
+  @IsObject()
+  readonly configuration!: Record<string, unknown>;
+}

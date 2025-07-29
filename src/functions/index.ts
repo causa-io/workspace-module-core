@@ -23,6 +23,7 @@ import {
 } from './infrastructure/index.js';
 import {
   ModelGenerateCodeForAll,
+  ModelMakeGeneratorQuicktypeInputDataForJsonSchema,
   ModelParseCodeGeneratorInputsForAll,
 } from './model/index.js';
 import { OpenApiGenerateSpecificationForWorkspace } from './openapi/index.js';
@@ -53,6 +54,7 @@ export function registerFunctions(context: ModuleRegistrationContext) {
     InfrastructureProcessAndDeployForAll,
     InfrastructureProcessAndPrepareForAll,
     ModelGenerateCodeForAll,
+    ModelMakeGeneratorQuicktypeInputDataForJsonSchema,
     ModelParseCodeGeneratorInputsForAll,
     OpenApiGenerateSpecificationForWorkspace,
     ProjectDependenciesUpdateAndTestForAll,

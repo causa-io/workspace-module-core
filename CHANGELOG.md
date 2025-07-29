@@ -15,6 +15,7 @@ Features:
 - Define the `ModelConfiguration`.
 - Define and provide additional properties in `CausaAttribute` to enable new features in code generators.
 - Implement the `ModelParseCodeGeneratorInputs` workspace function.
+- Define the `ModelMakeGeneratorQuicktypeInputData` workspace function and implement it for JSONSchema.
 
 ## v0.22.3 (2025-05-12)
 

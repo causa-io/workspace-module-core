@@ -1,6 +1,7 @@
 import { CliCommand, type ParentCliCommandDefinition } from '@causa/cli';
 import { WorkspaceFunction } from '@causa/workspace';
 import { IsObject, IsString } from 'class-validator';
+import type { InputData } from 'quicktype-core';
 
 /**
  * The `model` parent command, grouping all commands related to business modelling, e.g. generating code from schemas.
@@ -131,6 +132,21 @@ export type CodeGeneratorInputs = {
  */
 export abstract class ModelParseCodeGeneratorInputs extends WorkspaceFunction<
   Promise<CodeGeneratorInputs>
+> {
+  /**
+   * The configuration for the code generator.
+   */
+  @IsObject()
+  readonly configuration!: Record<string, unknown>;
+}
+
+/**
+ * Creates `quicktype`'s {@link InputData} for model code generators, based on their configuration.
+ * This uses the {@link ModelParseCodeGeneratorInputs} to get the list of files and options, but the quicktype's input
+ * data will depend on the model's schema format.
+ */
+export abstract class ModelMakeGeneratorQuicktypeInputData extends WorkspaceFunction<
+  Promise<InputData>
 > {
   /**
    * The configuration for the code generator.

@@ -6,10 +6,10 @@ import {
   quicktype,
   QuickTypeError,
   TypeScriptTargetLanguage,
-  type JSONSchema,
   type JSONSchemaSourceData,
 } from 'quicktype-core';
 import { causaJsonSchemaAttributeProducer } from './jsonschema-attribute-producer.js';
+import { AbsoluteIdJsonSchemaStore } from './schema-store.js';
 import type { TargetLanguageWithWriter } from './target-language-with-writer.js';
 
 /**
@@ -85,7 +85,7 @@ export async function makeJsonSchemaInputData(
   // This schema store will be used twice: for the initial parsing of the schemas, and when creating the final input
   // data. Not only the store is used after the first run to resolve references, but this also avoids having to
   // re-fetch the schemas from the files.
-  const schemaStore = new FetchingJSONSchemaStore();
+  const schemaStore = new AbsoluteIdJsonSchemaStore();
   // There is an inconsistent behavior in naming when passing a single schema file to quicktype.
   // Setting the name as `undefined` ensures the `title` JSONSchema attribute is used as the class name for the
   // top-level type in the schema.
@@ -102,31 +102,26 @@ export async function makeJsonSchemaInputData(
     noRender: true,
   });
 
-  // This accesses a private API. The only workaround would be to define a new schema store type.
-  const filesAndSchemas = [
-    ...((schemaStore as any)._schemas as Map<string, JSONSchema>).entries(),
-  ];
+  const sourcesWithReferencesAndNestedSchemas = Object.entries(
+    schemaStore.absolutePathSchemas,
+  ).flatMap(([file, schema]) => {
+    if (!files.includes(file) && !includeReferences) {
+      return [];
+    }
 
-  const sourcesWithReferencesAndNestedSchemas = filesAndSchemas.flatMap(
-    ([file, schema]) => {
-      if (!files.includes(file) && !includeReferences) {
-        return [];
-      }
-
-      const fileSources: JSONSchemaSourceData[] = [{ name, uris: [file] }];
-      if (typeof schema === 'boolean') {
-        return fileSources;
-      }
-
-      nestedSchemas
-        .filter((p) => typeof schema[p] === 'object')
-        .forEach((nestedSchema) =>
-          fileSources.unshift({ name, uris: [`${file}#/${nestedSchema}/`] }),
-        );
-
+    const fileSources: JSONSchemaSourceData[] = [{ name, uris: [file] }];
+    if (typeof schema === 'boolean') {
       return fileSources;
-    },
-  );
+    }
+
+    nestedSchemas
+      .filter((p) => typeof schema[p] === 'object')
+      .forEach((nestedSchema) =>
+        fileSources.unshift({ name, uris: [`${file}#/${nestedSchema}/`] }),
+      );
+
+    return fileSources;
+  });
 
   return await makeJsonSchemaInputDataFromSources(
     sourcesWithReferencesAndNestedSchemas,

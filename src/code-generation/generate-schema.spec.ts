@@ -176,7 +176,7 @@ describe('generateCodeForSchemas', () => {
         constProperties: [],
         objectAttributes: {},
         propertiesAttributes: {},
-        uri: `${referencedPath}#`,
+        uri: referencedPath,
       },
       NestedTypeInReferenced: {
         uri: `${referencedPath}#/myCustomSchemas/NestedTypeInReferenced`,

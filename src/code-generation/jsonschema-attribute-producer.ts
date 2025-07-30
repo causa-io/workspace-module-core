@@ -1,5 +1,25 @@
-import type { JSONSchemaAttributeProducer } from 'quicktype-core/dist/input/JSONSchemaInput.js';
+import type {
+  JSONSchemaAttributeProducer,
+  Ref,
+} from 'quicktype-core/dist/input/JSONSchemaInput.js';
 import { causaTypeAttributeKind } from './causa-attribute-kind.js';
+
+/**
+ * Normalizes a JSONSchema URI.
+ * Trailing empty fragments are removed, and the fragment is ensured to start with a `/`.
+ *
+ * @param ref The {@link Ref} to normalize.
+ * @returns The normalized URI string.
+ */
+function normalizeUri(ref: Ref): string {
+  const pathAndFragment = ref.toString().split('#', 2);
+  if (!pathAndFragment[1]) {
+    return pathAndFragment[0];
+  }
+
+  const fragmentHasSlash = pathAndFragment[1].startsWith('/');
+  return pathAndFragment.join(fragmentHasSlash ? '#' : '#/');
+}
 
 /**
  * A {@link JSONSchemaAttributeProducer} that parses the input JSON schema for the `causa` attribute.
@@ -18,7 +38,7 @@ export const causaJsonSchemaAttributeProducer: JSONSchemaAttributeProducer = (
     return undefined;
   }
 
-  const uri = ref.toString();
+  const uri = normalizeUri(ref);
   const objectAttributes: Record<string, string> =
     'causa' in schema && typeof schema.causa === 'object' ? schema.causa : {};
   const propertiesAttributes: Record<string, Record<string, string>> = {};

@@ -56,6 +56,8 @@ export class ModelParseCodeGeneratorInputsForAll extends ModelParseCodeGenerator
     const filesSet = new Set<string>();
 
     if (includeEvents) {
+      context.logger.debug('Listing event topics referenced in the project.');
+
       const { consumed, produced } = await context.call(
         EventTopicListReferencedInProject,
         {},
@@ -65,6 +67,10 @@ export class ModelParseCodeGeneratorInputsForAll extends ModelParseCodeGenerator
     }
 
     if (globs.length > 0) {
+      context.logger.debug(
+        'Listing schemas from globs configured for the generator.',
+      );
+
       const paths = await globby(globs, {
         followSymbolicLinks: false,
         cwd: projectPath,

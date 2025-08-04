@@ -6,8 +6,7 @@ import {
 } from '@causa/cli';
 import { WorkspaceContext, WorkspaceFunction } from '@causa/workspace';
 import { AllowMissing } from '@causa/workspace/validation';
-import { IsBoolean, IsObject, IsString } from 'class-validator';
-import type { TargetLanguageWithWriter } from '../code-generation/index.js';
+import { IsBoolean, IsString } from 'class-validator';
 
 /**
  * The definition for an event topic.
@@ -90,45 +89,6 @@ export class MissingEventTopicDefinitionsError extends Error {
  */
 export abstract class EventTopicList extends WorkspaceFunction<
   Promise<EventTopicDefinition[]>
-> {}
-
-/**
- * Generates the source code for the given event topic definitions in the current project.
- */
-export abstract class EventTopicGenerateCode extends WorkspaceFunction<
-  Promise<void>
-> {
-  /**
-   * The definitions of the topics for which code should be generated.
-   */
-  @IsObject({ each: true })
-  readonly definitions!: EventTopicDefinition[];
-}
-
-/**
- * Generates the source code for all event topics referenced in the current project.
- * Returns the list of topic IDs for which code was generated.
- */
-@CliCommand({
-  parent: eventsCommandDefinition,
-  name: 'generateCode',
-  description: `Generates the source code for all topic schemas the project consumes and produces.
-Make sure the project correctly defines its triggers, inputs, and outputs to have all schemas generated.`,
-  summary:
-    'Generates the source code for all topic schemas the project consumes and produces.',
-  aliases: ['genCode'],
-  outputFn: (topicIds) => console.log(topicIds.join('\n')),
-})
-export abstract class EventTopicGenerateCodeReferencedInProject extends WorkspaceFunction<
-  Promise<string[]>
-> {}
-
-/**
- * Returns the {@link TargetLanguageWithWriter} for the programming language used in the current context, which can be
- * passed to `quicktype` to generate code from event (JSON) schemas.
- */
-export abstract class EventTopicMakeCodeGenerationTargetLanguage extends WorkspaceFunction<
-  Promise<TargetLanguageWithWriter>
 > {}
 
 /**

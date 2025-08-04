@@ -28,6 +28,8 @@ export class ModelGenerateCodeForAll extends ModelGenerateCode {
       const { generator, ...configuration } = generatorAndConfiguration;
 
       try {
+        context.logger.info(`🔨 Running code generator '${generator}'...`);
+
         output[generator] = await context.call(ModelRunCodeGenerator, {
           generator,
           configuration,
@@ -54,6 +56,8 @@ export class ModelGenerateCodeForAll extends ModelGenerateCode {
         `The following generators were not found or do not match the current project configuration: ${missingGenerators.map((g) => `'${g}'`).join(', ')}.`,
       );
     }
+
+    context.logger.info('✅ Code generation completed successfully.');
 
     return output;
   }

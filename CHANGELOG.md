@@ -6,6 +6,7 @@ Breaking changes:
 
 - Upgrade the minimum Node.js version to `20`.
 - Return lists of `EventTopicDefinition`s in `EventTopicListReferencedInProject` rather than IDs.
+- Remove code generation features from event topic-related functions and commands.
 
 Features:
 

@@ -49,6 +49,12 @@ export type CausaPropertyAttributes = {
    */
   enumHint?: string;
 
+  /**
+   * A value that should be used for this property when creating test objects, rather than the default type-inferred
+   * value.
+   */
+  testObjectDefaultValue?: any;
+
   [key: string]: any;
 };
 

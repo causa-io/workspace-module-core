@@ -179,7 +179,7 @@ describe('EventTopicBackfillForAll', () => {
       output: expectedFile,
     });
 
-    await expect(actualPromise).rejects.toThrowError('💥');
+    await expect(actualPromise).rejects.toThrow('💥');
     expect(createTopicMock).toHaveBeenCalledExactlyOnceWith(context, {
       name: expect.any(String),
     });
@@ -200,7 +200,7 @@ describe('EventTopicBackfillForAll', () => {
     const actualFileContent = await readFile(expectedFile);
     expect(JSON.parse(actualFileContent.toString())).toEqual({
       temporaryTopicId: expectedTopicId,
-      temporaryTriggerResourceIds: expect.toContainAllValues([
+      temporaryTriggerResourceIds: expect.toIncludeSameMembers([
         'some-resource-a',
         'some-resource-b',
         'some-resource-c',
@@ -220,7 +220,7 @@ describe('EventTopicBackfillForAll', () => {
       output: expectedFile,
     });
 
-    await expect(actualPromise).rejects.toThrowError('💥');
+    await expect(actualPromise).rejects.toThrow('💥');
     expect(createTopicMock).not.toHaveBeenCalled();
     expect(getTopicIdMock).toHaveBeenCalledExactlyOnceWith(context, {
       eventTopic: 'test-topic',

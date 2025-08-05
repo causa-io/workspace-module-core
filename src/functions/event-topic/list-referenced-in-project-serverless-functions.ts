@@ -15,7 +15,7 @@ export class EventTopicListReferencedInProjectForServerlessFunctions extends Eve
     const functions = Object.values(
       context
         .asConfiguration<ServerlessFunctionsConfiguration>()
-        .get('serverlessFunctions.functions') ?? {},
+        .get('serverlessFunctions.functions', { unsafe: true }) ?? {},
     );
 
     const consumed = [

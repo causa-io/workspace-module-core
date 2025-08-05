@@ -125,6 +125,9 @@ describe('EventTopicListReferencedInProjectForServerlessFunctions', () => {
               trigger: { type: 'cron', schedule: '* * * * *' },
               outputs: { eventTopics: ['my.other-event.v1'] },
             },
+            triggerWithFormat: {
+              trigger: { type: 'other', conf: { $format: 'something' } },
+            },
           },
         },
       },

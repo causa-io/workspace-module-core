@@ -15,7 +15,8 @@ export class EventTopicListReferencedInProjectForServiceContainer extends EventT
     const serviceContainerConf =
       context.asConfiguration<ServiceContainerConfiguration>();
     const triggers =
-      serviceContainerConf.get('serviceContainer.triggers') ?? {};
+      serviceContainerConf.get('serviceContainer.triggers', { unsafe: true }) ??
+      {};
     const consumed = [
       ...new Set(
         Object.values(triggers).flatMap((trigger) =>

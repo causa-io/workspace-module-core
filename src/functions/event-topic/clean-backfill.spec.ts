@@ -61,7 +61,7 @@ describe('EventTopicCleanBackfillForAll', () => {
 
     const actualPromise = context.call(EventTopicCleanBackfill, { file });
 
-    await expect(actualPromise).rejects.toThrowError(
+    await expect(actualPromise).rejects.toThrow(
       'Failed to clean some of the resources for the backfill.',
     );
     expect(deleteTriggerResourceMock).toHaveBeenCalledTimes(3);

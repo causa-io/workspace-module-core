@@ -75,7 +75,7 @@ describe('ProjectDiffForAll', () => {
 
     expect(actualResult).toEqual({
       [join(workspaceRoot, 'proj1')]: {
-        diff: expect.toContainAllValues([
+        diff: expect.toIncludeSameMembers([
           join(workspaceRoot, 'proj1/file1'),
           join(workspaceRoot, 'proj1/file2'),
         ]),

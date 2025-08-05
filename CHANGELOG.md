@@ -17,6 +17,7 @@ Features:
 - Define and provide additional properties in `CausaAttribute` to enable new features in code generators.
 - Implement the `ModelParseCodeGeneratorInputs` workspace function.
 - Define the `ModelMakeGeneratorQuicktypeInputData` workspace function and implement it for JSONSchema.
+- Allow configuration templates in serverless functions and service container triggers definitions.
 
 ## v0.22.3 (2025-05-12)
 

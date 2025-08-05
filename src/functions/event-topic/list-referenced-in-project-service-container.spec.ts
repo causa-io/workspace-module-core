@@ -72,6 +72,10 @@ describe('EventTopicListReferencedInProjectForServiceContainer', () => {
             mySecondTrigger: { type: 'event', topic: 'my.second-event.v1' },
             myThirdTrigger: { type: 'event', topic: 'my.second-event.v1' },
             notAnEventTrigger: { type: 'cron', schedule: '* * * * *' },
+            triggerWithFormat: {
+              type: 'other',
+              conf: { $format: 'something' },
+            },
           },
           outputs: {
             eventTopics: [

@@ -138,8 +138,8 @@ export abstract class ProjectPublishArtefact extends WorkspaceFunction<
     flags: '-t, --tag <tag>',
     description: `The tag used to determine the remote destination for the artefact.
 This can be any string, or one of the following:
-'${ProjectPublishArtefact.TagFormatSemantic}' for the current project version.
-'${ProjectPublishArtefact.TagFormatShortSha}' for the current Git short SHA (default).`,
+'semantic' for the current project version.
+'shortSha' for the current Git short SHA (default).`,
   })
   @AllowMissing()
   readonly tag?: string;

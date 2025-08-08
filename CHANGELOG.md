@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.24.0 (2025-08-08)
+
 Features:
 
 - Add `pull` option to `DockerService.run()` method supporting `'always'`, `'missing'`, and `'never'` values.

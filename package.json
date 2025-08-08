@@ -1,6 +1,6 @@
 {
   "name": "@causa/workspace-core",
-  "version": "0.23.0",
+  "version": "0.24.0",
   "description": "The Causa workspace module providing core function definitions and some implementations.",
   "repository": {
     "type": "git",

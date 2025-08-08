@@ -224,6 +224,7 @@ describe('DockerService', () => {
         envFile: '/some/file',
         rm: true,
         network: 'someNetwork',
+        pull: 'always',
       });
 
       expect(service.docker).toHaveBeenCalledOnce();
@@ -245,6 +246,7 @@ describe('DockerService', () => {
       expect(actualArgs).toContain('--rm');
       expect(actualArgs).toContain('--network someNetwork');
       expect(actualArgs).toContain('--env-file /some/file');
+      expect(actualArgs).toContain('--pull always');
     });
   });
 

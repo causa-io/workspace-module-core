@@ -45,6 +45,7 @@ describe('DockerEmulatorService', () => {
         'my-image',
         expect.objectContaining({
           detach: true,
+          pull: 'always',
           name: 'my-container',
           network: 'my-network',
           publish: [{ local: 8080, container: 1234 }],

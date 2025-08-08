@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+Features:
+
+- Add `pull` option to `DockerService.run()` method supporting `'always'`, `'missing'`, and `'never'` values.
+- Update `DockerEmulatorService` to use `pull: 'always'` by default for emulator containers.
+
 ## v0.23.0 (2025-08-05)
 
 Breaking changes:

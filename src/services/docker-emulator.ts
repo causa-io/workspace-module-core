@@ -51,6 +51,7 @@ export class DockerEmulatorService {
     await this.dockerService.run(dockerImage, {
       detach: true,
       logging: { stdout: null, stderr: 'debug' },
+      pull: 'always',
       ...options,
       name: containerName,
       network,

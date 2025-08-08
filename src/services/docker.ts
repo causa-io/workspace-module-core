@@ -351,6 +351,11 @@ export class DockerService {
        * The network in which the container should be run.
        */
       network?: string;
+
+      /**
+       * Pull image policy. Defaults to `missing`.
+       */
+      pull?: 'always' | 'missing' | 'never';
     } & SpawnOptions = {},
   ): Promise<SpawnedProcessResult> {
     const {
@@ -364,6 +369,7 @@ export class DockerService {
       detach,
       publish,
       network,
+      pull,
       ...spawnOptions
     } = options;
     const args = [image, ...(commandAndArgs ?? [])];
@@ -421,6 +427,10 @@ export class DockerService {
       }
       args.splice(0, 0, '--publish', arg);
     });
+
+    if (pull) {
+      args.splice(0, 0, '--pull', pull);
+    }
 
     return await this.docker('run', args, spawnOptions);
   }

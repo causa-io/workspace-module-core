@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.25.0 (2025-10-29)
+
 Breaking changes:
 
 - Do not write secrets to files in the `ProjectWriteConfigurations` infrastructure processor.

@@ -179,4 +179,24 @@ describe('ProjectWriteConfigurations', () => {
     expect(existsAfterWrite).toBeTrue();
     expect(existsAfterTearDown).toBeFalse();
   });
+
+  it('should not write secret values', async () => {
+    await writeConfiguration('causa.yaml', {
+      workspace: { name: '🏷️' },
+    });
+    await writeConfiguration('project1/causa.project.yaml', {
+      project: { name: 'my-project', type: '🐳', language: '🐍' },
+      someValue: { $format: "${ secret('mySecret') }" },
+    });
+
+    await context.call(ProjectWriteConfigurations, {});
+
+    const actualFirstProjectConf =
+      await readActualProjectConfiguration('my-project');
+    expect(actualFirstProjectConf).toEqual({
+      workspace: { name: '🏷️' },
+      project: { name: 'my-project', type: '🐳', language: '🐍' },
+      someValue: '',
+    });
+  });
 });

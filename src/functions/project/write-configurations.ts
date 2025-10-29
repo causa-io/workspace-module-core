@@ -82,7 +82,9 @@ export class ProjectWriteConfigurations
           processors: null,
         });
 
-        const projectConfiguration = await projectContext.getAndRender();
+        const projectConfiguration = await projectContext.getAndRender({
+          renderSecrets: false,
+        });
 
         const projectName = projectConfiguration.project?.name;
         const configurationFile = join(

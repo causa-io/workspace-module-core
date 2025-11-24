@@ -105,4 +105,28 @@ describe('causaJsonSchemaAttributeProducer', () => {
       constProperties: [],
     });
   });
+
+  it.each([
+    { oneOf: [{ type: 'string' }, { type: 'number' }] },
+    { anyOf: [{ type: 'string' }, { type: 'number' }] },
+    { allOf: [{ type: 'string' }, { type: 'number' }] },
+  ])(
+    'should return the uri for a combination type (%j)',
+    (combinationSchema) => {
+      const schema = {
+        ...combinationSchema,
+        causa: { myCombinationAttribute: '🔀' },
+      };
+
+      const actualResult = produce(schema);
+
+      expect(actualResult).toEqual({ forType: expect.any(Map) });
+      expect(actualResult?.forType?.get(causaTypeAttributeKind)).toEqual({
+        uri: '/some/file#/$defs/MySchema',
+        objectAttributes: { myCombinationAttribute: '🔀' },
+        propertiesAttributes: {},
+        constProperties: [],
+      });
+    },
+  );
 });

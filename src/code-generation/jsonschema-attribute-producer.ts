@@ -23,8 +23,8 @@ function normalizeUri(ref: Ref): string {
 
 /**
  * A {@link JSONSchemaAttributeProducer} that parses the input JSON schema for the `causa` attribute.
- * Only object types and enums are supported. The `causa` fields on the object's properties are also read and added to the
- * returned attribute.
+ * Only object types, combined types, and enums are supported. The `causa` fields on the object's properties are also
+ * read and added to the returned attribute.
  */
 export const causaJsonSchemaAttributeProducer: JSONSchemaAttributeProducer = (
   schema,
@@ -34,7 +34,14 @@ export const causaJsonSchemaAttributeProducer: JSONSchemaAttributeProducer = (
     return undefined;
   }
 
-  if (!Array.isArray(schema.enum) && schema.type !== 'object') {
+  const isEnum = Array.isArray(schema.enum);
+  const isObject = schema.type === 'object';
+  // If the schema is a non-trivial combination of types, it may be emitted as its own type, in which case we want to
+  // extract the attributes (especially the URI). Combinations used for nullability only are ignored.
+  const isCombination = [schema.oneOf, schema.anyOf, schema.allOf].some(
+    (c) => Array.isArray(c) && c.filter((s) => s.type !== 'null').length > 1,
+  );
+  if (!isEnum && !isObject && !isCombination) {
     return undefined;
   }
 

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.25.1 (2025-11-24)
+
 Fixes:
 
 - Support production of attributes for JSONSchema combined types.

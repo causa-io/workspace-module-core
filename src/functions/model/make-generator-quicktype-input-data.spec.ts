@@ -32,9 +32,8 @@ describe('ModelMakeGeneratorQuicktypeInputDataForJsonSchema', () => {
   let ModelMakeGeneratorQuicktypeInputDataForJsonSchemaClass: typeof ModelMakeGeneratorQuicktypeInputDataForJsonSchema;
 
   beforeAll(async () => {
-    ({ makeJsonSchemaInputData } = (await import(
-      '../../code-generation/index.js'
-    )) as any);
+    ({ makeJsonSchemaInputData } =
+      (await import('../../code-generation/index.js')) as any);
     ({
       ModelMakeGeneratorQuicktypeInputDataForJsonSchema:
         ModelMakeGeneratorQuicktypeInputDataForJsonSchemaClass,

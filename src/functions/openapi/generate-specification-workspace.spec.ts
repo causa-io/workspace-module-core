@@ -115,6 +115,7 @@ describe('OpenApiGenerateDocumentationForWorkspace ', () => {
     const actualMergedSpecification = load((await readFile(output)).toString());
     expect(actualMergedSpecification).toEqual({
       openapi: '3.1.0',
+      info: expect.any(Object),
       paths: {
         '/project1': { get: {} },
         '/project2': { get: {} },
@@ -146,6 +147,7 @@ describe('OpenApiGenerateDocumentationForWorkspace ', () => {
     const actualMergedSpecification = load((await readFile(output)).toString());
     expect(actualMergedSpecification).toEqual({
       openapi: expect.any(String),
+      info: expect.any(Object),
       servers: [
         { url: 'http://localhost:8080', description: '🚧' },
         { url: 'https://api.example.com', description: '🚀' },

@@ -1,8 +1,8 @@
 import { WorkspaceContext } from '@causa/workspace';
 import { NoImplementationFoundError } from '@causa/workspace/function-registry';
+import { join as joinSpecs } from '@scalar/openapi-parser';
 import { writeFile } from 'fs/promises';
 import { dump, load } from 'js-yaml';
-import { isErrorResult, merge } from 'openapi-merge';
 import type { OpenApiConfiguration } from '../../configurations/index.js';
 import { OpenApiGenerateSpecification } from '../../definitions/index.js';
 
@@ -27,7 +27,7 @@ export class OpenApiGenerateSpecificationForWorkspace extends OpenApiGenerateSpe
     );
 
     context.logger.info(`📝 Merging OpenAPI specifications.`);
-    const mergedSpecifications = this.mergeSpecifications(
+    const mergedSpecifications = await this.mergeSpecifications(
       context,
       openApiSpecifications.filter((spec): spec is object => spec !== null),
     );
@@ -106,21 +106,19 @@ export class OpenApiGenerateSpecificationForWorkspace extends OpenApiGenerateSpe
    * @param specifications The specifications for each project in the workspace.
    * @returns The merged OpenAPI specification.
    */
-  private mergeSpecifications(
+  private async mergeSpecifications(
     context: WorkspaceContext,
     specifications: object[],
-  ): object {
-    const inputs = specifications.map((spec) => ({ oas: spec as any }));
-
+  ): Promise<object> {
     const openApiConf = context.asConfiguration<OpenApiConfiguration>();
 
-    const globalSpecs: any = openApiConf.get('openApi.global') ?? {};
+    const globalSpec: any = openApiConf.get('openApi.global') ?? {};
     const serversFromEnvironmentConfiguration = openApiConf.get(
       'openApi.serversFromEnvironmentConfiguration',
     );
 
     if (serversFromEnvironmentConfiguration) {
-      globalSpecs.servers = Object.entries(
+      globalSpec.servers = Object.entries(
         context.getOrThrow('environments'),
       ).map(([key, environment]) => {
         return {
@@ -132,22 +130,15 @@ export class OpenApiGenerateSpecificationForWorkspace extends OpenApiGenerateSpe
       });
     }
 
-    inputs.unshift({ oas: globalSpecs });
+    const inputs = [globalSpec, ...specifications];
 
-    const result = merge(inputs);
-    if (isErrorResult(result)) {
+    const result = await joinSpecs(inputs);
+    if (!result.ok) {
       throw new Error(
-        `Could not merge OpenAPI specifications: '${result.message}'.`,
+        `Could not merge OpenAPI specifications: ${result.conflicts.map((c) => JSON.stringify(c)).join(', ')}.`,
       );
     }
 
-    const mergedSpecs = result.output;
-
-    // `openapi-merge` does not merge the `openapi` version property.
-    if (globalSpecs?.openapi) {
-      mergedSpecs.openapi = globalSpecs.openapi;
-    }
-
-    return result.output;
+    return result.document;
   }
 }

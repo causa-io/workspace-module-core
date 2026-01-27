@@ -194,6 +194,18 @@ describe('OpenApiGenerateDocumentationForWorkspace ', () => {
     });
   });
 
+  it('should override the OpenAPI version when specified', async () => {
+    const output = join(context.rootPath, 'openapi.yaml');
+
+    await context.call(OpenApiGenerateSpecification, {
+      output,
+      version: '1.2.3',
+    });
+
+    const actualSpec = load((await readFile(output)).toString()) as any;
+    expect(actualSpec.info.version).toEqual('1.2.3');
+  });
+
   it('should bundle external $ref references', async () => {
     const schemasDir = join(rootPath, 'schemas');
     await mkdir(schemasDir, { recursive: true });

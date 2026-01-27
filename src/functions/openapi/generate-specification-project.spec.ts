@@ -143,6 +143,23 @@ describe('OpenApiGenerateSpecificationForProjectByMerging', () => {
     });
   });
 
+  it('should override the OpenAPI version when specified', async () => {
+    setupContext();
+    await writeSpec('a.openapi.yaml', {
+      openapi: '3.0.0',
+      paths: { '/a': { get: {} } },
+    });
+
+    const output = join(rootPath, 'openapi.yaml');
+    await context.call(OpenApiGenerateSpecification, {
+      output,
+      version: '1.2.3',
+    });
+
+    const actualSpec = load((await readFile(output)).toString()) as any;
+    expect(actualSpec.info.version).toEqual('1.2.3');
+  });
+
   it('should only rewrite relative $ref paths based on output location', async () => {
     setupContext();
     await writeSpec('sub/a.openapi.yaml', {

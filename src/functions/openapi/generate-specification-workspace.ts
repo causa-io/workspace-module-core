@@ -45,6 +45,13 @@ export class OpenApiGenerateSpecificationForWorkspace extends OpenApiGenerateSpe
       origin: output,
     });
 
+    if (this.version) {
+      mergedSpecifications.info = {
+        ...mergedSpecifications.info,
+        version: this.version,
+      };
+    }
+
     const mergedSpecificationsYaml = dump(mergedSpecifications);
 
     if (this.returnSpecification) {

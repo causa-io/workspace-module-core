@@ -1,5 +1,6 @@
 import { WorkspaceContext } from '@causa/workspace';
 import { join as joinSpecs } from '@scalar/openapi-parser';
+import type { OpenAPIV3_1 } from '@scalar/openapi-types';
 import { readFile, writeFile } from 'fs/promises';
 import { globby } from 'globby';
 import { dump, load } from 'js-yaml';
@@ -21,7 +22,8 @@ export class OpenApiGenerateSpecificationForProjectByMerging extends OpenApiGene
   async _call(context: WorkspaceContext): Promise<string> {
     const openApiConf = context.asConfiguration<OpenApiConfiguration>();
     const specificationGlobs = openApiConf.get('openApi.specifications') ?? [];
-    const globalSpec: any = openApiConf.get('openApi.global') ?? {};
+    const globalSpec: OpenAPIV3_1.Document =
+      openApiConf.get('openApi.global') ?? {};
     const projectPath = context.getProjectPathOrThrow();
 
     const output = resolve(this.output ?? DEFAULT_OPENAPI_OUTPUT);
@@ -54,6 +56,10 @@ export class OpenApiGenerateSpecificationForProjectByMerging extends OpenApiGene
       throw new Error(
         `Could not merge OpenAPI specifications: ${result.conflicts.map((c) => JSON.stringify(c)).join(', ')}.`,
       );
+    }
+
+    if (this.version) {
+      result.document.info = { ...result.document.info, version: this.version };
     }
 
     const mergedSpecificationsYaml = dump(result.document);

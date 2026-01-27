@@ -51,11 +51,21 @@ describe('OpenApiGenerateDocumentationForWorkspace ', () => {
                   openapi: '3.0.0',
                   info: { title: 'project1' },
                   paths: { '/project1': { get: {} } },
+                  components: {
+                    securitySchemes: {
+                      BearerAuth: { type: 'http', scheme: 'bearer' },
+                    },
+                  },
                 })
               : JSON.stringify({
                   openapi: '3.0.0',
                   info: { title: 'project2' },
                   paths: { '/project2': { get: {} } },
+                  components: {
+                    securitySchemes: {
+                      BearerAuth: { type: 'http', scheme: 'bearer' },
+                    },
+                  },
                 }),
         );
       }
@@ -98,6 +108,11 @@ describe('OpenApiGenerateDocumentationForWorkspace ', () => {
         '/project1': { get: {} },
         '/project2': { get: {} },
       },
+      components: {
+        securitySchemes: {
+          BearerAuth: { type: 'http', scheme: 'bearer' },
+        },
+      },
     });
   });
 
@@ -119,6 +134,11 @@ describe('OpenApiGenerateDocumentationForWorkspace ', () => {
       paths: {
         '/project1': { get: {} },
         '/project2': { get: {} },
+      },
+      components: {
+        securitySchemes: {
+          BearerAuth: { type: 'http', scheme: 'bearer' },
+        },
       },
     });
   });
@@ -155,6 +175,11 @@ describe('OpenApiGenerateDocumentationForWorkspace ', () => {
       paths: {
         '/project1': { get: {} },
         '/project2': { get: {} },
+      },
+      components: {
+        securitySchemes: {
+          BearerAuth: { type: 'http', scheme: 'bearer' },
+        },
       },
     });
   });

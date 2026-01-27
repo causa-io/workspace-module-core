@@ -1,8 +1,10 @@
 import { WorkspaceContext } from '@causa/workspace';
 import { NoImplementationFoundError } from '@causa/workspace/function-registry';
 import { join as joinSpecs } from '@scalar/openapi-parser';
+import type { OpenAPIV3_1 } from '@scalar/openapi-types';
 import { writeFile } from 'fs/promises';
 import { dump, load } from 'js-yaml';
+import { resolve } from 'path';
 import type { OpenApiConfiguration } from '../../configurations/index.js';
 import { OpenApiGenerateSpecification } from '../../definitions/index.js';
 
@@ -18,11 +20,12 @@ const DEFAULT_OPENAPI_OUTPUT = 'openapi.yaml';
  */
 export class OpenApiGenerateSpecificationForWorkspace extends OpenApiGenerateSpecification {
   async _call(context: WorkspaceContext): Promise<string> {
+    const output = resolve(this.output ?? DEFAULT_OPENAPI_OUTPUT);
     const projectPaths = await context.listProjectPaths();
 
     const openApiSpecifications = await Promise.all(
       projectPaths.map((projectPath) =>
-        this.generateForProject(context, projectPath),
+        this.generateForProject(context, projectPath, output),
       ),
     );
 
@@ -38,7 +41,6 @@ export class OpenApiGenerateSpecificationForWorkspace extends OpenApiGenerateSpe
       return mergedSpecificationsYaml;
     }
 
-    const output = this.output ?? DEFAULT_OPENAPI_OUTPUT;
     await writeFile(output, mergedSpecificationsYaml);
     return output;
   }
@@ -57,13 +59,16 @@ export class OpenApiGenerateSpecificationForWorkspace extends OpenApiGenerateSpe
    *
    * @param context The {@link WorkspaceContext}.
    * @param projectPath The path to the project.
+   * @param output The output path for the generated specification.
+   *   Only used during project generation to correctly rewrite `$ref` paths.
    * @returns The parsed OpenAPI specification for the project, or `null` if the project does not support OpenAPI
    *   generation.
    */
   private async generateForProject(
     context: WorkspaceContext,
     projectPath: string,
-  ): Promise<object | null> {
+    output: string,
+  ): Promise<OpenAPIV3_1.Document | null> {
     try {
       context.logger.info(
         `📝 Generating OpenAPI specification for project in directory '${projectPath}'.`,
@@ -76,10 +81,10 @@ export class OpenApiGenerateSpecificationForWorkspace extends OpenApiGenerateSpe
 
       const openApiStr = await projectContext.call(
         OpenApiGenerateSpecification,
-        { returnSpecification: true },
+        { returnSpecification: true, output },
       );
 
-      const openApiSpecification = load(openApiStr) as object;
+      const openApiSpecification = load(openApiStr) as OpenAPIV3_1.Document;
 
       context.logger.info(
         `📝 Generated OpenAPI specification for project in directory '${projectPath}'.`,
@@ -108,31 +113,31 @@ export class OpenApiGenerateSpecificationForWorkspace extends OpenApiGenerateSpe
    */
   private async mergeSpecifications(
     context: WorkspaceContext,
-    specifications: object[],
-  ): Promise<object> {
+    specifications: OpenAPIV3_1.Document[],
+  ): Promise<OpenAPIV3_1.Document> {
     const openApiConf = context.asConfiguration<OpenApiConfiguration>();
 
-    const globalSpec: any = openApiConf.get('openApi.global') ?? {};
+    const globalSpec: OpenAPIV3_1.Document =
+      openApiConf.get('openApi.global') ?? {};
+
     const serversFromEnvironmentConfiguration = openApiConf.get(
       'openApi.serversFromEnvironmentConfiguration',
     );
-
     if (serversFromEnvironmentConfiguration) {
-      globalSpec.servers = Object.entries(
-        context.getOrThrow('environments'),
-      ).map(([key, environment]) => {
-        return {
-          description: environment.name,
+      const environments = context.getOrThrow('environments');
+      globalSpec.servers = Object.entries(environments).map(
+        ([key, { name }]) => ({
+          description: name,
           url: context.getOrThrow(
             `environments.${key}.configuration.${serversFromEnvironmentConfiguration}`,
           ),
-        };
-      });
+        }),
+      );
     }
 
-    const inputs = [globalSpec, ...specifications];
+    this.deduplicateSecuritySchemes(globalSpec, specifications);
 
-    const result = await joinSpecs(inputs);
+    const result = await joinSpecs([globalSpec, ...specifications]);
     if (!result.ok) {
       throw new Error(
         `Could not merge OpenAPI specifications: ${result.conflicts.map((c) => JSON.stringify(c)).join(', ')}.`,
@@ -140,5 +145,36 @@ export class OpenApiGenerateSpecificationForWorkspace extends OpenApiGenerateSpe
     }
 
     return result.document;
+  }
+
+  /**
+   * Extracts `components.securitySchemes` from all project specifications and merges them into the global
+   * specification. This avoids conflicts when joining specifications that define the same security schemes.
+   * Global security schemes take precedence over project-level ones.
+   *
+   * @param globalSpec The global specification to merge security schemes into.
+   * @param specifications The project specifications to extract security schemes from.
+   */
+  private deduplicateSecuritySchemes(
+    globalSpec: OpenAPIV3_1.Document,
+    specifications: OpenAPIV3_1.Document[],
+  ): void {
+    const securitySchemes: OpenAPIV3_1.ComponentsObject['securitySchemes'] = {};
+    for (const spec of specifications) {
+      if (!spec.components?.securitySchemes) {
+        continue;
+      }
+
+      Object.assign(securitySchemes, spec.components.securitySchemes);
+      delete spec.components.securitySchemes;
+    }
+
+    const globalSecuritySchemes = globalSpec.components?.securitySchemes;
+    if (Object.keys(securitySchemes).length > 0 || globalSecuritySchemes) {
+      globalSpec.components = {
+        ...globalSpec.components,
+        securitySchemes: { ...securitySchemes, ...globalSecuritySchemes },
+      };
+    }
   }
 }

@@ -1,5 +1,7 @@
 import { WorkspaceContext } from '@causa/workspace';
 import { NoImplementationFoundError } from '@causa/workspace/function-registry';
+import { bundle } from '@scalar/json-magic/bundle';
+import { readFiles } from '@scalar/json-magic/bundle/plugins/node';
 import { join as joinSpecs } from '@scalar/openapi-parser';
 import type { OpenAPIV3_1 } from '@scalar/openapi-types';
 import { writeFile } from 'fs/promises';
@@ -34,8 +36,16 @@ export class OpenApiGenerateSpecificationForWorkspace extends OpenApiGenerateSpe
       context,
       openApiSpecifications.filter((spec): spec is object => spec !== null),
     );
-    const mergedSpecificationsYaml = dump(mergedSpecifications);
     context.logger.info(`✅ Merged OpenAPI specifications.`);
+
+    context.logger.info(`📦 Bundling external references.`);
+    await bundle(mergedSpecifications, {
+      plugins: [readFiles()],
+      treeShake: true,
+      origin: output,
+    });
+
+    const mergedSpecificationsYaml = dump(mergedSpecifications);
 
     if (this.returnSpecification) {
       return mergedSpecificationsYaml;

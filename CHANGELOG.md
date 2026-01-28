@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.26.0 (2026-01-28)
+
 Features:
 
 - Implement `OpenApiGenerateSpecification` for generic projects by merging several specification files matched by `openApi.specifications` globs.

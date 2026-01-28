@@ -7,8 +7,10 @@ import type { OpenAPIV3_1 } from '@scalar/openapi-types';
 import { writeFile } from 'fs/promises';
 import { dump, load } from 'js-yaml';
 import { resolve } from 'path';
+import { isDeepStrictEqual } from 'util';
 import type { OpenApiConfiguration } from '../../configurations/index.js';
 import { OpenApiGenerateSpecification } from '../../definitions/index.js';
+import { renameSecurityRequirements, rewriteRefs } from './utils.js';
 
 /**
  * The default file where the OpenAPI specification is written.
@@ -34,7 +36,7 @@ export class OpenApiGenerateSpecificationForWorkspace extends OpenApiGenerateSpe
     context.logger.info(`📝 Merging OpenAPI specifications.`);
     const mergedSpecifications = await this.mergeSpecifications(
       context,
-      openApiSpecifications.filter((spec): spec is object => spec !== null),
+      openApiSpecifications.filter((spec) => spec !== null),
     );
     context.logger.info(`✅ Merged OpenAPI specifications.`);
 
@@ -152,7 +154,7 @@ export class OpenApiGenerateSpecificationForWorkspace extends OpenApiGenerateSpe
       );
     }
 
-    this.deduplicateSecuritySchemes(globalSpec, specifications);
+    this.deduplicateComponents(context, globalSpec, specifications);
 
     const result = await joinSpecs([globalSpec, ...specifications]);
     if (!result.ok) {
@@ -165,33 +167,90 @@ export class OpenApiGenerateSpecificationForWorkspace extends OpenApiGenerateSpe
   }
 
   /**
-   * Extracts `components.securitySchemes` from all project specifications and merges them into the global
-   * specification. This avoids conflicts when joining specifications that define the same security schemes.
-   * Global security schemes take precedence over project-level ones.
+   * Extracts all `components` from project specifications and merges them into the global specification.
+   * This avoids conflicts when joining specifications that define the same components.
+   * For each component type (e.g. `securitySchemes`, `schemas`), entries with the same key are checked for deep
+   * equality. If two entries share the same key but differ in value, a warning is emitted and the duplicate is ignored
+   * (the first occurrence wins). Global components take precedence over project-level ones.
    *
-   * @param globalSpec The global specification to merge security schemes into.
-   * @param specifications The project specifications to extract security schemes from.
+   * @param context The {@link WorkspaceContext}.
+   * @param globalSpec The global specification to merge components into.
+   * @param specifications The project specifications to extract components from.
    */
-  private deduplicateSecuritySchemes(
+  private deduplicateComponents(
+    context: WorkspaceContext,
     globalSpec: OpenAPIV3_1.Document,
     specifications: OpenAPIV3_1.Document[],
   ): void {
-    const securitySchemes: OpenAPIV3_1.ComponentsObject['securitySchemes'] = {};
-    for (const spec of specifications) {
-      if (!spec.components?.securitySchemes) {
+    const merged = globalSpec.components ?? {};
+
+    for (const [specIndex, spec] of specifications.entries()) {
+      if (!spec.components) {
         continue;
       }
 
-      Object.assign(securitySchemes, spec.components.securitySchemes);
-      delete spec.components.securitySchemes;
+      const renames: Record<string, string> = {};
+      const securityRenames: Record<string, string> = {};
+
+      const componentEntries = Object.entries(spec.components) as [
+        keyof OpenAPIV3_1.ComponentsObject,
+        OpenAPIV3_1.ComponentsObject[keyof OpenAPIV3_1.ComponentsObject],
+      ][];
+
+      for (const [componentType, components] of componentEntries) {
+        if (!components || typeof components !== 'object') {
+          continue;
+        }
+
+        merged[componentType] ??= {};
+
+        for (const [key, value] of Object.entries(components)) {
+          if (!(key in merged[componentType])) {
+            merged[componentType][key] = value;
+            continue;
+          }
+
+          if (isDeepStrictEqual(merged[componentType][key], value)) {
+            continue;
+          }
+
+          let suffix = 0;
+          let newKey: string;
+          do {
+            newKey = `${key}${++suffix}`;
+          } while (newKey in merged[componentType]);
+
+          merged[componentType][newKey] = value;
+
+          if (componentType === 'securitySchemes') {
+            securityRenames[key] = newKey;
+          } else {
+            renames[`#/components/${componentType}/${key}`] =
+              `#/components/${componentType}/${newKey}`;
+          }
+
+          context.logger.warn(
+            `⚠️ Duplicate component '${componentType}.${key}' with differing definitions. Renaming to '${newKey}'.`,
+          );
+        }
+      }
+
+      delete spec.components;
+
+      if (Object.keys(renames).length > 0) {
+        specifications[specIndex] = rewriteRefs(
+          spec,
+          (ref) => renames[ref] ?? ref,
+        );
+      }
+
+      if (Object.keys(securityRenames).length > 0) {
+        renameSecurityRequirements(specifications[specIndex], securityRenames);
+      }
     }
 
-    const globalSecuritySchemes = globalSpec.components?.securitySchemes;
-    if (Object.keys(securitySchemes).length > 0 || globalSecuritySchemes) {
-      globalSpec.components = {
-        ...globalSpec.components,
-        securitySchemes: { ...securitySchemes, ...globalSecuritySchemes },
-      };
+    if (Object.keys(merged).length > 0) {
+      globalSpec.components = merged;
     }
   }
 }

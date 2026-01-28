@@ -28,6 +28,9 @@ describe('OpenApiGenerateDocumentationForWorkspace ', () => {
         securitySchemes: {
           BearerAuth: { type: 'http', scheme: 'bearer' },
         },
+        schemas: {
+          Pet: { type: 'object', properties: { name: { type: 'string' } } },
+        },
       },
     },
     project2: {
@@ -37,6 +40,9 @@ describe('OpenApiGenerateDocumentationForWorkspace ', () => {
       components: {
         securitySchemes: {
           BearerAuth: { type: 'http', scheme: 'bearer' },
+        },
+        schemas: {
+          Pet: { type: 'object', properties: { name: { type: 'string' } } },
         },
       },
     },
@@ -120,6 +126,9 @@ describe('OpenApiGenerateDocumentationForWorkspace ', () => {
         securitySchemes: {
           BearerAuth: { type: 'http', scheme: 'bearer' },
         },
+        schemas: {
+          Pet: { type: 'object', properties: { name: { type: 'string' } } },
+        },
       },
     });
   });
@@ -146,6 +155,9 @@ describe('OpenApiGenerateDocumentationForWorkspace ', () => {
       components: {
         securitySchemes: {
           BearerAuth: { type: 'http', scheme: 'bearer' },
+        },
+        schemas: {
+          Pet: { type: 'object', properties: { name: { type: 'string' } } },
         },
       },
     });
@@ -190,8 +202,122 @@ describe('OpenApiGenerateDocumentationForWorkspace ', () => {
         securitySchemes: {
           BearerAuth: { type: 'http', scheme: 'bearer' },
         },
+        schemas: {
+          Pet: { type: 'object', properties: { name: { type: 'string' } } },
+        },
       },
     });
+  });
+
+  it('should rename duplicate components with differing definitions and rewrite refs', async () => {
+    createContextWithMocks({
+      projectSpecs: {
+        project1: {
+          openapi: '3.0.0',
+          info: { title: 'project1' },
+          paths: {
+            '/project1': {
+              get: {
+                security: [{ BearerAuth: [] }],
+                responses: {
+                  '200': {
+                    content: {
+                      'application/json': {
+                        schema: { $ref: '#/components/schemas/Pet' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          components: {
+            schemas: {
+              Pet: {
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+            },
+            securitySchemes: {
+              BearerAuth: { type: 'http', scheme: 'bearer' },
+            },
+          },
+        },
+        project2: {
+          openapi: '3.0.0',
+          info: { title: 'project2' },
+          paths: {
+            '/project2': {
+              get: {
+                security: [{ BearerAuth: [] }],
+                responses: {
+                  '200': {
+                    content: {
+                      'application/json': {
+                        schema: { $ref: '#/components/schemas/Pet' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          components: {
+            schemas: {
+              Pet: {
+                type: 'object',
+                properties: { age: { type: 'number' } },
+              },
+            },
+            securitySchemes: {
+              BearerAuth: { type: 'apiKey', name: 'X-API-Key', in: 'header' },
+            },
+          },
+        },
+      },
+    });
+    jest.spyOn(context.logger, 'warn');
+    const output = join(context.rootPath, 'openapi.yaml');
+
+    await context.call(OpenApiGenerateSpecification, { output });
+
+    expect(context.logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('schemas.Pet'),
+    );
+    const actualSpec = load((await readFile(output)).toString()) as any;
+    expect(actualSpec.components.schemas.Pet).toEqual({
+      type: 'object',
+      properties: { name: { type: 'string' } },
+    });
+    expect(actualSpec.components.schemas.Pet1).toEqual({
+      type: 'object',
+      properties: { age: { type: 'number' } },
+    });
+    expect(
+      actualSpec.paths['/project2'].get.responses['200'].content[
+        'application/json'
+      ].schema.$ref,
+    ).toEqual('#/components/schemas/Pet1');
+    expect(
+      actualSpec.paths['/project1'].get.responses['200'].content[
+        'application/json'
+      ].schema.$ref,
+    ).toEqual('#/components/schemas/Pet');
+    expect(actualSpec.components.securitySchemes.BearerAuth).toEqual({
+      type: 'http',
+      scheme: 'bearer',
+    });
+    expect(actualSpec.components.securitySchemes.BearerAuth1).toEqual({
+      type: 'apiKey',
+      name: 'X-API-Key',
+      in: 'header',
+    });
+    expect(actualSpec.paths['/project1'].get.security).toEqual([
+      { BearerAuth: [] },
+    ]);
+    expect(actualSpec.paths['/project2'].get.security).toEqual([
+      { BearerAuth1: [] },
+    ]);
   });
 
   it('should override the OpenAPI version when specified', async () => {

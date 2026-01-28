@@ -1,10 +1,16 @@
 import { WorkspaceContext } from '@causa/workspace';
 import { NoImplementationFoundError } from '@causa/workspace/function-registry';
+import { bundle } from '@scalar/json-magic/bundle';
+import { readFiles } from '@scalar/json-magic/bundle/plugins/node';
+import { join as joinSpecs } from '@scalar/openapi-parser';
+import type { OpenAPIV3_1 } from '@scalar/openapi-types';
 import { writeFile } from 'fs/promises';
 import { dump, load } from 'js-yaml';
-import { isErrorResult, merge } from 'openapi-merge';
+import { resolve } from 'path';
+import { isDeepStrictEqual } from 'util';
 import type { OpenApiConfiguration } from '../../configurations/index.js';
 import { OpenApiGenerateSpecification } from '../../definitions/index.js';
+import { renameSecurityRequirements, rewriteRefs } from './utils.js';
 
 /**
  * The default file where the OpenAPI specification is written.
@@ -18,27 +24,42 @@ const DEFAULT_OPENAPI_OUTPUT = 'openapi.yaml';
  */
 export class OpenApiGenerateSpecificationForWorkspace extends OpenApiGenerateSpecification {
   async _call(context: WorkspaceContext): Promise<string> {
+    const output = resolve(this.output ?? DEFAULT_OPENAPI_OUTPUT);
     const projectPaths = await context.listProjectPaths();
 
     const openApiSpecifications = await Promise.all(
       projectPaths.map((projectPath) =>
-        this.generateForProject(context, projectPath),
+        this.generateForProject(context, projectPath, output),
       ),
     );
 
     context.logger.info(`📝 Merging OpenAPI specifications.`);
-    const mergedSpecifications = this.mergeSpecifications(
+    const mergedSpecifications = await this.mergeSpecifications(
       context,
-      openApiSpecifications.filter((spec): spec is object => spec !== null),
+      openApiSpecifications.filter((spec) => spec !== null),
     );
-    const mergedSpecificationsYaml = dump(mergedSpecifications);
     context.logger.info(`✅ Merged OpenAPI specifications.`);
+
+    context.logger.info(`📦 Bundling external references.`);
+    await bundle(mergedSpecifications, {
+      plugins: [readFiles()],
+      treeShake: true,
+      origin: output,
+    });
+
+    if (this.version) {
+      mergedSpecifications.info = {
+        ...mergedSpecifications.info,
+        version: this.version,
+      };
+    }
+
+    const mergedSpecificationsYaml = dump(mergedSpecifications);
 
     if (this.returnSpecification) {
       return mergedSpecificationsYaml;
     }
 
-    const output = this.output ?? DEFAULT_OPENAPI_OUTPUT;
     await writeFile(output, mergedSpecificationsYaml);
     return output;
   }
@@ -57,13 +78,16 @@ export class OpenApiGenerateSpecificationForWorkspace extends OpenApiGenerateSpe
    *
    * @param context The {@link WorkspaceContext}.
    * @param projectPath The path to the project.
+   * @param output The output path for the generated specification.
+   *   Only used during project generation to correctly rewrite `$ref` paths.
    * @returns The parsed OpenAPI specification for the project, or `null` if the project does not support OpenAPI
    *   generation.
    */
   private async generateForProject(
     context: WorkspaceContext,
     projectPath: string,
-  ): Promise<object | null> {
+    output: string,
+  ): Promise<OpenAPIV3_1.Document | null> {
     try {
       context.logger.info(
         `📝 Generating OpenAPI specification for project in directory '${projectPath}'.`,
@@ -76,10 +100,10 @@ export class OpenApiGenerateSpecificationForWorkspace extends OpenApiGenerateSpe
 
       const openApiStr = await projectContext.call(
         OpenApiGenerateSpecification,
-        { returnSpecification: true },
+        { returnSpecification: true, output },
       );
 
-      const openApiSpecification = load(openApiStr) as object;
+      const openApiSpecification = load(openApiStr) as OpenAPIV3_1.Document;
 
       context.logger.info(
         `📝 Generated OpenAPI specification for project in directory '${projectPath}'.`,
@@ -106,48 +130,127 @@ export class OpenApiGenerateSpecificationForWorkspace extends OpenApiGenerateSpe
    * @param specifications The specifications for each project in the workspace.
    * @returns The merged OpenAPI specification.
    */
-  private mergeSpecifications(
+  private async mergeSpecifications(
     context: WorkspaceContext,
-    specifications: object[],
-  ): object {
-    const inputs = specifications.map((spec) => ({ oas: spec as any }));
-
+    specifications: OpenAPIV3_1.Document[],
+  ): Promise<OpenAPIV3_1.Document> {
     const openApiConf = context.asConfiguration<OpenApiConfiguration>();
 
-    const globalSpecs: any = openApiConf.get('openApi.global') ?? {};
+    const globalSpec: OpenAPIV3_1.Document =
+      openApiConf.get('openApi.global') ?? {};
+
     const serversFromEnvironmentConfiguration = openApiConf.get(
       'openApi.serversFromEnvironmentConfiguration',
     );
-
     if (serversFromEnvironmentConfiguration) {
-      globalSpecs.servers = Object.entries(
-        context.getOrThrow('environments'),
-      ).map(([key, environment]) => {
-        return {
-          description: environment.name,
+      const environments = context.getOrThrow('environments');
+      globalSpec.servers = Object.entries(environments).map(
+        ([key, { name }]) => ({
+          description: name,
           url: context.getOrThrow(
             `environments.${key}.configuration.${serversFromEnvironmentConfiguration}`,
           ),
-        };
-      });
-    }
-
-    inputs.unshift({ oas: globalSpecs });
-
-    const result = merge(inputs);
-    if (isErrorResult(result)) {
-      throw new Error(
-        `Could not merge OpenAPI specifications: '${result.message}'.`,
+        }),
       );
     }
 
-    const mergedSpecs = result.output;
+    this.deduplicateComponents(context, globalSpec, specifications);
 
-    // `openapi-merge` does not merge the `openapi` version property.
-    if (globalSpecs?.openapi) {
-      mergedSpecs.openapi = globalSpecs.openapi;
+    const result = await joinSpecs([globalSpec, ...specifications]);
+    if (!result.ok) {
+      throw new Error(
+        `Could not merge OpenAPI specifications: ${result.conflicts.map((c) => JSON.stringify(c)).join(', ')}.`,
+      );
     }
 
-    return result.output;
+    return result.document;
+  }
+
+  /**
+   * Extracts all `components` from project specifications and merges them into the global specification.
+   * This avoids conflicts when joining specifications that define the same components.
+   * For each component type (e.g. `securitySchemes`, `schemas`), entries with the same key are checked for deep
+   * equality. If two entries share the same key but differ in value, a warning is emitted and the duplicate is ignored
+   * (the first occurrence wins). Global components take precedence over project-level ones.
+   *
+   * @param context The {@link WorkspaceContext}.
+   * @param globalSpec The global specification to merge components into.
+   * @param specifications The project specifications to extract components from.
+   */
+  private deduplicateComponents(
+    context: WorkspaceContext,
+    globalSpec: OpenAPIV3_1.Document,
+    specifications: OpenAPIV3_1.Document[],
+  ): void {
+    const merged = globalSpec.components ?? {};
+
+    for (const [specIndex, spec] of specifications.entries()) {
+      if (!spec.components) {
+        continue;
+      }
+
+      const renames: Record<string, string> = {};
+      const securityRenames: Record<string, string> = {};
+
+      const componentEntries = Object.entries(spec.components) as [
+        keyof OpenAPIV3_1.ComponentsObject,
+        OpenAPIV3_1.ComponentsObject[keyof OpenAPIV3_1.ComponentsObject],
+      ][];
+
+      for (const [componentType, components] of componentEntries) {
+        if (!components || typeof components !== 'object') {
+          continue;
+        }
+
+        merged[componentType] ??= {};
+
+        for (const [key, value] of Object.entries(components)) {
+          if (!(key in merged[componentType])) {
+            merged[componentType][key] = value;
+            continue;
+          }
+
+          if (isDeepStrictEqual(merged[componentType][key], value)) {
+            continue;
+          }
+
+          let suffix = 0;
+          let newKey: string;
+          do {
+            newKey = `${key}${++suffix}`;
+          } while (newKey in merged[componentType]);
+
+          merged[componentType][newKey] = value;
+
+          if (componentType === 'securitySchemes') {
+            securityRenames[key] = newKey;
+          } else {
+            renames[`#/components/${componentType}/${key}`] =
+              `#/components/${componentType}/${newKey}`;
+          }
+
+          context.logger.warn(
+            `⚠️ Duplicate component '${componentType}.${key}' with differing definitions. Renaming to '${newKey}'.`,
+          );
+        }
+      }
+
+      delete spec.components;
+
+      if (Object.keys(renames).length > 0) {
+        specifications[specIndex] = rewriteRefs(
+          spec,
+          (ref) => renames[ref] ?? ref,
+        );
+      }
+
+      if (Object.keys(securityRenames).length > 0) {
+        renameSecurityRequirements(specifications[specIndex], securityRenames);
+      }
+    }
+
+    if (Object.keys(merged).length > 0) {
+      globalSpec.components = merged;
+    }
   }
 }

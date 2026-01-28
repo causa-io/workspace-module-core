@@ -2,8 +2,9 @@ import { type BaseConfiguration, WorkspaceContext } from '@causa/workspace';
 import { NoImplementationFoundError } from '@causa/workspace/function-registry';
 import { createContext, registerMockFunction } from '@causa/workspace/testing';
 import { jest } from '@jest/globals';
-import { mkdtemp, readFile, rm } from 'fs/promises';
-import { load } from 'js-yaml';
+import type { OpenAPIV3_1 } from '@scalar/openapi-types';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'fs/promises';
+import { dump, load } from 'js-yaml';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { OpenApiGenerateSpecification } from '../../definitions/index.js';
@@ -18,9 +19,44 @@ describe('OpenApiGenerateDocumentationForWorkspace ', () => {
     createContextWithMocks();
   });
 
-  function createContextWithMocks(
-    configuration: Partial<BaseConfiguration> & Record<string, any> = {},
-  ) {
+  const defaultProjectSpecs: Record<string, object> = {
+    project1: {
+      openapi: '3.0.0',
+      info: { title: 'project1' },
+      paths: { '/project1': { get: {} } },
+      components: {
+        securitySchemes: {
+          BearerAuth: { type: 'http', scheme: 'bearer' },
+        },
+        schemas: {
+          Pet: { type: 'object', properties: { name: { type: 'string' } } },
+        },
+      },
+    },
+    project2: {
+      openapi: '3.0.0',
+      info: { title: 'project2' },
+      paths: { '/project2': { get: {} } },
+      components: {
+        securitySchemes: {
+          BearerAuth: { type: 'http', scheme: 'bearer' },
+        },
+        schemas: {
+          Pet: { type: 'object', properties: { name: { type: 'string' } } },
+        },
+      },
+    },
+  };
+
+  function createContextWithMocks({
+    configuration = {},
+    projectPaths = ['project1', 'project2', 'project3'],
+    projectSpecs = defaultProjectSpecs,
+  }: {
+    configuration?: Partial<BaseConfiguration> & Record<string, any>;
+    projectPaths?: string[];
+    projectSpecs?: Record<string, object>;
+  } = {}) {
     ({ context } = createContext({
       rootPath,
       configuration: {
@@ -31,9 +67,7 @@ describe('OpenApiGenerateDocumentationForWorkspace ', () => {
       functions: [OpenApiGenerateSpecificationForWorkspace],
     }));
 
-    jest
-      .spyOn(context, 'listProjectPaths')
-      .mockResolvedValue(['project1', 'project2', 'project3']);
+    jest.spyOn(context, 'listProjectPaths').mockResolvedValue(projectPaths);
 
     jest.spyOn(context, 'clone').mockImplementation(async (options) => {
       const cloned = createContext({
@@ -41,22 +75,12 @@ describe('OpenApiGenerateDocumentationForWorkspace ', () => {
         projectPath: options?.workingDirectory,
       });
 
-      if (['project1', 'project2'].includes(options?.workingDirectory ?? '')) {
+      const spec = projectSpecs[options?.workingDirectory ?? ''];
+      if (spec) {
         registerMockFunction(
           cloned.functionRegistry,
           OpenApiGenerateSpecification,
-          async (context) =>
-            context.projectPath === 'project1'
-              ? JSON.stringify({
-                  openapi: '3.0.0',
-                  info: { title: 'project1' },
-                  paths: { '/project1': { get: {} } },
-                })
-              : JSON.stringify({
-                  openapi: '3.0.0',
-                  info: { title: 'project2' },
-                  paths: { '/project2': { get: {} } },
-                }),
+          async () => JSON.stringify(spec),
         );
       }
 
@@ -98,12 +122,20 @@ describe('OpenApiGenerateDocumentationForWorkspace ', () => {
         '/project1': { get: {} },
         '/project2': { get: {} },
       },
+      components: {
+        securitySchemes: {
+          BearerAuth: { type: 'http', scheme: 'bearer' },
+        },
+        schemas: {
+          Pet: { type: 'object', properties: { name: { type: 'string' } } },
+        },
+      },
     });
   });
 
   it('should use the OpenAPI version from the global configuration', async () => {
     createContextWithMocks({
-      openApi: { global: { openapi: '3.1.0' } },
+      configuration: { openApi: { global: { openapi: '3.1.0' } } },
     });
     const output = join(context.rootPath, 'openapi.yaml');
 
@@ -115,24 +147,35 @@ describe('OpenApiGenerateDocumentationForWorkspace ', () => {
     const actualMergedSpecification = load((await readFile(output)).toString());
     expect(actualMergedSpecification).toEqual({
       openapi: '3.1.0',
+      info: expect.any(Object),
       paths: {
         '/project1': { get: {} },
         '/project2': { get: {} },
+      },
+      components: {
+        securitySchemes: {
+          BearerAuth: { type: 'http', scheme: 'bearer' },
+        },
+        schemas: {
+          Pet: { type: 'object', properties: { name: { type: 'string' } } },
+        },
       },
     });
   });
 
   it('should list servers from the environment configuration', async () => {
     createContextWithMocks({
-      openApi: { serversFromEnvironmentConfiguration: 'api.url' },
-      environments: {
-        dev: {
-          name: '🚧',
-          configuration: { api: { url: 'http://localhost:8080' } },
-        },
-        prod: {
-          name: '🚀',
-          configuration: { api: { url: 'https://api.example.com' } },
+      configuration: {
+        openApi: { serversFromEnvironmentConfiguration: 'api.url' },
+        environments: {
+          dev: {
+            name: '🚧',
+            configuration: { api: { url: 'http://localhost:8080' } },
+          },
+          prod: {
+            name: '🚀',
+            configuration: { api: { url: 'https://api.example.com' } },
+          },
         },
       },
     });
@@ -146,6 +189,7 @@ describe('OpenApiGenerateDocumentationForWorkspace ', () => {
     const actualMergedSpecification = load((await readFile(output)).toString());
     expect(actualMergedSpecification).toEqual({
       openapi: expect.any(String),
+      info: expect.any(Object),
       servers: [
         { url: 'http://localhost:8080', description: '🚧' },
         { url: 'https://api.example.com', description: '🚀' },
@@ -154,6 +198,191 @@ describe('OpenApiGenerateDocumentationForWorkspace ', () => {
         '/project1': { get: {} },
         '/project2': { get: {} },
       },
+      components: {
+        securitySchemes: {
+          BearerAuth: { type: 'http', scheme: 'bearer' },
+        },
+        schemas: {
+          Pet: { type: 'object', properties: { name: { type: 'string' } } },
+        },
+      },
     });
+  });
+
+  it('should rename duplicate components with differing definitions and rewrite refs', async () => {
+    createContextWithMocks({
+      projectSpecs: {
+        project1: {
+          openapi: '3.0.0',
+          info: { title: 'project1' },
+          paths: {
+            '/project1': {
+              get: {
+                security: [{ BearerAuth: [] }],
+                responses: {
+                  '200': {
+                    content: {
+                      'application/json': {
+                        schema: { $ref: '#/components/schemas/Pet' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          components: {
+            schemas: {
+              Pet: {
+                type: 'object',
+                properties: { name: { type: 'string' } },
+              },
+            },
+            securitySchemes: {
+              BearerAuth: { type: 'http', scheme: 'bearer' },
+            },
+          },
+        },
+        project2: {
+          openapi: '3.0.0',
+          info: { title: 'project2' },
+          paths: {
+            '/project2': {
+              get: {
+                security: [{ BearerAuth: [] }],
+                responses: {
+                  '200': {
+                    content: {
+                      'application/json': {
+                        schema: { $ref: '#/components/schemas/Pet' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          components: {
+            schemas: {
+              Pet: {
+                type: 'object',
+                properties: { age: { type: 'number' } },
+              },
+            },
+            securitySchemes: {
+              BearerAuth: { type: 'apiKey', name: 'X-API-Key', in: 'header' },
+            },
+          },
+        },
+      },
+    });
+    jest.spyOn(context.logger, 'warn');
+    const output = join(context.rootPath, 'openapi.yaml');
+
+    await context.call(OpenApiGenerateSpecification, { output });
+
+    expect(context.logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('schemas.Pet'),
+    );
+    const actualSpec = load((await readFile(output)).toString()) as any;
+    expect(actualSpec.components.schemas.Pet).toEqual({
+      type: 'object',
+      properties: { name: { type: 'string' } },
+    });
+    expect(actualSpec.components.schemas.Pet1).toEqual({
+      type: 'object',
+      properties: { age: { type: 'number' } },
+    });
+    expect(
+      actualSpec.paths['/project2'].get.responses['200'].content[
+        'application/json'
+      ].schema.$ref,
+    ).toEqual('#/components/schemas/Pet1');
+    expect(
+      actualSpec.paths['/project1'].get.responses['200'].content[
+        'application/json'
+      ].schema.$ref,
+    ).toEqual('#/components/schemas/Pet');
+    expect(actualSpec.components.securitySchemes.BearerAuth).toEqual({
+      type: 'http',
+      scheme: 'bearer',
+    });
+    expect(actualSpec.components.securitySchemes.BearerAuth1).toEqual({
+      type: 'apiKey',
+      name: 'X-API-Key',
+      in: 'header',
+    });
+    expect(actualSpec.paths['/project1'].get.security).toEqual([
+      { BearerAuth: [] },
+    ]);
+    expect(actualSpec.paths['/project2'].get.security).toEqual([
+      { BearerAuth1: [] },
+    ]);
+  });
+
+  it('should override the OpenAPI version when specified', async () => {
+    const output = join(context.rootPath, 'openapi.yaml');
+
+    await context.call(OpenApiGenerateSpecification, {
+      output,
+      version: '1.2.3',
+    });
+
+    const actualSpec = load((await readFile(output)).toString()) as any;
+    expect(actualSpec.info.version).toEqual('1.2.3');
+  });
+
+  it('should bundle external $ref references', async () => {
+    const schemasDir = join(rootPath, 'schemas');
+    await mkdir(schemasDir, { recursive: true });
+    const externalSchema = {
+      type: 'object',
+      properties: { name: { type: 'string' } },
+    };
+    await writeFile(
+      join(schemasDir, 'pet.yaml'),
+      dump({ Pet: externalSchema }),
+    );
+    createContextWithMocks({
+      projectPaths: ['project1'],
+      projectSpecs: {
+        project1: {
+          openapi: '3.0.0',
+          info: { title: 'project1' },
+          paths: {
+            '/pets': {
+              get: {
+                responses: {
+                  '200': {
+                    content: {
+                      'application/json': {
+                        schema: { $ref: 'schemas/pet.yaml#/Pet' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    const output = join(rootPath, 'openapi.yaml');
+
+    const actual = await context.call(OpenApiGenerateSpecification, {
+      output,
+      returnSpecification: true,
+    });
+
+    const actualSpec = load(actual) as OpenAPIV3_1.Document;
+    const ref =
+      actualSpec.paths?.['/pets']?.get?.responses?.['200'].content[
+        'application/json'
+      ].schema.$ref;
+    expect(ref).toStartWith('#/');
+    expect(actualSpec).toHaveProperty(
+      ref.replace('#/', '').split('/'),
+      externalSchema,
+    );
   });
 });

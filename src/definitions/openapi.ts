@@ -45,6 +45,18 @@ export abstract class OpenApiGenerateSpecification extends WorkspaceFunction<
   readonly output?: string;
 
   /**
+   * The version to set in `info.version` of the generated specification.
+   */
+  @CliOption({
+    flags: '--version <version>',
+    description:
+      'The version to set in info.version of the generated specification.',
+  })
+  @IsString()
+  @AllowMissing()
+  readonly version?: string;
+
+  /**
    * Whether the function should return the specification instead of writing it to a file.
    * This is not accessible from the command line, but is used when merging specifications.
    * Project-specific implementations should support this option.

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+Features:
+
+- Implement `OpenApiGenerateSpecification` for generic projects by merging several specification files matched by `openApi.specifications` globs.
+- Deduplicate `components` across projects when merging workspace-level OpenAPI specifications.
+- Bundle external `$ref` references into a single self-contained file for workspace-level OpenAPI generation.
+- Add `--version` CLI option to `OpenApiGenerateSpecification` to set `info.version` in the generated specification.
+
 ## v0.25.2 (2026-01-14)
 
 Chore:

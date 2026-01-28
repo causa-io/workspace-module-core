@@ -24,7 +24,7 @@ It also exposes the [`EventsConfiguration`](./src/configurations/events.ts), whi
 
 The [`ModelConfiguration`](./src/configurations/model.ts) defines the configuration for business model definitions, and the related code generation utilities.
 
-For OpenAPI generation, the [`OpenApiConfiguration`](./src/configurations/openapi.ts) defines a global (base) specification for workspace-wide information (e.g. `info`, `securitySchemes`, etc).
+For OpenAPI generation, the [`OpenApiConfiguration`](./src/configurations/openapi.ts) defines a global (base) specification for workspace-wide information (e.g. `info`, `securitySchemes`, etc), as well as glob patterns for project-level specification files.
 
 ## ✨ Supported project types and commands
 
@@ -38,7 +38,7 @@ The core module defines and implements many base `cs` commands. As a Causa user,
 - `cs events backfill` and `cs events cleanBackfill`: The common backfilling logic is implemented in this module. However, this logic requires several tech stack-specific functions to be implemented by other modules.
 - `cs infrastructure`: Provides the `prepare` and `deploy` commands. Those commands run "infrastructure processors" before the actual infrastructure operation, and tear those down afterwards. The core module does not implement actual infrastructure operations, which depend on the project's language, e.g. `terraform`.
 - `cs publish`: While many base commands (e.g. `cs build`) are straightforward and should be implemented by the modules handling the corresponding project types and languages, `cs publish` provides some logic around these base commands to both build and push a project's artefact. The artefact is tagged according to the passed value or format, e.g. `my-custom-tag` or `semantic`. (The latter will use the project's version as the tag.)
-- `cs openapi generateSpecification`: Provides the implementation at the workspace level, which triggers the generation of the specification in each project, and merges together the outputs. Does not provide any project type-specific implementation.
+- `cs openapi generateSpecification`: At the workspace level, triggers the generation of the specification in each project and merges and bundles the outputs into a single file. At the project level, merges specification files matched by `openApi.specifications` globs (if set). To use other project-level generation implementations, simply leave the `openApi.specifications` unset.
 - `cs diff`: Lists changed projects based on the output of `git diff`. This can be useful for CI workflows. This module entirely implements the logic, and no other module is expected to provide an implementation.
 - `cs model generateCode`: Runs the code generators defined in the `model.codeGenerators` configuration.
 

@@ -1,0 +1,29 @@
+# yaml-language-server: $schema=https://json-schema.org/draft-07/schema
+
+title: ModelConfiguration
+type: object
+properties:
+  model:
+    title: Model
+    type: object
+    description: Configuration for the business model definitions.
+    properties:
+      schema:
+        title: ModelSchema
+        type: string
+        enum:
+          - jsonschema
+        description: The schema format in which the model is defined.
+
+      codeGenerators:
+        type: array
+        description: A list of code generators to run in a project when the `model generateCode` command is run.
+        items:
+          title: CodeGenerator
+          type: object
+          properties:
+            generator:
+              type: string
+              description: The name of the generator to run.
+          required:
+            - generator

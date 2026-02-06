@@ -1,0 +1,85 @@
+# yaml-language-server: $schema=https://json-schema.org/draft-07/schema
+
+title: ServerlessFunctionsConfiguration
+type: object
+description: Configuration for serverless functions projects (Google Cloud Functions, AWS Lambda, etc).
+properties:
+  serverlessFunctions:
+    title: ServerlessFunctions
+    type: object
+    description: Configuration for serverless functions projects, i.e. packages exposing functions that are deployed by a serverless platform.
+    properties:
+      platform:
+        type: string
+        description: The service managing the serverless functions (Google Cloud Functions, AWS Lambda, etc).
+
+      build:
+        title: ServerlessFunctionsBuild
+        type: object
+        description: Configuration when building the artefact for serverless functions projects.
+        properties:
+          globPatterns:
+            type: array
+            items:
+              type: string
+            description: |-
+              The glob patterns to include when building the artefact.
+              Language-specific modules may already include patterns by default, check their documentation before adding other patterns.
+
+      functions:
+        type: object
+        description: The list of functions exposed by this project.
+        additionalProperties:
+          title: ServerlessFunction
+          type: object
+          properties:
+            entrypoint:
+              type: string
+              description: The name of the function in the package.
+
+            description:
+              type: string
+              description: The description of the function.
+
+            trigger:
+              title: ServerlessFunctionTrigger
+              description: The event that triggers the function.
+              anyOf:
+                - type: object
+                  properties:
+                    type:
+                      type: string
+                      description: The type of trigger.
+                  required:
+                    - type
+
+                - title: ServerlessFunctionEventTrigger
+                  type: object
+                  properties:
+                    type:
+                      title: ServerlessFunctionEventTriggerType
+                      type: string
+                      enum:
+                        - event
+                      description: The type of trigger.
+
+                    topic:
+                      type: string
+                      description: The ID of the topic triggering the endpoint.
+                  required:
+                    - type
+                    - topic
+
+            outputs:
+              title: ServerlessFunctionOutputs
+              description: The data the function produces.
+              type: object
+              properties:
+                eventTopics:
+                  type: array
+                  items:
+                    type: string
+                  description: The list of event topics to which this function can publish events.
+          required:
+            - entrypoint
+            - trigger

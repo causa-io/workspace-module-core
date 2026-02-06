@@ -1,0 +1,40 @@
+# yaml-language-server: $schema=https://json-schema.org/draft-07/schema
+
+title: InfrastructureConfiguration
+type: object
+description: Configuration for infrastructure projects.
+properties:
+  infrastructure:
+    title: Infrastructure
+    type: object
+    description: Configuration for infrastructure projects.
+    properties:
+      processors:
+        type: array
+        items:
+          title: ProcessorInstruction
+          type: object
+          properties:
+            name:
+              description: The name of the WorkspaceFunction.
+              type: string
+            args:
+              description: Arguments for the workspace function.
+              type: object
+          required:
+            - name
+        description: |-
+          The list of processors that should be run prior to infrastructure operations to set up the workspace.
+          Processors should implement the `InfrastructureProcessor` interface.
+
+      variables:
+        type: object
+        additionalProperties:
+          type: string
+        description: |-
+          Variables to be passed to the infrastructure as code system (e.g.  Terraform).
+          Supports rendering.
+
+      environmentProject:
+        type: string
+        description: The location of the project, relative to the workspace root, that defines the infrastructure for a single environment.

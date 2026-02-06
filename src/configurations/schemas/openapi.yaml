@@ -1,0 +1,29 @@
+# yaml-language-server: $schema=https://json-schema.org/draft-07/schema
+
+title: OpenApiConfiguration
+type: object
+description: Configuration for OpenAPI specifications-related operations.
+properties:
+  openApi:
+    title: OpenApi
+    type: object
+    description: Configuration for OpenAPI specifications-related operations.
+    properties:
+      global:
+        title: OpenApiGlobal
+        type: object
+        description: An OpenAPI specification file to be used as the base when generating the specification for the entire workspace.
+
+      specifications:
+        type: array
+        items:
+          type: string
+        description: |-
+          A list of glob patterns matching OpenAPI specification files to merge when generating the specification for a project.
+          The globs are resolved relative to the project directory.
+
+      serversFromEnvironmentConfiguration:
+        type: string
+        description: |-
+          If set, the list of servers will be generated using a value from the configuration of each environment.
+          This should be the path to the configuration property containing the server URL.

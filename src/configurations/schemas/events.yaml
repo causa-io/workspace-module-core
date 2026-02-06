@@ -1,0 +1,40 @@
+# yaml-language-server: $schema=https://json-schema.org/draft-07/schema
+
+title: EventsConfiguration
+type: object
+description: Configuration for events.
+properties:
+  events:
+    title: Events
+    type: object
+    description: Configuration for events and how they are exchanged between services.
+    properties:
+      format:
+        title: EventsFormat
+        type: string
+        enum:
+          - json
+        description: The format to which events are serialized when exchanged through the message broker.
+
+      broker:
+        type: string
+        description: The message broker used to exchange events between services.
+
+      topics:
+        title: EventsTopics
+        type: object
+        description: Defines how topic definitions are found in the workspace.
+        properties:
+          format:
+            type: string
+            description: The format string using groups from the regular expression used to make the topic full names.
+
+          globs:
+            type: array
+            items:
+              type: string
+            description: A list of glob patterns to find topic schema definition files in the workspace.
+
+          regularExpression:
+            type: string
+            description: The regular expression used to extract groups from the topic schemas file paths.

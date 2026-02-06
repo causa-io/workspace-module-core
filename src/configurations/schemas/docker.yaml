@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=https://json-schema.org/draft-07/schema
+
+title: DockerConfiguration
+type: object
+description: The schema for the configuration of Docker.
+properties:
+  docker:
+    title: Docker
+    type: object
+    description: Configuration when using Docker in the workspace.
+    properties:
+      network:
+        title: DockerNetwork
+        type: object
+        description: Configuration for the local Docker network.
+        properties:
+          name:
+            type: string
+            description: The name of the local Docker network.

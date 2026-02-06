@@ -1,0 +1,201 @@
+# yaml-language-server: $schema=https://json-schema.org/draft-07/schema
+
+title: ServiceContainerConfiguration
+type: object
+description: Configuration for service container projects.
+properties:
+  project:
+    title: Project
+    type: object
+    properties:
+      activeVersion:
+        type: string
+        description: The deployed version of the service, which should correspond to a version tag in the container registry.
+
+  serviceContainer:
+    title: ServiceContainer
+    type: object
+    description: Configuration for service container projects, i.e. services that are run as generic Docker containers.
+    properties:
+      architecture:
+        type: string
+        description: The processor architecture used when building (and running) Docker images for the service.
+
+      platform:
+        type: string
+        description: The platform / orchestrator on which the service is deployed.
+
+      buildFile:
+        type: string
+        description: |-
+          The Dockerfile used to build the image for the service.
+          Language-specific modules may provide a default value for this.
+
+      buildArgs:
+        type: object
+        description: |-
+          Docker build arguments when building the image for the service.
+          Supports rendering.
+        additionalProperties:
+          type: string
+
+      buildSecrets:
+        type: object
+        description: |-
+          Docker build --secret arguments to pass when building the image for the service.
+          Supports rendering.
+        additionalProperties:
+          anyOf:
+            - title: BuildSecretFile
+              type: object
+              properties:
+                file:
+                  type: string
+                  description: The source file for the secret.
+              required:
+                - file
+
+            - title: BuildSecretValue
+              type: object
+              properties:
+                value:
+                  type: string
+                  description: |-
+                    The value of the secret.
+                    In this case the value will be passed as an environment variable to the Docker command.
+              required:
+                - value
+
+      endpoints:
+        title: ServiceContainerEndpoints
+        type: object
+        description: The endpoints exposed by the service.
+        properties:
+          http:
+            type: array
+            items:
+              type: string
+            description: The HTTP endpoints exposed by the service.
+
+      environmentVariables:
+        type: object
+        additionalProperties:
+          type: string
+        description: The environment variables passed to the service.
+
+      cpuLimit:
+        type: string
+        description: The maximum CPU allowed to the container, as a "quantity" Kubernetes type.
+
+      memoryLimit:
+        type: string
+        description: The maximum memory allowed to the container, as a "quantity" Kubernetes type.
+
+      minInstances:
+        type: number
+        description: The minimum number of instances of the service that should be running.
+
+      maxInstances:
+        type: number
+        description: The maximum number of instances of the service that should be running.
+
+      triggers:
+        type: object
+        description: A map of triggers that call the service's endpoints when they occur.
+        additionalProperties:
+          anyOf:
+            - type: object
+              properties:
+                type:
+                  type: string
+                  description: The type of trigger.
+
+                endpoint:
+                  title: ServiceContainerTriggerEndpoint
+                  type: object
+                  description: The endpoint called by the trigger.
+                  properties:
+                    type:
+                      type: string
+                      description: The type of endpoint.
+
+                    path:
+                      type: string
+                      description: The path of the endpoint.
+
+                  required:
+                    - type
+                    - path
+
+              required:
+                - type
+                - endpoint
+
+            - title: ServiceContainerEventTrigger
+              type: object
+              properties:
+                type:
+                  title: ServiceContainerEventTriggerType
+                  type: string
+                  enum:
+                    - event
+                  description: The type of trigger.
+
+                topic:
+                  type: string
+                  description: The ID of the topic triggering the endpoint.
+
+              required:
+                - type
+                - topic
+
+            - title: ServiceContainerCronTrigger
+              type: object
+              properties:
+                type:
+                  title: ServiceContainerCronTriggerType
+                  type: string
+                  enum:
+                    - cron
+                  description: The type of trigger.
+
+                schedule:
+                  type: string
+                  description: The cron schedule expression for cron triggers.
+
+                timezone:
+                  type: string
+                  description: The timezone for the cron schedule.
+
+              required:
+                - type
+                - schedule
+
+            - title: ServiceContainerTaskTrigger
+              type: object
+              properties:
+                type:
+                  title: ServiceContainerTaskTriggerType
+                  type: string
+                  enum:
+                    - task
+                  description: The type of trigger.
+
+                queue:
+                  type: string
+                  description: The name of the queue for task triggers.
+
+              required:
+                - type
+                - queue
+
+      outputs:
+        title: ServiceContainerOutputs
+        description: The data this service produces.
+        type: object
+        properties:
+          eventTopics:
+            type: array
+            items:
+              type: string
+            description: The list of event topics to which this service can publish events.

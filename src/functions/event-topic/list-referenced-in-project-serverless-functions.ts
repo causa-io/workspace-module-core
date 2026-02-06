@@ -21,7 +21,9 @@ export class EventTopicListReferencedInProjectForServerlessFunctions extends Eve
     const consumed = [
       ...new Set(
         functions.flatMap((fn) =>
-          fn.trigger.type === 'event' ? fn.trigger.topic : [],
+          fn.trigger.type === 'event' && fn.trigger.topic
+            ? fn.trigger.topic
+            : [],
         ),
       ),
     ];

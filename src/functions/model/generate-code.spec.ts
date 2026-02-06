@@ -6,7 +6,7 @@ import {
   type WorkspaceFunctionCallMock,
 } from '@causa/workspace/testing';
 import { jest } from '@jest/globals';
-import type { ModelConfiguration } from '../../configurations/model.js';
+import type { ModelConfiguration } from '../../configurations/index.js';
 import {
   ModelGenerateCode,
   ModelRunCodeGenerator,

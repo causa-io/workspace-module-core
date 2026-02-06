@@ -21,3 +21,11 @@ javascript:
     update:
       packageTargets:
         '@types/node': minor
+
+model:
+  schema: jsonschema
+
+  codeGenerators:
+    - generator: typescriptModelClass
+      globs: [./src/configurations/schemas/*.yaml]
+      output: src/configurations/generated.ts

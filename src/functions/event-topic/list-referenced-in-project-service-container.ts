@@ -20,7 +20,7 @@ export class EventTopicListReferencedInProjectForServiceContainer extends EventT
     const consumed = [
       ...new Set(
         Object.values(triggers).flatMap((trigger) =>
-          trigger.type === 'event' ? trigger.topic : [],
+          trigger.type === 'event' && trigger.topic ? trigger.topic : [],
         ),
       ),
     ];

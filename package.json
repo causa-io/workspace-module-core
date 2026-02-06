@@ -31,8 +31,8 @@
     "test:cov": "npm run test -- --coverage"
   },
   "dependencies": {
-    "@causa/cli": ">= 0.6.4 < 1.0.0",
-    "@causa/workspace": ">= 0.19.2 < 1.0.0",
+    "@causa/cli": ">= 0.6.5 < 1.0.0",
+    "@causa/workspace": ">= 0.20.0 < 1.0.0",
     "@scalar/json-magic": "^0.10.0",
     "@scalar/openapi-parser": "^0.24.8",
     "axios": "^1.13.4",

@@ -14,7 +14,7 @@ import {
   ProjectPushArtefact,
   ProjectReadVersion,
 } from '../../definitions/index.js';
-import { GitService } from '../../index.js';
+import { GitService } from '../../services/index.js';
 import { ProjectPublishArtefactForAll } from './publish-artefact.js';
 
 describe('ProjectPublishArtefactForAll', () => {

@@ -14,7 +14,10 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js"
+    ".": "./dist/index.js",
+    "./backfill": "./dist/backfill/index.js",
+    "./code-generation": "./dist/code-generation/index.js",
+    "./services": "./dist/services/index.js"
   },
   "files": [
     "dist/",

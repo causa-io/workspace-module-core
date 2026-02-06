@@ -31,7 +31,8 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "lint": "eslint \"src/**/*.ts\"",
     "test": "NODE_OPTIONS=\"--experimental-vm-modules --no-warnings=ExperimentalWarning\" jest",
-    "test:cov": "npm run test -- --coverage"
+    "test:cov": "npm run test -- --coverage",
+    "generateConfigurationSchemas": "cs model genCode && perl -pi -e 's|\\@causa/runtime|\\@causa/workspace/validation|g' src/configurations/generated.ts"
   },
   "dependencies": {
     "@causa/cli": ">= 0.6.5 < 1.0.0",

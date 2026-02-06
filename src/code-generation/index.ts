@@ -10,6 +10,7 @@ export type {
 export {
   generateCodeForSchemas,
   makeJsonSchemaInputData,
+  makeJsonSchemaInputDataFromSources,
 } from './generate-schema.js';
 export { causaJsonSchemaAttributeProducer } from './jsonschema-attribute-producer.js';
 export { findTypeForUri } from './quicktype-utils.js';

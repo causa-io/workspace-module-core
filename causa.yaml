@@ -28,4 +28,5 @@ model:
   codeGenerators:
     - generator: typescriptModelClass
       globs: [./src/configurations/schemas/*.yaml]
+      nestedSchemas: []
       output: src/configurations/generated.ts

@@ -1,4 +1,5 @@
 import type { ModuleRegistrationContext } from '@causa/workspace';
+import { CausaListConfigurationSchemasForCore } from './configuration/index.js';
 import {
   EmulatorListForAll,
   EmulatorStartManyForAll,
@@ -40,6 +41,7 @@ import { SecretFetchForEnvironmentVariable } from './secret/index.js';
 
 export function registerFunctions(context: ModuleRegistrationContext) {
   context.registerFunctionImplementations(
+    CausaListConfigurationSchemasForCore,
     EmulatorListForAll,
     EmulatorStartManyForAll,
     EmulatorStopManyForAll,

@@ -1,12 +1,19 @@
 import { WorkspaceContext } from '@causa/workspace';
-import { NoImplementationFoundError } from '@causa/workspace/function-registry';
-import { createContext } from '@causa/workspace/testing';
+import {
+  FunctionRegistry,
+  NoImplementationFoundError,
+} from '@causa/workspace/function-registry';
+import { createContext, registerMockFunction } from '@causa/workspace/testing';
 import { jest } from '@jest/globals';
-import { mkdir, mkdtemp, rm, writeFile } from 'fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'fs/promises';
 import 'jest-extended';
+import { load } from 'js-yaml';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
-import { ProjectInit } from '../../definitions/index.js';
+import {
+  CausaListConfigurationSchemas,
+  ProjectInit,
+} from '../../definitions/index.js';
 import type { ProjectInitForWorkspace as ProjectInitForWorkspaceType } from './init-workspace.js';
 
 const setUpCausaFolderMock = jest.fn(async () => {});
@@ -18,10 +25,12 @@ jest.unstable_mockModule('@causa/workspace/initialization', () => ({
 describe('ProjectInitWorkspace', () => {
   let tmpDir: string;
   let context: WorkspaceContext;
+  let functionRegistry: FunctionRegistry<WorkspaceContext>;
   let ProjectInitForWorkspace: typeof ProjectInitForWorkspaceType;
 
   beforeEach(async () => {
     tmpDir = resolve(await mkdtemp(join(tmpdir(), 'causa-')));
+    await mkdir(join(tmpDir, '.causa'), { recursive: true });
     ({ ProjectInitForWorkspace } = await import('./init-workspace.js'));
     ({ context } = createContext({
       rootPath: tmpDir,
@@ -51,6 +60,21 @@ describe('ProjectInitWorkspace', () => {
     );
   });
 
+  it('should support initialization when the workspace option is set even within a project', async () => {
+    ({ context } = createContext({
+      rootPath: tmpDir,
+      configuration: {
+        workspace: { name: 'test' },
+        project: { name: 'my-proj', language: 'typescript', type: 'package' },
+      },
+      functions: [ProjectInitForWorkspace],
+    }));
+
+    await context.call(ProjectInit, { workspace: true });
+
+    expect(setUpCausaFolderMock).not.toHaveBeenCalled();
+  });
+
   it('should be a no-op when no option is provided', async () => {
     await context.call(ProjectInit, {});
 
@@ -73,6 +97,33 @@ describe('ProjectInitWorkspace', () => {
       { 'some-module': '2.0.0', other: '1.0.0' },
       context.logger,
     );
+  });
+
+  it('should write the configuration schema file', async () => {
+    ({ context, functionRegistry } = createContext({
+      rootPath: tmpDir,
+      configuration: {
+        workspace: { name: 'test' },
+      },
+      functions: [ProjectInitForWorkspace],
+    }));
+    registerMockFunction(
+      functionRegistry,
+      CausaListConfigurationSchemas,
+      async () => ['/path/to/schema1.yaml', '/path/to/schema2.yaml'],
+    );
+
+    await context.call(ProjectInit, {});
+
+    const schemaFile = join(tmpDir, '.causa', 'configuration-schema.yaml');
+    const content = await readFile(schemaFile, 'utf-8');
+    const schema = load(content);
+    expect(schema).toEqual({
+      allOf: expect.toIncludeSameMembers([
+        { $ref: '/path/to/schema1.yaml' },
+        { $ref: '/path/to/schema2.yaml' },
+      ]),
+    });
   });
 
   it('should default to initializing no modules', async () => {

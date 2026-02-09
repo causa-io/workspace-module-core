@@ -32,6 +32,7 @@
     "lint": "eslint \"src/**/*.ts\"",
     "test": "NODE_OPTIONS=\"--experimental-vm-modules --no-warnings=ExperimentalWarning\" jest",
     "test:cov": "npm run test -- --coverage",
+    "typecheck": "tsc --noEmit",
     "generateConfigurationSchemas": "cs model genCode && perl -pi -e 's|\\@causa/runtime|\\@causa/workspace/validation|g' src/configurations/generated.ts"
   },
   "dependencies": {

@@ -60,6 +60,21 @@ describe('ProjectInitWorkspace', () => {
     );
   });
 
+  it('should support initialization when the workspace option is set even within a project', async () => {
+    ({ context } = createContext({
+      rootPath: tmpDir,
+      configuration: {
+        workspace: { name: 'test' },
+        project: { name: 'my-proj', language: 'typescript', type: 'package' },
+      },
+      functions: [ProjectInitForWorkspace],
+    }));
+
+    await context.call(ProjectInit, { workspace: true });
+
+    expect(setUpCausaFolderMock).not.toHaveBeenCalled();
+  });
+
   it('should be a no-op when no option is provided', async () => {
     await context.call(ProjectInit, {});
 

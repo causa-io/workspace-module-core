@@ -39,11 +39,7 @@ export class ProjectInitForWorkspace extends ProjectInit {
   }
 
   _supports(context: WorkspaceContext): boolean {
-    return (
-      context.get('project.name') === undefined &&
-      context.get('project.type') === undefined &&
-      context.get('project.language') === undefined
-    );
+    return this.workspace || context.get('project.name') === undefined;
   }
 
   /**

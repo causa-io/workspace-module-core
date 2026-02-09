@@ -35,10 +35,10 @@
   },
   "dependencies": {
     "@causa/cli": ">= 0.6.5 < 1.0.0",
-    "@causa/workspace": ">= 0.20.0 < 1.0.0",
+    "@causa/workspace": ">= 0.21.0 < 1.0.0",
     "@scalar/json-magic": "^0.10.0",
     "@scalar/openapi-parser": "^0.24.8",
-    "axios": "^1.13.4",
+    "axios": "^1.13.5",
     "class-validator": "^0.14.3",
     "globby": "^16.1.0",
     "js-yaml": "^4.1.1",

@@ -13,6 +13,7 @@ Features:
 Chores:
 
 - Defer loading of heavy dependencies (`quicktype-core`, `@scalar/*`) during function registration.
+- Define JSONSchemas for configurations.
 
 ## v0.26.1 (2026-02-06)
 

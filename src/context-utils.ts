@@ -15,9 +15,9 @@ export async function cloneContextForEnvironmentProjectIfNeeded(
 ): Promise<WorkspaceContext> {
   context.getEnvironmentOrThrow();
 
-  const relativeProjectPath = context.getOrThrow(
-    'infrastructure.environmentProject',
-  );
+  const relativeProjectPath = context
+    .asConfiguration<InfrastructureConfiguration>()
+    .getOrThrow('infrastructure.environmentProject');
 
   const projectPath = join(context.rootPath, relativeProjectPath);
   if (context.projectPath === projectPath) {

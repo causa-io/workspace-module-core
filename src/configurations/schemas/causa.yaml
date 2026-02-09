@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=https://json-schema.org/draft-07/schema
+
+title: CausaConfiguration
+type: object
+description: A configuration with additional `causa` properties used by workspace functions in this package.
+properties:
+  causa:
+    type: object
+    description: Additional causa properties used by workspace functions in this package.
+    properties:
+      projectConfigurationsDirectory:
+        type: string
+        description: The directory where project configurations are written by the ProjectWriteConfigurations processor.

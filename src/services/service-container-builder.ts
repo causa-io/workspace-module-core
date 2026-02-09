@@ -1,11 +1,12 @@
 import { WorkspaceContext } from '@causa/workspace';
 import { randomBytes } from 'crypto';
 import { resolve } from 'path';
-import type {
-  BuildSecret,
-  ServiceContainerConfiguration,
-} from '../configurations/index.js';
+import type { ServiceContainerConfiguration } from '../configurations/index.js';
 import { DockerService } from './docker.js';
+
+type BuildSecrets = NonNullable<
+  ServiceContainerConfiguration['serviceContainer']
+>['buildSecrets'];
 
 /**
  * A service providing the base logic to build service container Docker images.
@@ -41,7 +42,7 @@ export class ServiceContainerBuilderService {
   /**
    * Docker build `--secret` arguments to pass when building the image.
    */
-  readonly buildSecrets: Promise<Record<string, BuildSecret> | undefined>;
+  readonly buildSecrets: Promise<BuildSecrets>;
 
   constructor(context: WorkspaceContext) {
     this.dockerService = context.service(DockerService);
@@ -83,7 +84,7 @@ export class ServiceContainerBuilderService {
        * Additional secrets to pass to the Docker build command.
        * They will be merged with (and possibly overridden by) the `serviceContainer.buildSecrets` configuration.
        */
-      baseBuildSecrets?: Record<string, BuildSecret>;
+      baseBuildSecrets?: BuildSecrets;
     } = {},
   ): Promise<void> {
     const file = this.file ?? defaultFile;
@@ -100,7 +101,7 @@ export class ServiceContainerBuilderService {
     const environment = { ...process.env };
     const secrets = Object.fromEntries(
       Object.entries(buildSecrets).map(([key, secret]) => {
-        if ('file' in secret) {
+        if ('file' in secret && secret.file) {
           const source = resolve(this.rootPath, secret.file);
           return [key, { source }];
         }

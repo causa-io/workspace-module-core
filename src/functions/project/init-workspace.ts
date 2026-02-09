@@ -3,9 +3,14 @@ import {
   CAUSA_FOLDER,
   setUpCausaFolder,
 } from '@causa/workspace/initialization';
-import { readFile } from 'fs/promises';
+import type { OpenAPIV3_1 } from '@scalar/openapi-types';
+import { readFile, writeFile } from 'fs/promises';
+import { dump } from 'js-yaml';
 import { join } from 'path';
-import { ProjectInit } from '../../definitions/index.js';
+import {
+  CausaListConfigurationSchemas,
+  ProjectInit,
+} from '../../definitions/index.js';
 
 /**
  * Implements {@link ProjectInit} for the Causa workspace, outside of any actual project.
@@ -19,7 +24,7 @@ export class ProjectInitForWorkspace extends ProjectInit {
 
       const currentDependencies = await this.readCurrentDependencies(context);
       // Merging the current dependencies allows keeping the ones that are not defined in the configuration, but might
-      // have been specified by a different process, e.g. the CLI
+      // have been specified by a different process, e.g. the CLI.
       const modules = {
         ...currentDependencies,
         ...(context.get('causa.modules') ?? {}),
@@ -27,6 +32,8 @@ export class ProjectInitForWorkspace extends ProjectInit {
 
       await setUpCausaFolder(context.rootPath, modules, context.logger);
     }
+
+    await this.writeConfigurationSchema(context);
 
     context.logger.info('✅ Successfully initialized workspace dependencies.');
   }
@@ -37,6 +44,35 @@ export class ProjectInitForWorkspace extends ProjectInit {
       context.get('project.type') === undefined &&
       context.get('project.language') === undefined
     );
+  }
+
+  /**
+   * Collects configuration schemas from all modules and writes a combined schema file in the Causa folder.
+   *
+   * @param context The {@link WorkspaceContext}.
+   */
+  private async writeConfigurationSchema(
+    context: WorkspaceContext,
+  ): Promise<void> {
+    const schemaPaths = await Promise.all(
+      context
+        .getFunctionImplementations(CausaListConfigurationSchemas, {})
+        .map((impl) => impl._call(context)),
+    );
+
+    const schema: OpenAPIV3_1.SchemaObject = {
+      allOf: schemaPaths.flat().map(($ref) => ({ $ref })),
+    };
+
+    const schemaFile = join(
+      context.rootPath,
+      CAUSA_FOLDER,
+      'configuration-schema.yaml',
+    );
+    const content = dump(schema);
+    await writeFile(schemaFile, content);
+
+    context.logger.info(`📝 Wrote configuration schema to '${schemaFile}'.`);
   }
 
   /**

@@ -28,7 +28,7 @@
   "scripts": {
     "prebuild": "rimraf ./dist",
     "build": "tsc -p tsconfig.build.json",
-    "postbuild": "cpy 'configurations/schemas/**' '../dist/' --cwd=src --base=cwd",
+    "postbuild": "node transform-schemas.mjs",
     "format": "prettier --write \"src/**/*.ts\"",
     "lint": "eslint \"src/**/*.ts\"",
     "test": "NODE_OPTIONS=\"--experimental-vm-modules --no-warnings=ExperimentalWarning\" jest",

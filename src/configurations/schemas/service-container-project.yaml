@@ -37,7 +37,7 @@ properties:
           Docker build arguments when building the image for the service.
           Supports rendering.
         additionalProperties:
-          type: string
+          $ref: '#/$defs/_TemplateString'
 
       buildSecrets:
         type: object
@@ -50,7 +50,8 @@ properties:
               type: object
               properties:
                 file:
-                  type: string
+                  oneOf:
+                    - $ref: '#/$defs/_TemplateString'
                   description: The source file for the secret.
               required:
                 - file
@@ -59,7 +60,8 @@ properties:
               type: object
               properties:
                 value:
-                  type: string
+                  oneOf:
+                    - $ref: '#/$defs/_TemplateString'
                   description: |-
                     The value of the secret.
                     In this case the value will be passed as an environment variable to the Docker command.
@@ -80,7 +82,7 @@ properties:
       environmentVariables:
         type: object
         additionalProperties:
-          type: string
+          $ref: '#/$defs/_TemplateString'
         description: The environment variables passed to the service.
 
       cpuLimit:
@@ -199,3 +201,7 @@ properties:
             items:
               type: string
             description: The list of event topics to which this service can publish events.
+
+$defs:
+  _TemplateString:
+    type: string

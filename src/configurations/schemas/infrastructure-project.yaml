@@ -30,7 +30,7 @@ properties:
       variables:
         type: object
         additionalProperties:
-          type: string
+          $ref: '#/$defs/_TemplateString'
         description: |-
           Variables to be passed to the infrastructure as code system (e.g.  Terraform).
           Supports rendering.
@@ -38,3 +38,7 @@ properties:
       environmentProject:
         type: string
         description: The location of the project, relative to the workspace root, that defines the infrastructure for a single environment.
+
+$defs:
+  _TemplateString:
+    type: string

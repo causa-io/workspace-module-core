@@ -202,6 +202,19 @@ export abstract class ProjectInit extends WorkspaceFunction<Promise<void>> {
     description: 'When set, re-initializes the project.',
   })
   readonly force?: boolean;
+
+  /**
+   * Whether to initialize the workspace rather than a project.
+   * This is useful when a workspace is composed of a single project at its root, in which case workspace initialization
+   * would not be triggered otherwise.
+   */
+  @IsBoolean()
+  @AllowMissing()
+  @CliOption({
+    flags: '--workspace',
+    description: 'When set, initializes the workspace rather than a project.',
+  })
+  readonly workspace?: boolean;
 }
 
 /**

@@ -1,5 +1,5 @@
 import type { ModuleRegistrationContext } from '@causa/workspace';
-import { CausaListConfigurationSchemasForCore } from './configuration/index.js';
+import { CausaListConfigurationSchemasForCore } from './causa/index.js';
 import {
   EmulatorListForAll,
   EmulatorStartManyForAll,

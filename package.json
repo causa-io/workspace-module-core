@@ -28,7 +28,7 @@
   "scripts": {
     "prebuild": "rimraf ./dist",
     "build": "tsc -p tsconfig.build.json",
-    "postbuild": "cpy 'configurations/schemas/**' '../dist/' --cwd=src --base=cwd",
+    "postbuild": "node transform-schemas.mjs",
     "format": "prettier --write \"src/**/*.ts\"",
     "lint": "eslint \"src/**/*.ts\"",
     "test": "NODE_OPTIONS=\"--experimental-vm-modules --no-warnings=ExperimentalWarning\" jest",
@@ -58,7 +58,6 @@
     "@types/js-yaml": "^4.0.9",
     "@types/micromatch": "^4.0.10",
     "@types/node": "^18.19.130",
-    "cpy-cli": "^7.0.0",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",

@@ -10,6 +10,7 @@ Breaking changes:
 Features:
 
 - Export `makeJsonSchemaInputDataFromSources`.
+- Create the `.causa/configuration-schema.yaml` JSONSchema file during the workspace's `ProjectInit` (`cs init`), providing the complete schema for Causa configuration files.
 
 Chores:
 

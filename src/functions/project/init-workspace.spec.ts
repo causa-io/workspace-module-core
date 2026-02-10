@@ -119,10 +119,36 @@ describe('ProjectInitWorkspace', () => {
     const content = await readFile(schemaFile, 'utf-8');
     const schema = load(content);
     expect(schema).toEqual({
-      allOf: expect.toIncludeSameMembers([
-        { $ref: '/path/to/schema1.yaml' },
-        { $ref: '/path/to/schema2.yaml' },
-      ]),
+      allOf: [
+        { $ref: '#/$defs/Configuration' },
+        {
+          type: 'object',
+          properties: {
+            environments: {
+              type: 'object',
+              additionalProperties: {
+                type: 'object',
+                properties: {
+                  configuration: {
+                    allOf: [
+                      { $ref: '#/$defs/Configuration' },
+                      { not: { required: ['environments'] } },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        },
+      ],
+      $defs: {
+        Configuration: {
+          allOf: expect.toIncludeSameMembers([
+            { $ref: '/path/to/schema1.yaml' },
+            { $ref: '/path/to/schema2.yaml' },
+          ]),
+        },
+      },
     });
   });
 

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.27.0-rc.1 (2026-02-10)
+
 Breaking changes:
 
 - Move backfill, code generation, and services as separate exports.

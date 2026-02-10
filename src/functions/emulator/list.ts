@@ -8,14 +8,10 @@ import { EmulatorList, EmulatorStart } from '../../definitions/index.js';
  */
 export class EmulatorListForAll extends EmulatorList {
   async _call(context: WorkspaceContext): Promise<string[]> {
-    return await Promise.all(
-      context
-        .getFunctionImplementations(EmulatorStart, { dryRun: true })
-        .map(async (emulatorStart) => {
-          const result = await emulatorStart._call(context);
-          return result.name;
-        }),
+    const results = await Promise.all(
+      context.callAll(EmulatorStart, { dryRun: true }),
     );
+    return results.map((r) => r.name);
   }
 
   _supports(): boolean {

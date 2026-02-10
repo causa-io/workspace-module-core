@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.27.0-rc.2 (2026-02-10)
+
 Features:
 
 - Define the environment configuration schema when initializing the workspace.

@@ -61,8 +61,34 @@ export class ProjectInitForWorkspace extends ProjectInit {
       context.callAll(CausaListConfigurationSchemas, {}),
     );
 
-    const schema: OpenAPIV3_1.SchemaObject = {
+    const configurationSchema: OpenAPIV3_1.SchemaObject = {
       allOf: schemaPaths.flat().map(($ref) => ({ $ref })),
+    };
+    const configurationWithoutEnvironmentsSchema: OpenAPIV3_1.SchemaObject = {
+      allOf: [
+        { $ref: '#/$defs/Configuration' },
+        { not: { required: ['environments'] } },
+      ],
+    };
+    const schema: OpenAPIV3_1.SchemaObject = {
+      allOf: [
+        { $ref: '#/$defs/Configuration' },
+        {
+          type: 'object',
+          properties: {
+            environments: {
+              type: 'object',
+              additionalProperties: {
+                type: 'object',
+                properties: {
+                  configuration: configurationWithoutEnvironmentsSchema,
+                },
+              },
+            },
+          },
+        },
+      ],
+      $defs: { Configuration: configurationSchema },
     };
 
     const schemaFile = join(

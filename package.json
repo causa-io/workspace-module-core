@@ -38,7 +38,7 @@
   },
   "dependencies": {
     "@causa/cli": ">= 0.6.5 < 1.0.0",
-    "@causa/workspace": ">= 0.21.1 < 1.0.0",
+    "@causa/workspace": ">= 0.22.0 < 1.0.0",
     "@scalar/json-magic": "^0.10.0",
     "@scalar/openapi-parser": "^0.24.8",
     "axios": "^1.13.5",
@@ -46,7 +46,7 @@
     "globby": "^16.1.0",
     "js-yaml": "^4.1.1",
     "micromatch": "^4.0.8",
-    "pino": "^10.3.0",
+    "pino": "^10.3.1",
     "quicktype-core": "^23.2.6"
   },
   "devDependencies": {
@@ -66,6 +66,6 @@
     "rimraf": "^6.1.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.54.0"
+    "typescript-eslint": "^8.55.0"
   }
 }

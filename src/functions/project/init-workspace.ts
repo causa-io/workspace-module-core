@@ -31,11 +31,18 @@ export class ProjectInitForWorkspace extends ProjectInit {
       };
 
       await setUpCausaFolder(context.rootPath, modules, context.logger);
+
+      context.logger.info(
+        '✅ Successfully initialized workspace dependencies.',
+      );
+      context.logger.warn(
+        `⚠️ Rerun initialization without force to complete the initialization using the new modules.`,
+      );
+
+      return;
     }
 
     await this.writeConfigurationSchema(context);
-
-    context.logger.info('✅ Successfully initialized workspace dependencies.');
   }
 
   _supports(context: WorkspaceContext): boolean {
@@ -51,9 +58,7 @@ export class ProjectInitForWorkspace extends ProjectInit {
     context: WorkspaceContext,
   ): Promise<void> {
     const schemaPaths = await Promise.all(
-      context
-        .getFunctionImplementations(CausaListConfigurationSchemas, {})
-        .map((impl) => impl._call(context)),
+      context.callAll(CausaListConfigurationSchemas, {}),
     );
 
     const schema: OpenAPIV3_1.SchemaObject = {

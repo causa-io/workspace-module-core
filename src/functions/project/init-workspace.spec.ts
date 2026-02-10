@@ -141,6 +141,6 @@ describe('ProjectInitWorkspace', () => {
       {},
       context.logger,
     );
-    expect(context.logger.warn).toHaveBeenCalledOnce();
+    expect(context.logger.warn).toHaveBeenCalledTimes(2);
   });
 });

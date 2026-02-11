@@ -11,21 +11,35 @@ properties:
     properties:
       processors:
         type: array
-        items:
-          title: ProcessorInstruction
-          type: object
-          properties:
-            name:
-              description: The name of the WorkspaceFunction.
-              type: string
-            args:
-              description: Arguments for the workspace function.
-              type: object
-          required:
-            - name
         description: |-
           The list of processors that should be run prior to infrastructure operations to set up the workspace.
           Processors should implement the `InfrastructureProcessor` interface.
+        items:
+          anyOf:
+            - title: ProcessorInstruction
+              type: object
+              properties:
+                name:
+                  description: The name of the WorkspaceFunction.
+                  type: string
+                args:
+                  description: Arguments for the workspace function.
+                  type: object
+              required:
+                - name
+
+            - title: ProjectWriteConfigurationsProcessor
+              type: object
+              description: |-
+                Writes each project's configuration to a JSON file.
+                Sets the `causa.projectConfigurationsDirectory` configuration value.
+              properties:
+                name:
+                  type: string
+                  enum:
+                    - ProjectWriteConfigurations
+              required:
+                - name
 
       variables:
         type: object

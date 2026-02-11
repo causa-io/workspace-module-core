@@ -20,11 +20,12 @@ describe('CausaListConfigurationSchemasForCore', () => {
       'causa.yaml',
       'docker.yaml',
       'events.yaml',
-      'infrastructure-project.yaml',
+      'infrastructure.yaml',
       'model.yaml',
       'openapi.yaml',
-      'serverless-functions-project.yaml',
-      'service-container-project.yaml',
+      'project.yaml',
+      'serverless-functions.yaml',
+      'service-container.yaml',
     ]);
   });
 });

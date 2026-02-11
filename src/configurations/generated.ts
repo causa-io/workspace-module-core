@@ -170,8 +170,12 @@ export class EventsConfiguration {
   [property: string]: any;
 }
 
-export class ProcessorInstruction {
-  constructor(init: ProcessorInstruction) {
+/**
+ * Writes each project's configuration to a JSON file.
+ * Sets the `causa.projectConfigurationsDirectory` configuration value.
+ */
+export class Pro {
+  constructor(init: Pro) {
     Object.assign(this, init);
   }
 
@@ -211,7 +215,7 @@ export class Infrastructure {
    */
   @AllowMissing()
   @IsArray()
-  readonly processors?: ProcessorInstruction[];
+  readonly processors?: Pro[];
 
   /**
    * Variables to be passed to the infrastructure as code system (e.g.  Terraform).
@@ -344,6 +348,30 @@ export class OpenAPIConfiguration {
   @IsNullable()
   @AllowMissing()
   readonly openApi?: null | OpenAPI;
+  [property: string]: any;
+}
+
+export class Project {
+  constructor(init: Project) {
+    Object.assign(this, init);
+  }
+
+  @AllowMissing()
+  @IsString()
+  readonly type?: string;
+  [property: string]: any;
+}
+
+/**
+ * Refinement of the project configuration with known project types.
+ */
+export class ProjectConfiguration {
+  constructor(init: ProjectConfiguration) {
+    Object.assign(this, init);
+  }
+
+  @AllowMissing()
+  readonly project?: Project;
   [property: string]: any;
 }
 
@@ -484,8 +512,8 @@ export class ServerlessFunctionsConfiguration {
   [property: string]: any;
 }
 
-export class Project {
-  constructor(init: Project) {
+export class ServiceContainerConfigurationProject {
+  constructor(init: ServiceContainerConfigurationProject) {
     Object.assign(this, init);
   }
 
@@ -736,7 +764,7 @@ export class ServiceContainerConfiguration {
   }
 
   @AllowMissing()
-  readonly project?: Project;
+  readonly project?: ServiceContainerConfigurationProject;
 
   /**
    * Configuration for service container projects, i.e. services that are run as generic Docker containers.

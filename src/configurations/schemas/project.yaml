@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=https://json-schema.org/draft-07/schema
+
+title: ProjectConfiguration
+type: object
+description: Refinement of the project configuration with known project types.
+properties:
+  project:
+    type: object
+    properties:
+      type:
+        anyOf:
+          - type: string
+
+          - title: ServiceContainerProjectType
+            type: string
+            enum:
+              - serviceContainer
+            description: A project that is deployed as a Docker container.
+
+          - title: ServerlessFunctionsProjectType
+            type: string
+            enum:
+              - serverlessFunctions
+            description: A project exposing functions deployed by a serverless platform.
+
+          - title: PackageProjectType
+            type: string
+            enum:
+              - package
+            description: A project that is a reusable package.
+
+          - title: InfrastructureProjectType
+            type: string
+            enum:
+              - infrastructure
+            description: A project that defines infrastructure as code.
+

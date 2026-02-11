@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+Features:
+
+- Refine configuration schemas with known `project.type` values and `infrastructure.processors`.
+
 ## v0.27.0 (2026-02-11)
 
 Same as release candidates.

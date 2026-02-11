@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## v0.27.0 (2026-02-11)
+
+Same as release candidates.
+
 ## v0.27.0-rc.2 (2026-02-10)
 
 Features:

@@ -3,10 +3,10 @@ import {
   CAUSA_FOLDER,
   setUpCausaFolder,
 } from '@causa/workspace/initialization';
-import type { OpenAPIV3_1 } from '@scalar/openapi-types';
 import { readFile, writeFile } from 'fs/promises';
 import { dump } from 'js-yaml';
 import { join } from 'path';
+import { composeConfigurationSchema } from '../../configuration-schema.js';
 import {
   CausaListConfigurationSchemas,
   ProjectInit,
@@ -60,36 +60,9 @@ export class ProjectInitForWorkspace extends ProjectInit {
     const schemaPaths = await Promise.all(
       context.callAll(CausaListConfigurationSchemas, {}),
     );
-
-    const configurationSchema: OpenAPIV3_1.SchemaObject = {
-      allOf: schemaPaths.flat().map(($ref) => ({ $ref })),
-    };
-    const configurationWithoutEnvironmentsSchema: OpenAPIV3_1.SchemaObject = {
-      allOf: [
-        { $ref: '#/$defs/Configuration' },
-        { not: { required: ['environments'] } },
-      ],
-    };
-    const schema: OpenAPIV3_1.SchemaObject = {
-      allOf: [
-        { $ref: '#/$defs/Configuration' },
-        {
-          type: 'object',
-          properties: {
-            environments: {
-              type: 'object',
-              additionalProperties: {
-                type: 'object',
-                properties: {
-                  configuration: configurationWithoutEnvironmentsSchema,
-                },
-              },
-            },
-          },
-        },
-      ],
-      $defs: { Configuration: configurationSchema },
-    };
+    const schema = composeConfigurationSchema(
+      schemaPaths.flat().map(($ref) => ({ $ref })),
+    );
 
     const schemaFile = join(
       context.rootPath,

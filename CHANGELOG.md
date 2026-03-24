@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+Features:
+
+- Add the `configuration check` command, validating the workspace configuration against the combined JSON Schema from all modules.
+  - `--render` renders templates (without secrets) before validating.
+  - `--projects` validates the configuration for each project in the workspace.
+
 ## v0.28.1 (2026-03-13)
 
 Chores:

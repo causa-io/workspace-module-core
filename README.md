@@ -33,6 +33,7 @@ The core module defines and implements many base `cs` commands. As a Causa user,
 ### Commands
 
 - `cs init`: Initializes the workspace. This is a no-op in most cases as the CLI takes care of bootstrapping the workspace before running. The core module does not provide any project-specific implementation.
+- `cs configuration check`: Validates the workspace configuration against the combined JSON Schema from all modules. Use `--render` to render templates (without secrets) before validating, and `--projects` to validate each project's configuration independently.
 - `cs emulators`: Provides the `list`, `start`, and `stop` commands. However no actual emulator is implemented by this module. Available emulators will depend on other loaded modules.
 - `cs environment`: Provides the `prepare` and `deploy` commands, forwarding those infrastructure commands to the project configured in `infrastructure.environmentProject`.
 - `cs events backfill` and `cs events cleanBackfill`: The common backfilling logic is implemented in this module. However, this logic requires several tech stack-specific functions to be implemented by other modules.

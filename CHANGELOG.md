@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.29.0 (2026-03-24)
+
 Features:
 
 - Add the `configuration check` command, validating the workspace configuration against the combined JSON Schema from all modules.

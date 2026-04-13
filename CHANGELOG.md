@@ -6,6 +6,11 @@ Breaking changes:
 
 - Remove support for Node.js 20.
 
+Features:
+
+- Add the `$id` to the generated configuration schema file.
+- Define the `model.globs` configuration.
+
 ## v0.29.0 (2026-03-24)
 
 Features:

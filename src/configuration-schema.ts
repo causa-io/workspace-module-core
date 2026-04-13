@@ -10,7 +10,7 @@ import type { OpenAPIV3_1 } from '@scalar/openapi-types';
  */
 export function composeConfigurationSchema(
   schemas: OpenAPIV3_1.SchemaObject[],
-): OpenAPIV3_1.SchemaObject {
+): OpenAPIV3_1.SchemaObject & object {
   const configurationDefinition: OpenAPIV3_1.SchemaObject = {
     allOf: schemas,
   };

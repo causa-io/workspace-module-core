@@ -119,6 +119,7 @@ describe('ProjectInitWorkspace', () => {
     const content = await readFile(schemaFile, 'utf-8');
     const schema = load(content);
     expect(schema).toEqual({
+      $id: schemaFile,
       allOf: [
         { $ref: '#/$defs/Configuration' },
         {

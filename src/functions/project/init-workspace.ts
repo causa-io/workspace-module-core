@@ -60,15 +60,18 @@ export class ProjectInitForWorkspace extends ProjectInit {
     const schemaPaths = await Promise.all(
       context.callAll(CausaListConfigurationSchemas, {}),
     );
-    const schema = composeConfigurationSchema(
-      schemaPaths.flat().map(($ref) => ({ $ref })),
-    );
-
     const schemaFile = join(
       context.rootPath,
       CAUSA_FOLDER,
       'configuration-schema.yaml',
     );
+    const schema = {
+      $id: schemaFile,
+      ...composeConfigurationSchema(
+        schemaPaths.flat().map(($ref) => ({ $ref })),
+      ),
+    };
+
     const content = dump(schema);
     await writeFile(schemaFile, content);
 

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+Breaking changes:
+
+- Remove support for Node.js 20.
+
 ## v0.29.0 (2026-03-24)
 
 Features:

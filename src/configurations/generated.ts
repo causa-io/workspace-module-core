@@ -279,6 +279,14 @@ export class Model {
   readonly codeGenerators?: CodeGenerator[];
 
   /**
+   * A list of glob patterns pointing to files containing the model definitions (schemas).
+   */
+  @AllowMissing()
+  @IsArray()
+  @IsString({ each: true })
+  readonly globs?: string[];
+
+  /**
    * The schema format in which the model is defined.
    */
   @AllowMissing()

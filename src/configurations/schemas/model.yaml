@@ -15,6 +15,12 @@ properties:
           - jsonschema
         description: The schema format in which the model is defined.
 
+      globs:
+        type: array
+        description: A list of glob patterns pointing to files containing the model definitions (schemas).
+        items:
+          type: string
+
       codeGenerators:
         type: array
         description: A list of code generators to run in a project when the `model generateCode` command is run.

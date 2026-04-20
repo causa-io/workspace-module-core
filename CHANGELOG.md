@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+Features:
+
+- Add the `description` property to `serviceContainer.trigger`.
+
 ## v0.30.0 (2026-04-13)
 
 Breaking changes:

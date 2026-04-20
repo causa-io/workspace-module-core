@@ -620,6 +620,13 @@ export class ServiceContainerTrigger {
   }
 
   /**
+   * The description of the trigger.
+   */
+  @AllowMissing()
+  @IsString()
+  readonly description?: string;
+
+  /**
    * The endpoint called by the trigger.
    */
   @AllowMissing()

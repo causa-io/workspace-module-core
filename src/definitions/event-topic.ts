@@ -414,7 +414,60 @@ export class EventTopicTriggerCreationError extends Error {
 }
 
 /**
- * Publishes events from a source to the given topic.
+ * A single event to publish as part of a backfill.
+ */
+export type BackfillEvent = {
+  /**
+   * The data to publish.
+   */
+  readonly data: Buffer;
+
+  /**
+   * Optional attributes for the message.
+   */
+  readonly attributes?: Record<string, string>;
+
+  /**
+   * Optional ordering key for the message.
+   */
+  readonly key?: string;
+};
+
+/**
+ * Creates the async iterable of {@link BackfillEvent}s to publish during a backfill.
+ * Implementations are selected based on the {@link EventTopicCreateBackfillSource.source} string (or its absence, for
+ * the broker's default storage). Filtering, when supported, is also applied by the implementation: the returned
+ * iterable yields only the events that should actually be published.
+ */
+export abstract class EventTopicCreateBackfillSource extends WorkspaceFunction<
+  Promise<AsyncIterable<BackfillEvent>>
+> {
+  /**
+   * The full event topic name (e.g. `my-domain.my-event.v1`) for which events should be backfilled.
+   * Implementations may use this to resolve schemas or locate default storage.
+   */
+  @IsString()
+  readonly eventTopic!: string;
+
+  /**
+   * An optional source descriptor (e.g. `json://path/*.jsonl`).
+   * When omitted, implementations should fall back to the broker's default storage for the topic.
+   */
+  @IsString()
+  @AllowMissing()
+  readonly source?: string;
+
+  /**
+   * An optional filter applied to source events.
+   * The format and support depend on the selected implementation.
+   */
+  @IsString()
+  @AllowMissing()
+  readonly filter?: string;
+}
+
+/**
+ * Publishes events from an async iterable to the given topic.
  */
 export abstract class EventTopicBrokerPublishEvents extends WorkspaceFunction<
   Promise<void>

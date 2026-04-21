@@ -4,7 +4,7 @@ import type { OpenAPIV3_1 } from '@scalar/openapi-types';
 import { readFile, writeFile } from 'fs/promises';
 import { globby } from 'globby';
 import { dump, load } from 'js-yaml';
-import { dirname, isAbsolute, relative, resolve } from 'path';
+import { dirname, isAbsolute, join, relative, resolve } from 'path';
 import type { OpenApiConfiguration } from '../../configurations/index.js';
 import type { OpenApiGenerateSpecificationForProjectByMerging } from './generate-specification-project.js';
 import { rewriteRefs } from './utils.js';
@@ -52,7 +52,9 @@ export default async function call(
     openApiConf.get('openApi.global') ?? {};
   const projectPath = context.getProjectPathOrThrow();
 
-  const output = resolve(this.output ?? DEFAULT_OPENAPI_OUTPUT);
+  const output = this.output
+    ? resolve(this.output)
+    : join(projectPath, DEFAULT_OPENAPI_OUTPUT);
   const outputDir = dirname(output);
 
   context.logger.info(`📝 Resolving OpenAPI specification globs for project.`);

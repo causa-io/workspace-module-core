@@ -72,6 +72,21 @@ describe('EventTopicBackfillForAll', () => {
     );
   });
 
+  it('should default the output file to the workspace root', async () => {
+    const actualFile = await context.call(EventTopicBackfill, {
+      eventTopic: 'test-topic',
+    });
+
+    expect(actualFile).toMatch(
+      new RegExp(`^${tmpDir}/backfill-[0-9a-f]+\\.json$`),
+    );
+    const actualFileContent = await readFile(actualFile);
+    expect(JSON.parse(actualFileContent.toString())).toEqual({
+      temporaryTopicId: null,
+      temporaryTriggerResourceIds: [],
+    });
+  });
+
   it('should use an existing topic, create triggers, and publish events', async () => {
     const expectedFile = resolve(tmpDir, 'backfill.json');
 

@@ -1,6 +1,7 @@
 import { WorkspaceContext } from '@causa/workspace';
 import { randomBytes } from 'crypto';
 import { writeFile } from 'fs/promises';
+import { join, resolve } from 'path';
 import {
   type BackfillTemporaryData,
   EventTopicBackfill,
@@ -117,7 +118,9 @@ export class EventTopicBackfillForAll extends EventTopicBackfill {
       backfillId,
     );
 
-    const backfillFile = this.output ?? `backfill-${backfillId}.json`;
+    const backfillFile = this.output
+      ? resolve(this.output)
+      : join(context.rootPath, `backfill-${backfillId}.json`);
     const cleanBackfillCommand = [
       'cs',
       'events',

@@ -62,7 +62,7 @@ This section provides pointers for Causa module developers. Workspace function d
 
 - [Emulators](./src/definitions/emulator.ts): Modules exposing local emulators (e.g. of databases) should implement both `EmulatorStart` and `EmulatorStop` for each of them.
 - [Environment](./src/definitions/environment.ts): Functions mapping to `cs environment` commands. Those are not meant to be implemented by other modules.
-- [Event topic](./src/definitions/event-topic.ts): Functions related to event topics, e.g. backfilling. Modules providing support for a new project type should implement `EventTopicListReferencedInProject`. Modules providing tech stack or cloud provider support should implement the `EventTopicBroker*` functions.
+- [Event topic](./src/definitions/event-topic.ts): Functions related to event topics, e.g. backfilling. Modules providing support for a new project type should implement `EventTopicListReferencedInProject`. Modules providing tech stack or cloud provider support should implement the `EventTopicBroker*` functions, and register `EventTopicCreateBackfillSource` implementations for the source schemes they handle (including the "no source" / broker-default case).
 - [Infrastructure](./src/definitions/infrastructure.ts): Modules providing support for an Infrastructure as Code tool (e.g. Terraform, Pulumi) should implement the `InfrastructurePrepare` and `InfrastructureDeploy` functions.
 - [Model](./src/definitions/model.ts): Modules providing support for a programming language can implement new code generators by extending `ModelRunCodeGenerator`.
 - [Project](./src/definitions/project.ts): Many of the definitions in this file should be implemented by modules providing support for a language and/or project type, e.g. `ProjectBuildArtefact`, `ProjectReadVersion`, `ProjectPushArtefact`, `ProjectGetArtefactDestination`.
@@ -84,6 +84,10 @@ This module implements some [services](./src/services/) used by itself, but whic
 
 [ProjectWriteConfigurations](./src/functions/project-write-configurations.ts) is an infrastructure processor that writes the configuration of each and every project in the workspace to a single JSON file per project. This allows the configuration to be consumed by external systems that are not implemented in TypeScript and do not integrate directly with Causa. The output directory for the configuration files can be set in the `causa.projectConfigurationsDirectory` configuration, which defaults to `.causa/project-configurations`.
 
-## 📫 Backfilling utilities
+## 📫 Backfilling
 
-One of Causa's features is the ability to backfill events to be processed by services. Although there is always some stack-specific logic, some part of the backfilling flow can be implemented in a generic manner. The [backfill](./src/backfill/) folder contains utilities that may be reused by other Causa modules to provide backfilling functionalities.
+One of Causa's features is the ability to backfill events to be processed by services. The `cs events backfill` command orchestrates the generic flow: temporary topic and trigger setup, resolving the source of events to publish, and driving the broker-specific publisher. Stack-specific logic lives in other modules through the `EventTopicBroker*` function definitions.
+
+Triggers passed with `--trigger` are free-form URIs by default and are interpreted by the broker. Triggers matching the format `<projectPath>#<triggerName>[?<options>]` are treated as project-scoped: the workspace context is cloned for the referenced project (relative to the workspace root), and `EventTopicBrokerCreateTrigger` is called with a structured `{ name, options }` payload on that project-scoped context. Options are parsed as a URL query string into a `Record<string, string>`.
+
+The events to publish are built by `EventTopicCreateBackfillSource`, which returns an `AsyncIterable<BackfillEvent>` passed to `EventTopicBrokerPublishEvents`. This module ships an implementation for `json://<glob>` sources (newline-delimited JSON files with `data`, optional `attributes`, and optional `key` fields). When no `--source` is passed, the broker module is expected to provide an implementation that yields from its default storage for the topic. Filtering, when supported, is applied inside the source implementation — the returned iterable yields only the events that should actually be published.

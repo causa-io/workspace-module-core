@@ -6,7 +6,15 @@ import {
 } from '@causa/cli';
 import { WorkspaceContext, WorkspaceFunction } from '@causa/workspace';
 import { AllowMissing } from '@causa/workspace/validation';
-import { IsBoolean, IsString } from 'class-validator';
+import {
+  IsBoolean,
+  IsInstance,
+  IsString,
+  Validate,
+  type ValidationArguments,
+  ValidatorConstraint,
+  type ValidatorConstraintInterface,
+} from 'class-validator';
 
 /**
  * The definition for an event topic.
@@ -307,6 +315,57 @@ export abstract class EventTopicBrokerGetTopicId extends WorkspaceFunction<
 }
 
 /**
+ * The structured form of a trigger passed to {@link EventTopicBrokerCreateTrigger}.
+ * When the function is called with a value of this type, the context is guaranteed to be scoped to a project.
+ */
+export type EventTopicBrokerTrigger = {
+  /**
+   * The name of the trigger within the project.
+   */
+  readonly name: string;
+
+  /**
+   * A free-form bag of string options for the trigger to create.
+   */
+  readonly options: Record<string, string>;
+};
+
+/**
+ * Validates that a value is either a string or a valid {@link EventTopicBrokerTrigger} object.
+ */
+@ValidatorConstraint({ name: 'isEventTopicBrokerTrigger' })
+class IsEventTopicBrokerTriggerConstraint implements ValidatorConstraintInterface {
+  validate(value: unknown): boolean {
+    if (typeof value === 'string') {
+      return true;
+    }
+
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+      return false;
+    }
+
+    const { name, options } = value as Record<string, unknown>;
+    if (typeof name !== 'string') {
+      return false;
+    }
+
+    if (
+      options === null ||
+      typeof options !== 'object' ||
+      Array.isArray(options)
+    ) {
+      return false;
+    }
+
+    return Object.values(options).every((v) => typeof v === 'string');
+  }
+
+  defaultMessage(args: ValidationArguments): string {
+    return `${args.property} must be a string or a valid EventTopicBrokerTrigger.`;
+  }
+}
+
+/**
  * Creates a trigger on the given topic for the specified service.
  * Returns IDs of resources that should be deleted after the backfill has completed.
  */
@@ -326,10 +385,14 @@ export abstract class EventTopicBrokerCreateTrigger extends WorkspaceFunction<
   readonly topicId!: string;
 
   /**
-   * An URI that describes the trigger to create, e.g. an existing resource to copy, etc.
+   * Describes the trigger to create.
+   *
+   * A raw `string` is a free-form URI interpreted by the broker implementation.
+   *
+   * An {@link EventTopicBrokerTrigger} object is used when the function is called on a project-scoped context.
    */
-  @IsString()
-  readonly trigger!: string;
+  @Validate(IsEventTopicBrokerTriggerConstraint)
+  readonly trigger!: string | EventTopicBrokerTrigger;
 }
 
 /**
@@ -352,7 +415,60 @@ export class EventTopicTriggerCreationError extends Error {
 }
 
 /**
- * Publishes events from a source to the given topic.
+ * A single event to publish as part of a backfill.
+ */
+export type BackfillEvent = {
+  /**
+   * The data to publish.
+   */
+  readonly data: Buffer;
+
+  /**
+   * Optional attributes for the message.
+   */
+  readonly attributes?: Record<string, string>;
+
+  /**
+   * Optional ordering key for the message.
+   */
+  readonly key?: string;
+};
+
+/**
+ * Creates the async iterable of {@link BackfillEvent}s to publish during a backfill.
+ * Implementations are selected based on the {@link EventTopicCreateBackfillSource.source} string (or its absence, for
+ * the broker's default storage). Filtering, when supported, is also applied by the implementation: the returned
+ * iterable yields only the events that should actually be published.
+ */
+export abstract class EventTopicCreateBackfillSource extends WorkspaceFunction<
+  Promise<AsyncIterable<BackfillEvent>>
+> {
+  /**
+   * The full event topic name (e.g. `my-domain.my-event.v1`) for which events should be backfilled.
+   * Implementations may use this to resolve schemas or locate default storage.
+   */
+  @IsString()
+  readonly eventTopic!: string;
+
+  /**
+   * An optional source descriptor (e.g. `json://path/*.jsonl`).
+   * When omitted, implementations should fall back to the broker's default storage for the topic.
+   */
+  @IsString()
+  @AllowMissing()
+  readonly source?: string;
+
+  /**
+   * An optional filter applied to source events.
+   * The format and support depend on the selected implementation.
+   */
+  @IsString()
+  @AllowMissing()
+  readonly filter?: string;
+}
+
+/**
+ * Publishes events from an async iterable to the given topic.
  */
 export abstract class EventTopicBrokerPublishEvents extends WorkspaceFunction<
   Promise<void>
@@ -371,20 +487,13 @@ export abstract class EventTopicBrokerPublishEvents extends WorkspaceFunction<
   readonly eventTopic!: string;
 
   /**
-   * The source for events to publish.
-   * By default, events will be fetched from the configured data storage using the `eventTopic` name.
+   * A factory returning the async iterable of events to publish. Built by {@link EventTopicCreateBackfillSource}.
    */
-  @IsString()
-  @AllowMissing()
-  readonly source?: string;
-
-  /**
-   * A filter for source events.
-   * The format depends on the source type and some source types might not support a filter at all.
-   */
-  @IsString()
-  @AllowMissing()
-  readonly filter?: string;
+  // Exposed as a thunk rather than the iterable directly: the function registry deep-clones args via
+  // `class-transformer`'s `plainToInstance`, which tries to `new`-up the value's constructor for non-`Object` objects
+  // and throws on async-generator instances. A function-typed value is passed through untouched.
+  @IsInstance(Function)
+  readonly source!: () => AsyncIterable<BackfillEvent>;
 }
 
 /**

@@ -5,6 +5,9 @@
 Breaking changes:
 
 - Default to the workspace or project directory when writing OpenAPI specs.
+- Default the `events backfill` output file to the workspace root instead of the current working directory.
+- Support a new project-scoped trigger format `<projectPath>#<triggerName>[?<options>]` in `events backfill`. When a trigger matches, the workspace context is cloned for the referenced project and `EventTopicBrokerCreateTrigger` is called with a structured `{ name, options }` payload.
+- Replace the `BackfillEventsSource` / `BackfillEventPublisher` / `JsonFilesEventSource` abstractions with an async-iterable-based contract. Introduce the `EventTopicCreateBackfillSource` workspace function (with a `json://<glob>` implementation) to build the `AsyncIterable<BackfillEvent>` consumed by `EventTopicBrokerPublishEvents`. Remove the `./backfill` package subpath export.
 
 ## v0.31.0 (2026-04-20)
 

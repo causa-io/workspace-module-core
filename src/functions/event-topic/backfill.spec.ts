@@ -5,9 +5,10 @@ import {
   createContext,
   registerMockFunction,
 } from '@causa/workspace/testing';
+import { jest } from '@jest/globals';
 import { mkdtemp, readFile, rm } from 'fs/promises';
 import 'jest-extended';
-import { resolve } from 'path';
+import { join, resolve } from 'path';
 import {
   EventTopicBackfill,
   EventTopicBrokerCreateTopic,
@@ -46,9 +47,15 @@ describe('EventTopicBackfillForAll', () => {
     createTriggerMock = registerMockFunction(
       functionRegistry,
       EventTopicBrokerCreateTrigger,
-      async (_, args) => [
-        `backfill/${args.backfillId}/${args.topicId}/trigger/${args.trigger}`,
-      ],
+      async (_, args) => {
+        const triggerId =
+          typeof args.trigger === 'string'
+            ? args.trigger
+            : `${args.trigger.name}:${JSON.stringify(args.trigger.options)}`;
+        return [
+          `backfill/${args.backfillId}/${args.topicId}/trigger/${triggerId}`,
+        ];
+      },
     );
     publishEventsMock = registerMockFunction(
       functionRegistry,
@@ -247,6 +254,105 @@ describe('EventTopicBackfillForAll', () => {
       source: undefined,
       filter: undefined,
     });
+    const actualFileContent = await readFile(expectedFile);
+    expect(JSON.parse(actualFileContent.toString())).toEqual({
+      temporaryTopicId: null,
+      temporaryTriggerResourceIds: [],
+    });
+  });
+
+  it('should clone the context and forward a structured trigger for project-scoped triggers', async () => {
+    const expectedFile = resolve(tmpDir, 'backfill.json');
+    const expectedProjectPath = join(tmpDir, 'services/orders');
+    jest
+      .spyOn(context, 'clone')
+      .mockImplementation(async ({ workingDirectory } = {}) => {
+        const { context, functionRegistry } = createContext({
+          rootPath: tmpDir,
+          workingDirectory,
+          projectPath: workingDirectory,
+        });
+        registerMockFunction(
+          functionRegistry,
+          EventTopicBrokerCreateTrigger,
+          createTriggerMock,
+        );
+        return context;
+      });
+
+    const actualFile = await context.call(EventTopicBackfill, {
+      eventTopic: 'test-topic',
+      triggers: [
+        'services/orders#daily?region=eu&dryRun=true',
+        'services/orders#noopts',
+      ],
+      output: expectedFile,
+    });
+
+    expect(actualFile).toBe(expectedFile);
+    expect(context.clone).toHaveBeenCalledTimes(2);
+    expect(context.clone).toHaveBeenCalledWith({
+      workingDirectory: expectedProjectPath,
+    });
+    expect(createTriggerMock).toHaveBeenCalledWith(expect.anything(), {
+      backfillId: expect.any(String),
+      topicId: 'broker/test-topic',
+      trigger: {
+        name: 'daily',
+        options: { region: 'eu', dryRun: 'true' },
+      },
+    });
+    expect(createTriggerMock).toHaveBeenCalledWith(expect.anything(), {
+      backfillId: expect.any(String),
+      topicId: 'broker/test-topic',
+      trigger: { name: 'noopts', options: {} },
+    });
+  });
+
+  it('should wrap clone failures in an EventTopicTriggerCreationError', async () => {
+    const expectedFile = resolve(tmpDir, 'backfill.json');
+    jest.spyOn(context, 'clone').mockRejectedValue(new Error('💥 nope'));
+
+    const actualPromise = context.call(EventTopicBackfill, {
+      eventTopic: 'test-topic',
+      triggers: ['missing/project#daily'],
+      output: expectedFile,
+    });
+
+    await expect(actualPromise).rejects.toThrow('💥 nope');
+    expect(createTriggerMock).not.toHaveBeenCalled();
+    expect(publishEventsMock).not.toHaveBeenCalled();
+    const actualFileContent = await readFile(expectedFile);
+    expect(JSON.parse(actualFileContent.toString())).toEqual({
+      temporaryTopicId: null,
+      temporaryTriggerResourceIds: [],
+    });
+  });
+
+  it('should fail when the cloned context has no project path', async () => {
+    const expectedFile = resolve(tmpDir, 'backfill.json');
+    jest
+      .spyOn(context, 'clone')
+      .mockImplementation(async ({ workingDirectory } = {}) => {
+        const { context } = createContext({
+          rootPath: tmpDir,
+          workingDirectory,
+          projectPath: null,
+        });
+        return context;
+      });
+
+    const actualPromise = context.call(EventTopicBackfill, {
+      eventTopic: 'test-topic',
+      triggers: ['not-a-project#daily'],
+      output: expectedFile,
+    });
+
+    await expect(actualPromise).rejects.toThrow(
+      "Trigger 'not-a-project#daily' references 'not-a-project', which is not a project directory.",
+    );
+    expect(createTriggerMock).not.toHaveBeenCalled();
+    expect(publishEventsMock).not.toHaveBeenCalled();
     const actualFileContent = await readFile(expectedFile);
     expect(JSON.parse(actualFileContent.toString())).toEqual({
       temporaryTopicId: null,

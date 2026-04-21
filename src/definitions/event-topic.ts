@@ -6,7 +6,14 @@ import {
 } from '@causa/cli';
 import { WorkspaceContext, WorkspaceFunction } from '@causa/workspace';
 import { AllowMissing } from '@causa/workspace/validation';
-import { IsBoolean, IsString } from 'class-validator';
+import {
+  IsBoolean,
+  IsString,
+  Validate,
+  type ValidationArguments,
+  ValidatorConstraint,
+  type ValidatorConstraintInterface,
+} from 'class-validator';
 
 /**
  * The definition for an event topic.
@@ -307,6 +314,57 @@ export abstract class EventTopicBrokerGetTopicId extends WorkspaceFunction<
 }
 
 /**
+ * The structured form of a trigger passed to {@link EventTopicBrokerCreateTrigger}.
+ * When the function is called with a value of this type, the context is guaranteed to be scoped to a project.
+ */
+export type EventTopicBrokerTrigger = {
+  /**
+   * The name of the trigger within the project.
+   */
+  readonly name: string;
+
+  /**
+   * A free-form bag of string options for the trigger to create.
+   */
+  readonly options: Record<string, string>;
+};
+
+/**
+ * Validates that a value is either a string or a valid {@link EventTopicBrokerTrigger} object.
+ */
+@ValidatorConstraint({ name: 'isEventTopicBrokerTrigger' })
+class IsEventTopicBrokerTriggerConstraint implements ValidatorConstraintInterface {
+  validate(value: unknown): boolean {
+    if (typeof value === 'string') {
+      return true;
+    }
+
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+      return false;
+    }
+
+    const { name, options } = value as Record<string, unknown>;
+    if (typeof name !== 'string') {
+      return false;
+    }
+
+    if (
+      options === null ||
+      typeof options !== 'object' ||
+      Array.isArray(options)
+    ) {
+      return false;
+    }
+
+    return Object.values(options).every((v) => typeof v === 'string');
+  }
+
+  defaultMessage(args: ValidationArguments): string {
+    return `${args.property} must be a string or a valid EventTopicBrokerTrigger.`;
+  }
+}
+
+/**
  * Creates a trigger on the given topic for the specified service.
  * Returns IDs of resources that should be deleted after the backfill has completed.
  */
@@ -326,10 +384,14 @@ export abstract class EventTopicBrokerCreateTrigger extends WorkspaceFunction<
   readonly topicId!: string;
 
   /**
-   * An URI that describes the trigger to create, e.g. an existing resource to copy, etc.
+   * Describes the trigger to create.
+   *
+   * A raw `string` is a free-form URI interpreted by the broker implementation.
+   *
+   * An {@link EventTopicBrokerTrigger} object is used when the function is called on a project-scoped context.
    */
-  @IsString()
-  readonly trigger!: string;
+  @Validate(IsEventTopicBrokerTriggerConstraint)
+  readonly trigger!: string | EventTopicBrokerTrigger;
 }
 
 /**

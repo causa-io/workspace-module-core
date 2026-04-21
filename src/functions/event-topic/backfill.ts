@@ -9,6 +9,7 @@ import {
   EventTopicBrokerCreateTrigger,
   EventTopicBrokerGetTopicId,
   EventTopicBrokerPublishEvents,
+  EventTopicCreateBackfillSource,
   EventTopicTriggerCreationError,
 } from '../../definitions/index.js';
 
@@ -201,11 +202,16 @@ export class EventTopicBackfillForAll extends EventTopicBackfill {
     try {
       await this.createTriggers(context, backfillId, topicId, temporaryData);
 
-      await context.call(EventTopicBrokerPublishEvents, {
-        topicId,
+      const eventsSource = await context.call(EventTopicCreateBackfillSource, {
         eventTopic: this.eventTopic,
         source: this.source,
         filter: this.filter,
+      });
+
+      await context.call(EventTopicBrokerPublishEvents, {
+        topicId,
+        eventTopic: this.eventTopic,
+        source: () => eventsSource,
       });
 
       context.logger.info('✅ Successfully published all events.');

@@ -10,11 +10,13 @@ import { mkdtemp, readFile, rm } from 'fs/promises';
 import 'jest-extended';
 import { join, resolve } from 'path';
 import {
+  type BackfillEvent,
   EventTopicBackfill,
   EventTopicBrokerCreateTopic,
   EventTopicBrokerCreateTrigger,
   EventTopicBrokerGetTopicId,
   EventTopicBrokerPublishEvents,
+  EventTopicCreateBackfillSource,
   EventTopicTriggerCreationError,
 } from '../../definitions/index.js';
 import { EventTopicBackfillForAll } from './backfill.js';
@@ -27,6 +29,8 @@ describe('EventTopicBackfillForAll', () => {
   let getTopicIdMock: WorkspaceFunctionCallMock<EventTopicBrokerGetTopicId>;
   let createTriggerMock: WorkspaceFunctionCallMock<EventTopicBrokerCreateTrigger>;
   let publishEventsMock: WorkspaceFunctionCallMock<EventTopicBrokerPublishEvents>;
+  let createBackfillSourceMock: WorkspaceFunctionCallMock<EventTopicCreateBackfillSource>;
+  let backfillSource: AsyncIterable<BackfillEvent>;
 
   beforeEach(async () => {
     tmpDir = resolve(await mkdtemp('causa-test-'));
@@ -61,6 +65,12 @@ describe('EventTopicBackfillForAll', () => {
       functionRegistry,
       EventTopicBrokerPublishEvents,
       () => Promise.resolve(),
+    );
+    backfillSource = (async function* () {})();
+    createBackfillSourceMock = registerMockFunction(
+      functionRegistry,
+      EventTopicCreateBackfillSource,
+      async () => backfillSource,
     );
   });
 
@@ -120,12 +130,17 @@ describe('EventTopicBackfillForAll', () => {
       topicId: 'broker/test-topic',
       trigger: 'trigger2',
     });
-    expect(publishEventsMock).toHaveBeenCalledExactlyOnceWith(context, {
-      topicId: 'broker/test-topic',
+    expect(createBackfillSourceMock).toHaveBeenCalledExactlyOnceWith(context, {
       eventTopic: 'test-topic',
       source: '🚰',
       filter: '👀',
     });
+    expect(publishEventsMock).toHaveBeenCalledExactlyOnceWith(context, {
+      topicId: 'broker/test-topic',
+      eventTopic: 'test-topic',
+      source: expect.any(Function),
+    });
+    expect(publishEventsMock.mock.calls[0][1].source()).toBe(backfillSource);
     const actualBackfillId = createTriggerMock.mock.calls[0][1].backfillId;
     const actualFileContent = await readFile(actualFile);
     expect(JSON.parse(actualFileContent.toString())).toEqual({
@@ -164,11 +179,15 @@ describe('EventTopicBackfillForAll', () => {
       topicId: expectedTopicId,
       trigger: 'trigger2',
     });
-    expect(publishEventsMock).toHaveBeenCalledExactlyOnceWith(context, {
-      topicId: expectedTopicId,
+    expect(createBackfillSourceMock).toHaveBeenCalledExactlyOnceWith(context, {
       eventTopic: 'test-topic',
       source: undefined,
       filter: undefined,
+    });
+    expect(publishEventsMock).toHaveBeenCalledExactlyOnceWith(context, {
+      topicId: expectedTopicId,
+      eventTopic: 'test-topic',
+      source: expect.any(Function),
     });
     const actualBackfillId = createTriggerMock.mock.calls[0][1].backfillId;
     const actualFileContent = await readFile(actualFile);
@@ -251,8 +270,7 @@ describe('EventTopicBackfillForAll', () => {
     expect(publishEventsMock).toHaveBeenCalledExactlyOnceWith(context, {
       topicId: 'broker/test-topic',
       eventTopic: 'test-topic',
-      source: undefined,
-      filter: undefined,
+      source: expect.any(Function),
     });
     const actualFileContent = await readFile(expectedFile);
     expect(JSON.parse(actualFileContent.toString())).toEqual({

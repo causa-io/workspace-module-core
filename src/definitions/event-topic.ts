@@ -8,6 +8,7 @@ import { WorkspaceContext, WorkspaceFunction } from '@causa/workspace';
 import { AllowMissing } from '@causa/workspace/validation';
 import {
   IsBoolean,
+  IsInstance,
   IsString,
   Validate,
   type ValidationArguments,
@@ -486,20 +487,13 @@ export abstract class EventTopicBrokerPublishEvents extends WorkspaceFunction<
   readonly eventTopic!: string;
 
   /**
-   * The source for events to publish.
-   * By default, events will be fetched from the configured data storage using the `eventTopic` name.
+   * A factory returning the async iterable of events to publish. Built by {@link EventTopicCreateBackfillSource}.
    */
-  @IsString()
-  @AllowMissing()
-  readonly source?: string;
-
-  /**
-   * A filter for source events.
-   * The format depends on the source type and some source types might not support a filter at all.
-   */
-  @IsString()
-  @AllowMissing()
-  readonly filter?: string;
+  // Exposed as a thunk rather than the iterable directly: the function registry deep-clones args via
+  // `class-transformer`'s `plainToInstance`, which tries to `new`-up the value's constructor for non-`Object` objects
+  // and throws on async-generator instances. A function-typed value is passed through untouched.
+  @IsInstance(Function)
+  readonly source!: () => AsyncIterable<BackfillEvent>;
 }
 
 /**

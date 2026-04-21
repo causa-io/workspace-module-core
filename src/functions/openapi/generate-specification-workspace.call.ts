@@ -6,7 +6,7 @@ import { join as joinSpecs } from '@scalar/openapi-parser';
 import type { OpenAPIV3_1 } from '@scalar/openapi-types';
 import { writeFile } from 'fs/promises';
 import { dump, load } from 'js-yaml';
-import { resolve } from 'path';
+import { join, resolve } from 'path';
 import { isDeepStrictEqual } from 'util';
 import type { OpenApiConfiguration } from '../../configurations/index.js';
 import { OpenApiGenerateSpecification } from '../../definitions/index.js';
@@ -204,7 +204,9 @@ export default async function call(
   this: OpenApiGenerateSpecificationForWorkspace,
   context: WorkspaceContext,
 ): Promise<string> {
-  const output = resolve(this.output ?? DEFAULT_OPENAPI_OUTPUT);
+  const output = this.output
+    ? resolve(this.output)
+    : join(context.rootPath, DEFAULT_OPENAPI_OUTPUT);
   const projectPaths = await context.listProjectPaths();
 
   const openApiSpecifications = await Promise.all(

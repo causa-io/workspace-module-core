@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+Breaking changes:
+
+- Default to the workspace or project directory when writing OpenAPI specs.
+
 ## v0.31.0 (2026-04-20)
 
 Features:

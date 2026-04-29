@@ -5,6 +5,7 @@
 Features:
 
 - Implement `ScenarioRun` for any context.
+- Add the `MakeHttpRequest` workspace function.
 
 ## v0.32.0 (2026-04-21)
 

@@ -6,6 +6,7 @@ Features:
 
 - Implement `ScenarioRun` for any context.
 - Add the `MakeHttpRequest` workspace function.
+- Define the `DatabaseQueryRecords`, `EventTopicQueryEvents`, and `ServiceContainerQueryLogs` workspace functions, to be implemented by other modules.
 
 ## v0.32.0 (2026-04-21)
 

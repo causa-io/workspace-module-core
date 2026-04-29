@@ -33,7 +33,7 @@
     "test": "NODE_OPTIONS=\"--experimental-vm-modules --no-warnings=ExperimentalWarning\" jest",
     "test:cov": "npm run test -- --coverage",
     "typecheck": "tsc --noEmit",
-    "generateConfigurationSchemas": "cs model genCode && perl -pi -e 's|\\@causa/runtime|\\@causa/workspace/validation|g' src/configurations/generated.ts"
+    "generateConfigurationSchemas": "cs model genCode && perl -pi -e 's|\\@causa/runtime|\\@causa/workspace/validation|g' src/configurations/generated.ts src/scenarios/generated.ts"
   },
   "dependencies": {
     "@causa/cli": ">= 0.7.0 < 1.0.0",

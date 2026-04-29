@@ -30,3 +30,7 @@ model:
       globs: [./src/configurations/schemas/*.yaml]
       nestedSchemas: []
       output: src/configurations/generated.ts
+    - generator: typescriptModelClass
+      globs: [./src/scenarios/schemas/*.yaml]
+      nestedSchemas: []
+      output: src/scenarios/generated.ts

@@ -6,9 +6,13 @@ import {
 } from '@causa/cli';
 import { WorkspaceContext, WorkspaceFunction } from '@causa/workspace';
 import { AllowMissing } from '@causa/workspace/validation';
+import { Transform } from 'class-transformer';
 import {
   IsBoolean,
+  IsDate,
   IsInstance,
+  IsInt,
+  IsPositive,
   IsString,
   Validate,
   type ValidationArguments,
@@ -520,4 +524,73 @@ export abstract class EventTopicBrokerDeleteTopic extends WorkspaceFunction<
    */
   @IsString()
   readonly id!: string;
+}
+
+/**
+ * A single event returned by {@link EventTopicQueryEvents}.
+ */
+export type QueriedEvent = {
+  /**
+   * The time at which the event was published to the topic.
+   */
+  readonly timestamp: Date;
+
+  /**
+   * The event attributes.
+   */
+  readonly attributes: Record<string, string>;
+
+  /**
+   * The event payload.
+   */
+  readonly data: any;
+};
+
+/**
+ * Queries an event topic for events that were published within a time range, optionally restricted by an
+ * implementation-defined `filter`.
+ */
+export abstract class EventTopicQueryEvents extends WorkspaceFunction<
+  Promise<QueriedEvent[]>
+> {
+  /**
+   * The full event topic name to query.
+   */
+  @IsString()
+  readonly topic!: string;
+
+  /**
+   * The inclusive lower bound of the time range over which to look for events.
+   */
+  @AllowMissing()
+  @Transform(({ value }) =>
+    typeof value === 'string' ? new Date(value) : value,
+  )
+  @IsDate()
+  readonly from?: Date;
+
+  /**
+   * The exclusive upper bound of the time range over which to look for events.
+   */
+  @AllowMissing()
+  @Transform(({ value }) =>
+    typeof value === 'string' ? new Date(value) : value,
+  )
+  @IsDate()
+  readonly to?: Date;
+
+  /**
+   * An implementation-specific filter expression.
+   */
+  @AllowMissing()
+  @IsString()
+  readonly filter?: string;
+
+  /**
+   * The maximum number of events to return.
+   */
+  @AllowMissing()
+  @IsInt()
+  @IsPositive()
+  readonly limit?: number;
 }

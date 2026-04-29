@@ -41,6 +41,7 @@ import {
   ProjectPushArtefactForServiceContainer,
   ProjectWriteConfigurations,
 } from './project/index.js';
+import { ScenarioRunForAll } from './scenario/index.js';
 import { SecretFetchForEnvironmentVariable } from './secret/index.js';
 
 export function registerFunctions(context: ModuleRegistrationContext) {
@@ -71,6 +72,7 @@ export function registerFunctions(context: ModuleRegistrationContext) {
     ProjectPublishArtefactForAll,
     ProjectPushArtefactForServiceContainer,
     ProjectWriteConfigurations,
+    ScenarioRunForAll,
     SecretFetchForEnvironmentVariable,
   );
 }

@@ -63,13 +63,15 @@ This section provides pointers for Causa module developers. Workspace function d
 
 - [Emulators](./src/definitions/emulator.ts): Modules exposing local emulators (e.g. of databases) should implement both `EmulatorStart` and `EmulatorStop` for each of them.
 - [Environment](./src/definitions/environment.ts): Functions mapping to `cs environment` commands. Those are not meant to be implemented by other modules.
-- [Event topic](./src/definitions/event-topic.ts): Functions related to event topics, e.g. backfilling. Modules providing support for a new project type should implement `EventTopicListReferencedInProject`. Modules providing tech stack or cloud provider support should implement the `EventTopicBroker*` functions, and register `EventTopicCreateBackfillSource` implementations for the source schemes they handle (including the "no source" / broker-default case).
+- [Event topic](./src/definitions/event-topic.ts): Functions related to event topics, e.g. backfilling. Modules providing support for a new project type should implement `EventTopicListReferencedInProject`. Modules providing tech stack or cloud provider support should implement the `EventTopicBroker*` functions, register `EventTopicCreateBackfillSource` implementations for the source schemes they handle (including the "no source" / broker-default case), and implement `EventTopicQueryEvents` so events published to a topic can be queried.
 - [Infrastructure](./src/definitions/infrastructure.ts): Modules providing support for an Infrastructure as Code tool (e.g. Terraform, Pulumi) should implement the `InfrastructurePrepare` and `InfrastructureDeploy` functions.
 - [Model](./src/definitions/model.ts): Modules providing support for a programming language can implement new code generators by extending `ModelRunCodeGenerator`.
 - [Project](./src/definitions/project.ts): Many of the definitions in this file should be implemented by modules providing support for a language and/or project type, e.g. `ProjectBuildArtefact`, `ProjectReadVersion`, `ProjectPushArtefact`, `ProjectGetArtefactDestination`.
 - [OpenAPI](./src/definitions/openapi.ts): Functions related to OpenAPI specifications. `OpenApiGenerateSpecification` should be implemented by Causa modules providing support for a language / project type (if relevant).
 - [Scenario](./src/definitions/scenario.ts): The `ScenarioRun` definition powering `cs scenario run`. The implementation is generic and shipped by this module — it dispatches to other workspace functions, so other modules only need to expose the functions referenced from scenario steps.
 - [HTTP](./src/definitions/http.ts): The `MakeHttpRequest` function, useful as a scenario step (e.g. for end-to-end checks against a deployed service).
+- [Database](./src/definitions/database.ts): The `DatabaseQueryRecords` function. Modules providing support for a database engine should register an implementation against their `engine` value.
+- [Service container](./src/definitions/service-container.ts): The `ServiceContainerQueryLogs` function. Modules providing support for a deployment platform should register an implementation that fetches logs for a deployed service container.
 
 ## 🔨 Services
 

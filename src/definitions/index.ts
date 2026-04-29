@@ -1,4 +1,5 @@
 export * from './causa.js';
+export * from './database.js';
 export * from './emulator.js';
 export * from './environment.js';
 export * from './event-topic.js';
@@ -8,3 +9,4 @@ export * from './model.js';
 export * from './openapi.js';
 export * from './project.js';
 export * from './scenario.js';
+export * from './service-container.js';

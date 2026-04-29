@@ -1,0 +1,157 @@
+# yaml-language-server: $schema=https://json-schema.org/draft-07/schema
+
+title: Scenario
+type: object
+description: The root document of a scenario file.
+additionalProperties: false
+required:
+  - id
+  - steps
+properties:
+  id:
+    type: string
+    description: The unique identifier of the scenario.
+
+  description:
+    type: string
+    description: A human-readable description of what the scenario does.
+
+  inputs:
+    type: object
+    description: Inputs accepted by the scenario, keyed by input name. Referenced as `${ input('<name>') }` in steps.
+    additionalProperties:
+      $ref: '#/$defs/ScenarioInput'
+
+  defaultCallArgs:
+    type: object
+    description: |
+      Default `args` to set when a step calls a given workspace function, keyed by function name. Per-step `args` are
+      shallow-merged on top of these defaults. Values may contain `${ ... }` template expressions, evaluated when
+      collecting dependencies and right before each step call.
+    additionalProperties:
+      type: object
+      additionalProperties: true
+
+  steps:
+    type: object
+    description: |
+      The steps of the scenario, keyed by step ID. Outputs of previous steps are referenced as
+      `${ output('<stepId>') }`.
+    additionalProperties:
+      $ref: '#/$defs/ScenarioStep'
+
+$defs:
+  ScenarioInput:
+    title: ScenarioInput
+    type: object
+    description: Declaration of a single input that the scenario accepts.
+    additionalProperties: false
+    required:
+      - type
+    properties:
+      description:
+        type: string
+        description: A human-readable description of the input.
+
+      type:
+        title: ScenarioInputType
+        type: string
+        enum:
+          - string
+        description: The type of the input value.
+
+      default:
+        type: string
+        description: The default value to use when the input is not provided at runtime.
+
+  RetryPolicy:
+    title: RetryPolicy
+    type: object
+    description: Configuration for a single retry policy (number of attempts and delay between them).
+    additionalProperties: false
+    required:
+      - maxAttempts
+      - delay
+    properties:
+      maxAttempts:
+        type: integer
+        description: The maximum number of attempts before giving up.
+
+      delay:
+        type: number
+        description: The delay in milliseconds between attempts.
+
+  StepCall:
+    title: StepCall
+    type: object
+    description: The function call performed by a step.
+    additionalProperties: false
+    required:
+      - name
+    properties:
+      name:
+        type: string
+        description: The name of the workspace function to invoke.
+
+      args:
+        type: object
+        description: The arguments passed to the function. Free-form and may contain `${ ... }` template expressions.
+        additionalProperties: true
+
+  StepExpectation:
+    title: StepExpectation
+    type: object
+    description: |
+      A single expectation evaluated against the step's call output (or against `actual`).
+
+      When `exact` is `false` (the default), `actual` is matched against `value` using `toMatchObject` semantics:
+      properties listed in `value` must match, but additional properties in `actual` (and its nested objects) are allowed.
+      When `exact` is `true`, `toEqual` semantics are used: `actual` must deeply equal `value`.
+    additionalProperties: false
+    required:
+      - value
+    properties:
+      description:
+        type: string
+        description: A short human-readable description of what the expectation checks.
+
+      exact:
+        type: boolean
+        description: Whether to require an exact deep-equality match. Defaults to `false`.
+
+      actual:
+        description: The value to match against. May be a templatable expression. Defaults to the output of the current step.
+
+      value:
+        description: The expected value. May contain `${ match(...) }` and `${ output(...) }` templates.
+
+  ScenarioStep:
+    title: ScenarioStep
+    type: object
+    description: |
+      A single step within a scenario.
+
+      A step calls a workspace function and optionally validates the output against an expectation.
+    additionalProperties: false
+    required:
+      - call
+    properties:
+      name:
+        type: string
+        description: A short human-readable name for the step.
+
+      description:
+        type: string
+        description: A longer description of what the step does.
+
+      call:
+        $ref: '#/$defs/StepCall'
+
+      retry:
+        $ref: '#/$defs/RetryPolicy'
+
+      expectations:
+        type: array
+        description: The expectations evaluated against the step's call output, in order.
+        items:
+          $ref: '#/$defs/StepExpectation'

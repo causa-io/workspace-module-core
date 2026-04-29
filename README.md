@@ -69,6 +69,7 @@ This section provides pointers for Causa module developers. Workspace function d
 - [Project](./src/definitions/project.ts): Many of the definitions in this file should be implemented by modules providing support for a language and/or project type, e.g. `ProjectBuildArtefact`, `ProjectReadVersion`, `ProjectPushArtefact`, `ProjectGetArtefactDestination`.
 - [OpenAPI](./src/definitions/openapi.ts): Functions related to OpenAPI specifications. `OpenApiGenerateSpecification` should be implemented by Causa modules providing support for a language / project type (if relevant).
 - [Scenario](./src/definitions/scenario.ts): The `ScenarioRun` definition powering `cs scenario run`. The implementation is generic and shipped by this module — it dispatches to other workspace functions, so other modules only need to expose the functions referenced from scenario steps.
+- [HTTP](./src/definitions/http.ts): The `MakeHttpRequest` function, useful as a scenario step (e.g. for end-to-end checks against a deployed service).
 
 ## 🔨 Services
 

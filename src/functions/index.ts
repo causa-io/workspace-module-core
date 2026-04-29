@@ -20,6 +20,7 @@ import {
   EventTopicListReferencedInProjectForServerlessFunctions,
   EventTopicListReferencedInProjectForServiceContainer,
 } from './event-topic/index.js';
+import { MakeHttpRequestForAll } from './http/index.js';
 import {
   InfrastructureProcessAndDeployForAll,
   InfrastructureProcessAndPrepareForAll,
@@ -61,6 +62,7 @@ export function registerFunctions(context: ModuleRegistrationContext) {
     EventTopicListForAll,
     InfrastructureProcessAndDeployForAll,
     InfrastructureProcessAndPrepareForAll,
+    MakeHttpRequestForAll,
     ModelGenerateCodeForAll,
     ModelMakeGeneratorQuicktypeInputDataForJsonSchema,
     ModelParseCodeGeneratorInputsForAll,

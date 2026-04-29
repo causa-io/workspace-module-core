@@ -42,6 +42,7 @@ The core module defines and implements many base `cs` commands. As a Causa user,
 - `cs openapi generateSpecification`: At the workspace level, triggers the generation of the specification in each project and merges and bundles the outputs into a single file. At the project level, merges specification files matched by `openApi.specifications` globs (if set). To use other project-level generation implementations, simply leave the `openApi.specifications` unset.
 - `cs diff`: Lists changed projects based on the output of `git diff`. This can be useful for CI workflows. This module entirely implements the logic, and no other module is expected to provide an implementation.
 - `cs model generateCode`: Runs the code generators defined in the `model.codeGenerators` configuration.
+- `cs scenario run <path>`: Loads a scenario YAML file and runs its steps, calling workspace functions in dependency order.
 
 ### Secrets backend
 
@@ -67,6 +68,7 @@ This section provides pointers for Causa module developers. Workspace function d
 - [Model](./src/definitions/model.ts): Modules providing support for a programming language can implement new code generators by extending `ModelRunCodeGenerator`.
 - [Project](./src/definitions/project.ts): Many of the definitions in this file should be implemented by modules providing support for a language and/or project type, e.g. `ProjectBuildArtefact`, `ProjectReadVersion`, `ProjectPushArtefact`, `ProjectGetArtefactDestination`.
 - [OpenAPI](./src/definitions/openapi.ts): Functions related to OpenAPI specifications. `OpenApiGenerateSpecification` should be implemented by Causa modules providing support for a language / project type (if relevant).
+- [Scenario](./src/definitions/scenario.ts): The `ScenarioRun` definition powering `cs scenario run`. The implementation is generic and shipped by this module — it dispatches to other workspace functions, so other modules only need to expose the functions referenced from scenario steps.
 
 ## 🔨 Services
 
@@ -91,3 +93,13 @@ One of Causa's features is the ability to backfill events to be processed by ser
 Triggers passed with `--trigger` are free-form URIs by default and are interpreted by the broker. Triggers matching the format `<projectPath>#<triggerName>[?<options>]` are treated as project-scoped: the workspace context is cloned for the referenced project (relative to the workspace root), and `EventTopicBrokerCreateTrigger` is called with a structured `{ name, options }` payload on that project-scoped context. Options are parsed as a URL query string into a `Record<string, string>`.
 
 The events to publish are built by `EventTopicCreateBackfillSource`, which returns an `AsyncIterable<BackfillEvent>` passed to `EventTopicBrokerPublishEvents`. This module ships an implementation for `json://<glob>` sources (newline-delimited JSON files with `data`, optional `attributes`, and optional `key` fields). When no `--source` is passed, the broker module is expected to provide an implementation that yields from its default storage for the topic. Filtering, when supported, is applied inside the source implementation — the returned iterable yields only the events that should actually be published.
+
+## 🎬 Scenarios
+
+Scenarios are YAML files that orchestrate calls to workspace functions, with templated arguments, dependency-driven scheduling, expectations, and retries. They are run with `cs scenario run <path>` (relative paths are resolved from the workspace root). The schema for a scenario file is shipped with this module at [`./src/scenarios/schemas/scenario.yaml`](./src/scenarios/schemas/scenario.yaml) and embedded under `dist/scenarios/schemas/` when published.
+
+Step `args` and `expectations` are rendered with [json-e](https://json-e.js.org/) and have access to:
+
+- `${ input('<name>') }` — resolves a scenario input.
+- `${ output('<stepId>') }` — resolves another step's output (and is also used to detect cross-step dependencies).
+- `${ configuration('<path>') }` — resolves a value from the workspace configuration.

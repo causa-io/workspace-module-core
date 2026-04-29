@@ -47,8 +47,9 @@ async function processSchema(relativePath) {
   await writeFile(destPath, dump(schema));
 }
 
-const files = await globby('src/configurations/schemas/**/*.yaml', {
-  cwd: ROOT_DIR,
-});
+const files = await globby(
+  ['src/configurations/schemas/**/*.yaml', 'src/scenarios/schemas/**/*.yaml'],
+  { cwd: ROOT_DIR },
+);
 
 await Promise.all(files.map(processSchema));

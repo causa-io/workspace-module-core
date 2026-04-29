@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+Features:
+
+- Implement `ScenarioRun` for any context.
+
 ## v0.32.0 (2026-04-21)
 
 Breaking changes:

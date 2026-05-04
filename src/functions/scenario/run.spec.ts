@@ -278,6 +278,28 @@ describe('ScenarioRunForAll', () => {
     expect(sourceMock).toHaveBeenCalledOnce();
   });
 
+  it('should support the str function to stringify values, including Date as ISO string', async () => {
+    const date = new Date();
+    stepMock.mockImplementation(async () => ({ count: 42, date }));
+    await writeScenario({
+      id: 'str-builtin',
+      steps: {
+        only: {
+          call: { name: 'TestStep', args: { value: 'x' } },
+          expectations: [
+            { actual: "${ str(output('only').count) }", value: '42' },
+            {
+              actual: "${ str(output('only').date) }",
+              value: date.toISOString(),
+            },
+          ],
+        },
+      },
+    });
+
+    await context.call(ScenarioRun, { path: 'scenario.yaml' });
+  });
+
   it('should throw when a step references an unknown step', async () => {
     const scenarioPath = await writeScenario({
       id: 'bad-dep',

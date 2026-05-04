@@ -64,6 +64,8 @@ export class ScenarioRunForAll extends ScenarioRun {
         }
         return configValues.get(path);
       },
+      str: (value: any) =>
+        value instanceof Date ? value.toISOString() : String(value),
     };
 
     const result = await this.runSteps(

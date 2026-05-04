@@ -300,6 +300,49 @@ describe('ScenarioRunForAll', () => {
     await context.call(ScenarioRun, { path: 'scenario.yaml' });
   });
 
+  it('should order steps according to the `after` property without templating', async () => {
+    const callOrder: string[] = [];
+    stepMock.mockImplementation(async (_, { value }) => {
+      callOrder.push(value as string);
+      return { value };
+    });
+    await writeScenario({
+      id: 'after',
+      steps: {
+        second: {
+          call: { name: 'TestStep', args: { value: 'second' } },
+          after: ['first'],
+        },
+        first: { call: { name: 'TestStep', args: { value: 'first' } } },
+      },
+    });
+
+    const actual = await context.call(ScenarioRun, { path: 'scenario.yaml' });
+
+    expect(callOrder).toEqual(['first', 'second']);
+    expect(actual.steps.second.startedAt!.getTime()).toBeGreaterThanOrEqual(
+      actual.steps.first.endedAt!.getTime(),
+    );
+  });
+
+  it('should throw when an `after` entry references an unknown step', async () => {
+    await writeScenario({
+      id: 'bad-after',
+      steps: {
+        only: {
+          call: { name: 'TestStep', args: { value: 'x' } },
+          after: ['missing'],
+        },
+      },
+    });
+
+    const actualPromise = context.call(ScenarioRun, { path: 'scenario.yaml' });
+
+    await expect(actualPromise).rejects.toThrow(
+      "Step 'only' references unknown step 'missing'.",
+    );
+  });
+
   it('should throw when a step references an unknown step', async () => {
     const scenarioPath = await writeScenario({
       id: 'bad-dep',

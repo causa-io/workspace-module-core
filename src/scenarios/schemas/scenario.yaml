@@ -155,3 +155,11 @@ $defs:
         description: The expectations evaluated against the step's call output, in order.
         items:
           $ref: '#/$defs/StepExpectation'
+
+      after:
+        type: array
+        description: |
+          IDs of other steps this step explicitly depends on. The referenced steps are guaranteed to have completed
+          successfully before this step runs, even when no `output('<id>')` template references them.
+        items:
+          type: string

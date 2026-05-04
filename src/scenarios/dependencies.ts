@@ -129,6 +129,10 @@ export function collectStepRefs(scenario: Scenario): {
       }
     }
 
+    for (const dep of step.after ?? []) {
+      outputDeps.add(dep);
+    }
+
     outputDeps.delete(id);
     for (const dep of outputDeps) {
       if (!(dep in scenario.steps)) {

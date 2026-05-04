@@ -11,7 +11,12 @@ export class MakeHttpRequestForAll extends MakeHttpRequest {
     const baseUrl = /^[a-z][a-z0-9+.-]*:\/\//i.test(this.baseUrl)
       ? this.baseUrl
       : `https://${this.baseUrl}`;
-    const url = new URL(path, baseUrl).toString();
+    const url = new URL(path, baseUrl);
+    if (this.query) {
+      for (const [key, value] of Object.entries(this.query)) {
+        url.searchParams.append(key, value);
+      }
+    }
 
     const headers = { ...this.headers };
     let body: string | undefined;

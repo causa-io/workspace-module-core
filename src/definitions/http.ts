@@ -50,6 +50,13 @@ export abstract class MakeHttpRequest extends WorkspaceFunction<
   readonly path?: string;
 
   /**
+   * Query string parameters appended to the URL, keyed by parameter name. Values are URL-encoded automatically.
+   */
+  @AllowMissing()
+  @IsObject()
+  readonly query?: Record<string, string>;
+
+  /**
    * Additional request headers, keyed by header name.
    */
   @AllowMissing()

@@ -101,6 +101,26 @@ describe('MakeHttpRequestForAll', () => {
     scope.done();
   });
 
+  it('should append query string parameters to the URL', async () => {
+    const scope = nock('https://api.example.com')
+      .get('/search')
+      .query({ q: 'hello world', page: '2' })
+      .reply(200, { ok: true }, { 'content-type': 'application/json' });
+
+    const actual = await context.call(MakeHttpRequest, {
+      baseUrl: 'https://api.example.com',
+      path: '/search',
+      query: { q: 'hello world', page: '2' },
+    });
+
+    expect(actual).toEqual({
+      statusCode: 200,
+      headers: { 'content-type': 'application/json' },
+      body: { ok: true },
+    });
+    scope.done();
+  });
+
   it('should expose error responses without throwing', async () => {
     const scope = nock('https://api.example.com')
       .get('/missing')

@@ -143,6 +143,16 @@ export class ScenarioStep {
     Object.assign(this, init);
   }
 
+  /**
+   * IDs of other steps this step explicitly depends on. The referenced steps are guaranteed to have completed
+   * successfully before this step runs, even when no `output('<id>')` template references them.
+   *
+   */
+  @AllowMissing()
+  @IsArray()
+  @IsString({ each: true })
+  readonly after?: string[];
+
   @IsObject()
   @ValidateNested()
   @IsDefined()

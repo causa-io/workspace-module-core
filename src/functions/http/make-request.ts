@@ -1,17 +1,22 @@
 import { WorkspaceContext } from '@causa/workspace';
-import { type HttpResponse, MakeHttpRequest } from '../../definitions/index.js';
+import { type HttpResponse, HttpMakeRequest } from '../../definitions/index.js';
 
 /**
- * Implements {@link MakeHttpRequest} using the native `fetch` API.
+ * Implements {@link HttpMakeRequest} using the native `fetch` API.
  */
-export class MakeHttpRequestForAll extends MakeHttpRequest {
+export class HttpMakeRequestForAll extends HttpMakeRequest {
   async _call(context: WorkspaceContext): Promise<HttpResponse> {
     const method = (this.method ?? 'GET').toUpperCase();
     const path = this.path ?? '/';
     const baseUrl = /^[a-z][a-z0-9+.-]*:\/\//i.test(this.baseUrl)
       ? this.baseUrl
       : `https://${this.baseUrl}`;
-    const url = new URL(path, baseUrl).toString();
+    const url = new URL(path, baseUrl);
+    if (this.query) {
+      for (const [key, value] of Object.entries(this.query)) {
+        url.searchParams.append(key, value);
+      }
+    }
 
     const headers = { ...this.headers };
     let body: string | undefined;

@@ -2,14 +2,14 @@ import { WorkspaceContext } from '@causa/workspace';
 import { createContext } from '@causa/workspace/testing';
 import 'jest-extended';
 import nock from 'nock';
-import { MakeHttpRequest } from '../../definitions/index.js';
-import { MakeHttpRequestForAll } from './make-request.js';
+import { HttpMakeRequest } from '../../definitions/index.js';
+import { HttpMakeRequestForAll } from './make-request.js';
 
-describe('MakeHttpRequestForAll', () => {
+describe('HttpMakeRequestForAll', () => {
   let context: WorkspaceContext;
 
   beforeEach(() => {
-    ({ context } = createContext({ functions: [MakeHttpRequestForAll] }));
+    ({ context } = createContext({ functions: [HttpMakeRequestForAll] }));
   });
 
   afterEach(() => {
@@ -21,7 +21,7 @@ describe('MakeHttpRequestForAll', () => {
       .get('/')
       .reply(200, { hello: 'world' }, { 'content-type': 'application/json' });
 
-    const actual = await context.call(MakeHttpRequest, {
+    const actual = await context.call(HttpMakeRequest, {
       baseUrl: 'https://api.example.com',
     });
 
@@ -43,7 +43,7 @@ describe('MakeHttpRequestForAll', () => {
       .post('/items', { name: 'thing' })
       .reply(201, { id: '🆔' }, { 'content-type': 'application/json' });
 
-    const actual = await context.call(MakeHttpRequest, {
+    const actual = await context.call(HttpMakeRequest, {
       baseUrl: 'https://api.example.com',
       method: 'POST',
       path: '/items',
@@ -68,7 +68,7 @@ describe('MakeHttpRequestForAll', () => {
       )
       .reply(200, 'hello there', { 'content-type': 'text/plain' });
 
-    const actual = await context.call(MakeHttpRequest, {
+    const actual = await context.call(HttpMakeRequest, {
       baseUrl: 'https://api.example.com',
       method: 'PUT',
       path: '/raw',
@@ -88,7 +88,7 @@ describe('MakeHttpRequestForAll', () => {
       .get('/v1/items/42')
       .reply(200, { id: 42 }, { 'content-type': 'application/json' });
 
-    const actual = await context.call(MakeHttpRequest, {
+    const actual = await context.call(HttpMakeRequest, {
       baseUrl: 'api.example.com/v1/',
       path: 'items/42',
     });
@@ -97,6 +97,26 @@ describe('MakeHttpRequestForAll', () => {
       statusCode: 200,
       headers: { 'content-type': 'application/json' },
       body: { id: 42 },
+    });
+    scope.done();
+  });
+
+  it('should append query string parameters to the URL', async () => {
+    const scope = nock('https://api.example.com')
+      .get('/search')
+      .query({ q: 'hello world', page: '2' })
+      .reply(200, { ok: true }, { 'content-type': 'application/json' });
+
+    const actual = await context.call(HttpMakeRequest, {
+      baseUrl: 'https://api.example.com',
+      path: '/search',
+      query: { q: 'hello world', page: '2' },
+    });
+
+    expect(actual).toEqual({
+      statusCode: 200,
+      headers: { 'content-type': 'application/json' },
+      body: { ok: true },
     });
     scope.done();
   });
@@ -110,7 +130,7 @@ describe('MakeHttpRequestForAll', () => {
         { 'content-type': 'application/json' },
       );
 
-    const actual = await context.call(MakeHttpRequest, {
+    const actual = await context.call(HttpMakeRequest, {
       baseUrl: 'https://api.example.com',
       path: '/missing',
     });

@@ -69,7 +69,7 @@ This section provides pointers for Causa module developers. Workspace function d
 - [Project](./src/definitions/project.ts): Many of the definitions in this file should be implemented by modules providing support for a language and/or project type, e.g. `ProjectBuildArtefact`, `ProjectReadVersion`, `ProjectPushArtefact`, `ProjectGetArtefactDestination`.
 - [OpenAPI](./src/definitions/openapi.ts): Functions related to OpenAPI specifications. `OpenApiGenerateSpecification` should be implemented by Causa modules providing support for a language / project type (if relevant).
 - [Scenario](./src/definitions/scenario.ts): The `ScenarioRun` definition powering `cs scenario run`. The implementation is generic and shipped by this module — it dispatches to other workspace functions, so other modules only need to expose the functions referenced from scenario steps.
-- [HTTP](./src/definitions/http.ts): The `MakeHttpRequest` function, useful as a scenario step (e.g. for end-to-end checks against a deployed service).
+- [HTTP](./src/definitions/http.ts): The `HttpMakeRequest` function, useful as a scenario step (e.g. for end-to-end checks against a deployed service).
 - [Database](./src/definitions/database.ts): The `DatabaseQueryRecords` function. Modules providing support for a database engine should register an implementation against their `engine` value.
 - [Service container](./src/definitions/service-container.ts): The `ServiceContainerQueryLogs` function. Modules providing support for a deployment platform should register an implementation that fetches logs for a deployed service container.
 
@@ -106,3 +106,4 @@ Step `args` and `expectations` are rendered with [json-e](https://json-e.js.org/
 - `${ input('<name>') }` — resolves a scenario input.
 - `${ output('<stepId>') }` — resolves another step's output (and is also used to detect cross-step dependencies).
 - `${ configuration('<path>') }` — resolves a value from the workspace configuration.
+- `${ str(<value>) }` — overrides the json-e builtin to also format `Date` values as ISO strings.

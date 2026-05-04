@@ -384,6 +384,40 @@ export class ProjectConfiguration {
 }
 
 /**
+ * Configuration for scenarios.
+ */
+export class Scenario {
+  constructor(init: Scenario) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * Glob patterns to locate scenario files.
+   */
+  @AllowMissing()
+  @IsArray()
+  @IsString({ each: true })
+  readonly globs?: string[];
+  [property: string]: any;
+}
+
+/**
+ * A configuration for scenarios.
+ */
+export class ScenarioConfiguration {
+  constructor(init: ScenarioConfiguration) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * Configuration for scenarios.
+   */
+  @AllowMissing()
+  readonly scenario?: Scenario;
+  [property: string]: any;
+}
+
+/**
  * Configuration when building the artefact for serverless functions projects.
  */
 export class ServerlessFunctionsBuild {

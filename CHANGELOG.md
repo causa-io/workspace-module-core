@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+Breaking changes:
+
+- Rename the `MakeHttpRequest` workspace function (and its `MakeHttpRequestForAll` implementation) to `HttpMakeRequest` (and `HttpMakeRequestForAll`).
+
+Features:
+
+- Add the `query` property to `HttpMakeRequest` to set query string parameters.
+- Override the json-e `str` builtin to format `Date` values as ISO strings in scenario templates.
+- Add the `after` property to scenario steps to declare explicit step dependencies without using `output()` templates.
+
 ## v0.33.0 (2026-04-29)
 
 Features:

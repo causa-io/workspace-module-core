@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://json-schema.org/draft-07/schema
+
+title: ScenarioConfiguration
+type: object
+description: A configuration for scenarios.
+properties:
+  scenario:
+    type: object
+    description: Configuration for scenarios.
+    properties:
+      globs:
+        type: array
+        description: Glob patterns to locate scenario files.
+        items:
+          type: string

@@ -24,6 +24,7 @@ describe('CausaListConfigurationSchemasForCore', () => {
       'model.yaml',
       'openapi.yaml',
       'project.yaml',
+      'scenario.yaml',
       'serverless-functions.yaml',
       'service-container.yaml',
     ]);

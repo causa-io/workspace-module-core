@@ -1,10 +1,10 @@
 import { WorkspaceContext } from '@causa/workspace';
-import { type HttpResponse, MakeHttpRequest } from '../../definitions/index.js';
+import { type HttpResponse, HttpMakeRequest } from '../../definitions/index.js';
 
 /**
- * Implements {@link MakeHttpRequest} using the native `fetch` API.
+ * Implements {@link HttpMakeRequest} using the native `fetch` API.
  */
-export class MakeHttpRequestForAll extends MakeHttpRequest {
+export class HttpMakeRequestForAll extends HttpMakeRequest {
   async _call(context: WorkspaceContext): Promise<HttpResponse> {
     const method = (this.method ?? 'GET').toUpperCase();
     const path = this.path ?? '/';

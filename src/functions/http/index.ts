@@ -1,1 +1,1 @@
-export { MakeHttpRequestForAll } from './make-request.js';
+export { HttpMakeRequestForAll } from './make-request.js';

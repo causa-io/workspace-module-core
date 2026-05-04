@@ -3,7 +3,7 @@ import { AllowMissing } from '@causa/workspace/validation';
 import { IsObject, IsString } from 'class-validator';
 
 /**
- * The result of a {@link MakeHttpRequest} call.
+ * The result of a {@link HttpMakeRequest} call.
  */
 export type HttpResponse = {
   /**
@@ -25,7 +25,7 @@ export type HttpResponse = {
 /**
  * Performs an HTTP request and returns the status code, headers, and parsed body.
  */
-export abstract class MakeHttpRequest extends WorkspaceFunction<
+export abstract class HttpMakeRequest extends WorkspaceFunction<
   Promise<HttpResponse>
 > {
   /**
@@ -43,7 +43,7 @@ export abstract class MakeHttpRequest extends WorkspaceFunction<
   readonly method?: string;
 
   /**
-   * The path appended to {@link MakeHttpRequest.baseUrl}. Defaults to `/`.
+   * The path appended to {@link HttpMakeRequest.baseUrl}. Defaults to `/`.
    */
   @AllowMissing()
   @IsString()

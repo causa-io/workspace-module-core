@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.34.0 (2026-05-04)
+
 Breaking changes:
 
 - Rename the `MakeHttpRequest` workspace function (and its `MakeHttpRequestForAll` implementation) to `HttpMakeRequest` (and `HttpMakeRequestForAll`).

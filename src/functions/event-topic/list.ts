@@ -1,4 +1,4 @@
-import { WorkspaceContext, listFilesAndFormat } from '@causa/workspace';
+import { listFilesAndFormat } from '@causa/workspace';
 import type { EventsConfiguration } from '../../configurations/index.js';
 import {
   DuplicateEventTopicError,
@@ -28,8 +28,8 @@ const DEFAULT_TOPIC_REGULAR_EXPRESSION =
  * by any other plugin.
  */
 export class EventTopicListForAll extends EventTopicList {
-  async _call(context: WorkspaceContext): Promise<EventTopicDefinition[]> {
-    const eventsConf = context.asConfiguration<EventsConfiguration>();
+  async _call(): Promise<EventTopicDefinition[]> {
+    const eventsConf = this._context.asConfiguration<EventsConfiguration>();
     const format =
       eventsConf.get('events.topics.format') ?? DEFAULT_TOPIC_ID_FORMAT;
     const globs = eventsConf.get('events.topics.globs') ?? DEFAULT_TOPIC_GLOBS;
@@ -41,10 +41,10 @@ export class EventTopicListForAll extends EventTopicList {
       globs,
       regExp,
       format,
-      context.rootPath,
+      this._context.rootPath,
       {
         nonMatchingPathHandler: (path) =>
-          context.logger.warn(
+          this._context.logger.warn(
             `📂 Path '${path}' matches the event topic globs but did not match the regular expression. It will be ignored from the schema definition files.`,
           ),
       },

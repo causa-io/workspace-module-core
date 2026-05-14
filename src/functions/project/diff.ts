@@ -1,4 +1,3 @@
-import { WorkspaceContext } from '@causa/workspace';
 import micromatch from 'micromatch';
 import { join } from 'path';
 import {
@@ -19,16 +18,14 @@ export class ProjectDiffForAll extends ProjectDiff {
    * `project.externalFiles` configuration has changed.
    *
    * @param projectPath The path to the project to check for changes.
-   * @param context The {@link WorkspaceContext}.
    * @param filesDiff The files that have changed in the repository, according to Git.
    * @returns The diff result for the project, or `null` if no changes were found.
    */
   private async checkDiffForProjectPath(
     projectPath: string,
-    context: WorkspaceContext,
     filesDiff: string[],
   ): Promise<ProjectDiffResult[string] | null> {
-    const projectContext = await context.clone({
+    const projectContext = await this._context.clone({
       workingDirectory: projectPath,
       processors: null,
     });
@@ -36,23 +33,25 @@ export class ProjectDiffForAll extends ProjectDiff {
     const patterns = projectContext.get('project.externalFiles') ?? [];
     const globs = [
       join(projectPath, '**', '*'),
-      ...patterns.map((d) => join(context.rootPath, d)),
+      ...patterns.map((d) => join(this._context.rootPath, d)),
     ];
 
     const diff = micromatch(filesDiff, globs);
     if (diff.length === 0) {
-      context.logger.debug(`No change found in project '${projectPath}'.`);
+      this._context.logger.debug(
+        `No change found in project '${projectPath}'.`,
+      );
       return null;
     }
 
-    context.logger.debug(
+    this._context.logger.debug(
       `Changes found in project '${projectPath}', generating project configuration.`,
     );
     const configuration = await projectContext.getAndRender('project');
     return { diff, configuration };
   }
 
-  async _call(context: WorkspaceContext): Promise<ProjectDiffResult> {
+  async _call(): Promise<ProjectDiffResult> {
     const commits = this.commits ?? [];
     if (commits.length > 2) {
       throw new Error(
@@ -60,28 +59,28 @@ export class ProjectDiffForAll extends ProjectDiff {
       );
     }
 
-    context.logger.info('🔍 Checking for changes in projects.');
+    this._context.logger.info('🔍 Checking for changes in projects.');
 
-    const gitService = context.service(GitService);
+    const gitService = this._context.service(GitService);
 
     const [projectPaths, repoRoot, filesDiff] = await Promise.all([
-      context.listProjectPaths(),
+      this._context.listProjectPaths(),
       gitService.getRepositoryRootPath(),
       gitService.filesDiff({ commits }),
     ]);
     const absoluteFilesDiff = filesDiff.map((f) => join(repoRoot, f));
 
-    context.logger.debug(
+    this._context.logger.debug(
       `Git diff returned files: ${filesDiff.map((f) => `'${f}'`).join(', ')}.`,
     );
-    context.logger.debug(
+    this._context.logger.debug(
       `Checking ${projectPaths.length} projects for changes.`,
     );
 
     const changedProjectsEntries = await Promise.all(
       projectPaths.map(async (p) => [
         p,
-        await this.checkDiffForProjectPath(p, context, absoluteFilesDiff),
+        await this.checkDiffForProjectPath(p, absoluteFilesDiff),
       ]),
     );
 

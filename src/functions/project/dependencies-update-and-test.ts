@@ -1,4 +1,3 @@
-import { WorkspaceContext } from '@causa/workspace';
 import { NoImplementationFoundError } from '@causa/workspace/function-registry';
 import {
   ProjectDependenciesUpdate,
@@ -16,43 +15,45 @@ import {
  * {@link ProjectTest} is optional, but a warning will be logged if it is not available.
  */
 export class ProjectDependenciesUpdateAndTestForAll extends ProjectDependenciesUpdateAndTest {
-  async _call(context: WorkspaceContext): Promise<void> {
+  async _call(): Promise<void> {
     let shouldRunTests = !this.skipTest;
 
     if (shouldRunTests) {
       try {
-        context.logger.debug('Running tests before updating dependencies.');
-        await context.call(ProjectTest, {});
+        this._context.logger.debug(
+          'Running tests before updating dependencies.',
+        );
+        await this._context.call(ProjectTest, {});
       } catch (error) {
         if (!(error instanceof NoImplementationFoundError)) {
           throw error;
         }
 
-        context.logger.warn(
+        this._context.logger.warn(
           '⚠️ No implementation exists to run tests for the project, skipping them.',
         );
         shouldRunTests = false;
       }
     }
 
-    const didUpdate = await context.call(ProjectDependenciesUpdate, {});
+    const didUpdate = await this._context.call(ProjectDependenciesUpdate, {});
 
     if (!shouldRunTests) {
       return;
     }
 
     if (!didUpdate) {
-      context.logger.debug(
+      this._context.logger.debug(
         'Dependencies were not updated, skipping tests after updating dependencies.',
       );
       return;
     }
 
     try {
-      context.logger.debug('Running tests after updating dependencies.');
-      await context.call(ProjectTest, {});
+      this._context.logger.debug('Running tests after updating dependencies.');
+      await this._context.call(ProjectTest, {});
     } catch (error) {
-      context.logger.error(
+      this._context.logger.error(
         '❌ Tests failed after updating dependencies, you may want to rollback the update or fix the tests before continuing.',
       );
 

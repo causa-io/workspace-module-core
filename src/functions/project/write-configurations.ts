@@ -1,8 +1,4 @@
-import {
-  type ProcessorResult,
-  WorkspaceContext,
-  WorkspaceFunction,
-} from '@causa/workspace';
+import { type ProcessorResult, WorkspaceFunction } from '@causa/workspace';
 import { CAUSA_FOLDER } from '@causa/workspace/initialization';
 import { AllowMissing } from '@causa/workspace/validation';
 import { IsBoolean } from 'class-validator';
@@ -35,47 +31,47 @@ export class ProjectWriteConfigurations
    * Returns the path to the directory where project configurations should be written.
    * It is either fetched from the workspace configuration, or the default value is used.
    *
-   * @param context The {@link WorkspaceContext}.
    * @returns The path to the directory where project configurations should be written.
    */
-  private getConfigurationsDirectory(context: WorkspaceContext): string {
+  private getConfigurationsDirectory(): string {
     return (
-      context
+      this._context
         .asConfiguration<CausaConfiguration>()
         .get('causa.projectConfigurationsDirectory') ??
       DEFAULT_PROJECT_CONFIGURATIONS_DIRECTORY
     );
   }
 
-  async _call(context: WorkspaceContext): Promise<ProcessorResult> {
-    const projectConfigurationsDirectory =
-      this.getConfigurationsDirectory(context);
+  async _call(): Promise<ProcessorResult> {
+    const projectConfigurationsDirectory = this.getConfigurationsDirectory();
     const absoluteDirectory = resolve(
-      context.rootPath,
+      this._context.rootPath,
       projectConfigurationsDirectory,
     );
     await rm(absoluteDirectory, { recursive: true, force: true });
 
     if (this.tearDown) {
-      context.logger.debug(
+      this._context.logger.debug(
         `🔧 Tore down project configurations directory '${absoluteDirectory}'.`,
       );
       return { configuration: {} };
     }
 
-    context.logger.info('🔧 Rendering and writing project configurations.');
+    this._context.logger.info(
+      '🔧 Rendering and writing project configurations.',
+    );
 
-    const projectPaths = await context.listProjectPaths();
+    const projectPaths = await this._context.listProjectPaths();
 
     await mkdir(absoluteDirectory, { recursive: true });
 
     await Promise.all(
       projectPaths.map(async (projectPath) => {
-        context.logger.debug(
+        this._context.logger.debug(
           `📂 Rendering configuration for project in directory '${projectPath}'.`,
         );
 
-        const projectContext = await context.clone({
+        const projectContext = await this._context.clone({
           workingDirectory: projectPath,
           // Processors are specific to a project (usually only loaded during specific operations of infrastructure
           // projects) and should not be copied.
@@ -92,7 +88,7 @@ export class ProjectWriteConfigurations
           `${projectName}.json`,
         );
 
-        context.logger.debug(
+        this._context.logger.debug(
           `📂 Writing configuration for project '${projectName}' to file '${configurationFile}'.`,
         );
         await writeFile(
@@ -102,7 +98,7 @@ export class ProjectWriteConfigurations
       }),
     );
 
-    context.logger.debug(
+    this._context.logger.debug(
       `🔧 Wrote project configurations in '${absoluteDirectory}'.`,
     );
 

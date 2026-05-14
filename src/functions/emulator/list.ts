@@ -1,4 +1,3 @@
-import { WorkspaceContext } from '@causa/workspace';
 import { EmulatorList, EmulatorStart } from '../../definitions/index.js';
 
 /**
@@ -7,9 +6,9 @@ import { EmulatorList, EmulatorStart } from '../../definitions/index.js';
  * This should be the only implementation of this function.
  */
 export class EmulatorListForAll extends EmulatorList {
-  async _call(context: WorkspaceContext): Promise<string[]> {
+  async _call(): Promise<string[]> {
     const results = await Promise.all(
-      context.callAll(EmulatorStart, { dryRun: true }),
+      this._context.callAll(EmulatorStart, { dryRun: true }),
     );
     return results.map((r) => r.name);
   }

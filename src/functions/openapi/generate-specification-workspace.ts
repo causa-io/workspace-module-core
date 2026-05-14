@@ -1,4 +1,4 @@
-import { callDeferred, type WorkspaceContext } from '@causa/workspace';
+import { callDeferred } from '@causa/workspace';
 import { OpenApiGenerateSpecification } from '../../definitions/index.js';
 
 /**
@@ -7,15 +7,15 @@ import { OpenApiGenerateSpecification } from '../../definitions/index.js';
  * which the generation is not supported. Then, it merges all the generated documentation into a single file.
  */
 export class OpenApiGenerateSpecificationForWorkspace extends OpenApiGenerateSpecification {
-  async _call(context: WorkspaceContext): Promise<string> {
-    return await callDeferred(this, context, import.meta.url);
+  async _call(): Promise<string> {
+    return await callDeferred(this, import.meta.url);
   }
 
-  _supports(context: WorkspaceContext): boolean {
+  _supports(): boolean {
     return (
-      context.get('project.name') === undefined &&
-      context.get('project.type') === undefined &&
-      context.get('project.language') === undefined
+      this._context.get('project.name') === undefined &&
+      this._context.get('project.type') === undefined &&
+      this._context.get('project.language') === undefined
     );
   }
 }

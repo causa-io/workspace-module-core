@@ -1,4 +1,3 @@
-import { WorkspaceContext } from '@causa/workspace';
 import {
   ArtefactAlreadyExistsError,
   ProjectPushArtefact,
@@ -15,8 +14,8 @@ import {
  * If {@link ProjectPushArtefact.overwrite} is not set to `true`, pushing an existing remote tag will fail.
  */
 export class ProjectPushArtefactForServiceContainer extends ProjectPushArtefact {
-  async _call(context: WorkspaceContext): Promise<string> {
-    const dockerService = context.service(DockerService);
+  async _call(): Promise<string> {
+    const dockerService = this._context.service(DockerService);
 
     const localTag = this.artefact;
     const remoteTag = this.destination;
@@ -30,7 +29,9 @@ export class ProjectPushArtefactForServiceContainer extends ProjectPushArtefact 
 
     await dockerService.tag(localTag, remoteTag);
 
-    context.logger.info(`🚚 Pushing Docker image to the remote registry.`);
+    this._context.logger.info(
+      `🚚 Pushing Docker image to the remote registry.`,
+    );
 
     try {
       await dockerService.push(remoteTag);
@@ -47,14 +48,14 @@ export class ProjectPushArtefactForServiceContainer extends ProjectPushArtefact 
       throw error;
     }
 
-    context.logger.info(
+    this._context.logger.info(
       `🚚 Successfully pushed Docker image to '${remoteTag}'.`,
     );
 
     return remoteTag;
   }
 
-  _supports(context: WorkspaceContext): boolean {
-    return context.get('project.type') === 'serviceContainer';
+  _supports(): boolean {
+    return this._context.get('project.type') === 'serviceContainer';
   }
 }

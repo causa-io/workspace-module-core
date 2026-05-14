@@ -1,4 +1,3 @@
-import { WorkspaceContext } from '@causa/workspace';
 import { cloneContextForEnvironmentProjectIfNeeded } from '../../context-utils.js';
 import {
   EnvironmentDeploy,
@@ -11,8 +10,10 @@ import {
  * This should probably not be implemented by any other module.
  */
 export class EnvironmentDeployForAll extends EnvironmentDeploy {
-  async _call(context: WorkspaceContext): Promise<void> {
-    context = await cloneContextForEnvironmentProjectIfNeeded(context);
+  async _call(): Promise<void> {
+    const context = await cloneContextForEnvironmentProjectIfNeeded(
+      this._context,
+    );
 
     await context.call(InfrastructureProcessAndDeploy, {
       deployment: this.deployment,

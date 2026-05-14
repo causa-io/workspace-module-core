@@ -1,4 +1,3 @@
-import type { WorkspaceContext } from '@causa/workspace';
 import { join as joinSpecs } from '@scalar/openapi-parser';
 import type { OpenAPIV3_1 } from '@scalar/openapi-types';
 import { readFile, writeFile } from 'fs/promises';
@@ -44,20 +43,21 @@ async function loadAndRewriteRefs(
 
 export default async function call(
   this: OpenApiGenerateSpecificationForProjectByMerging,
-  context: WorkspaceContext,
 ): Promise<string> {
-  const openApiConf = context.asConfiguration<OpenApiConfiguration>();
+  const openApiConf = this._context.asConfiguration<OpenApiConfiguration>();
   const specificationGlobs = openApiConf.get('openApi.specifications') ?? [];
   const globalSpec: OpenAPIV3_1.Document =
     openApiConf.get('openApi.global') ?? {};
-  const projectPath = context.getProjectPathOrThrow();
+  const projectPath = this._context.getProjectPathOrThrow();
 
   const output = this.output
     ? resolve(this.output)
     : join(projectPath, DEFAULT_OPENAPI_OUTPUT);
   const outputDir = dirname(output);
 
-  context.logger.info(`📝 Resolving OpenAPI specification globs for project.`);
+  this._context.logger.info(
+    `📝 Resolving OpenAPI specification globs for project.`,
+  );
 
   const specFiles = await globby(specificationGlobs, {
     cwd: projectPath,
@@ -71,7 +71,7 @@ export default async function call(
     ),
   );
 
-  context.logger.info(
+  this._context.logger.info(
     `📝 Merging ${specifications.length} OpenAPI specification(s).`,
   );
 
@@ -89,7 +89,7 @@ export default async function call(
   }
 
   const mergedSpecificationsYaml = dump(result.document);
-  context.logger.info(`✅ Merged OpenAPI specifications.`);
+  this._context.logger.info(`✅ Merged OpenAPI specifications.`);
 
   if (this.returnSpecification) {
     return mergedSpecificationsYaml;

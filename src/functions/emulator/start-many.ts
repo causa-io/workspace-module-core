@@ -1,4 +1,3 @@
-import { WorkspaceContext } from '@causa/workspace';
 import { NoImplementationFoundError } from '@causa/workspace/function-registry';
 import {
   EmulatorStart,
@@ -11,7 +10,7 @@ import {
  * This should be the only implementation of this function.
  */
 export class EmulatorStartManyForAll extends EmulatorStartMany {
-  async _call(context: WorkspaceContext): Promise<EmulatorStartManyResult> {
+  async _call(): Promise<EmulatorStartManyResult> {
     let emulatorStarts: EmulatorStart[];
     const result: EmulatorStartManyResult = {
       emulatorNames: [],
@@ -21,7 +20,9 @@ export class EmulatorStartManyForAll extends EmulatorStartMany {
     if (this.emulators.length > 0) {
       emulatorStarts = this.emulators.map((name) => {
         try {
-          return context.getFunctionImplementation(EmulatorStart, { name });
+          return this._context.getFunctionImplementation(EmulatorStart, {
+            name,
+          });
         } catch (error) {
           if (error instanceof NoImplementationFoundError) {
             throw new Error(`No implementation found for emulator '${name}'.`);
@@ -31,16 +32,19 @@ export class EmulatorStartManyForAll extends EmulatorStartMany {
         }
       });
     } else {
-      emulatorStarts = context.getFunctionImplementations(EmulatorStart, {});
+      emulatorStarts = this._context.getFunctionImplementations(
+        EmulatorStart,
+        {},
+      );
 
       if (emulatorStarts.length === 0) {
-        context.logger.info('💤 No emulator to start.');
+        this._context.logger.info('💤 No emulator to start.');
         return result;
       }
     }
 
     const emulatorResults = await Promise.all(
-      emulatorStarts.map((emulatorStart) => emulatorStart._call(context)),
+      emulatorStarts.map((emulatorStart) => emulatorStart._call()),
     );
     result.emulatorNames = emulatorResults.map((r) => r.name);
     result.configuration = Object.assign(
@@ -52,7 +56,7 @@ export class EmulatorStartManyForAll extends EmulatorStartMany {
       const confStr = Object.entries(result.configuration)
         .map(([k, v]) => `${k}=${v}`)
         .join('\n');
-      context.logger.info(`🔧 Configuration for emulators:\n${confStr}`);
+      this._context.logger.info(`🔧 Configuration for emulators:\n${confStr}`);
     }
 
     return result;

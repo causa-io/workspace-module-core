@@ -15,18 +15,18 @@ import {
  * modules, using ajv.
  */
 export class ConfigurationCheckForAll extends ConfigurationCheck {
-  async _call(context: WorkspaceContext): Promise<void> {
-    context.logger.info('🦺 Validating workspace configuration.');
+  async _call(): Promise<void> {
+    this._context.logger.info('🦺 Validating workspace configuration.');
 
-    const validate = await this.buildValidator(context);
+    const validate = await this.buildValidator();
 
     if (this.projects) {
-      await this.validateProjects(context, validate);
+      await this.validateProjects(validate);
     } else {
-      await this.validateContext(context, validate);
+      await this.validateContext(this._context, validate);
     }
 
-    context.logger.info('✅ Configuration is valid.');
+    this._context.logger.info('✅ Configuration is valid.');
   }
 
   _supports(): boolean {
@@ -36,14 +36,13 @@ export class ConfigurationCheckForAll extends ConfigurationCheck {
   /**
    * Builds the ajv validator from the composed configuration schema.
    *
-   * @param context The {@link WorkspaceContext}.
    * @returns The compiled ajv validation function.
    */
-  private async buildValidator(
-    context: WorkspaceContext,
-  ): Promise<ValidateFunction> {
+  private async buildValidator(): Promise<ValidateFunction> {
     const schemaPaths = (
-      await Promise.all(context.callAll(CausaListConfigurationSchemas, {}))
+      await Promise.all(
+        this._context.callAll(CausaListConfigurationSchemas, {}),
+      )
     ).flat();
     const moduleSchemas = await Promise.all(
       schemaPaths.map(async (path) => {
@@ -92,21 +91,17 @@ export class ConfigurationCheckForAll extends ConfigurationCheck {
   /**
    * Validates the configuration for each project in the workspace.
    *
-   * @param context The {@link WorkspaceContext}.
    * @param validate The compiled ajv validation function.
    */
-  private async validateProjects(
-    context: WorkspaceContext,
-    validate: ValidateFunction,
-  ): Promise<void> {
-    const projectPaths = await context.listProjectPaths();
+  private async validateProjects(validate: ValidateFunction): Promise<void> {
+    const projectPaths = await this._context.listProjectPaths();
 
     for (const projectPath of projectPaths) {
-      context.logger.info(
+      this._context.logger.info(
         `📂 Validating configuration for project in '${projectPath}'.`,
       );
 
-      const projectContext = await context.clone({
+      const projectContext = await this._context.clone({
         workingDirectory: projectPath,
         processors: null,
       });

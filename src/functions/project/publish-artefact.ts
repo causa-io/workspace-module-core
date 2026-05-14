@@ -1,4 +1,3 @@
-import { WorkspaceContext } from '@causa/workspace';
 import {
   ProjectBuildArtefact,
   ProjectGetArtefactDestination,
@@ -18,29 +17,29 @@ import { GitService } from '../../services/index.js';
  * - {@link ProjectPushArtefact}
  */
 export class ProjectPublishArtefactForAll extends ProjectPublishArtefact {
-  async _call(context: WorkspaceContext): Promise<string> {
+  async _call(): Promise<string> {
     const artefact =
-      this.artefact ?? (await context.call(ProjectBuildArtefact, {}));
+      this.artefact ?? (await this._context.call(ProjectBuildArtefact, {}));
 
     let tag = this.tag ?? ProjectPublishArtefact.TagFormatShortSha;
     switch (tag) {
       case ProjectPublishArtefact.TagFormatSemantic:
-        tag = await context.call(ProjectReadVersion, {});
+        tag = await this._context.call(ProjectReadVersion, {});
         break;
       case ProjectPublishArtefact.TagFormatShortSha:
-        const gitService = context.service(GitService);
-        tag = await gitService.getCurrentShortSha();
+        tag = await this._context.service(GitService).getCurrentShortSha();
         break;
     }
     if (this.tagPrefix) {
       tag = `${this.tagPrefix}${tag}`;
     }
 
-    const destination = await context.call(ProjectGetArtefactDestination, {
-      tag,
-    });
+    const destination = await this._context.call(
+      ProjectGetArtefactDestination,
+      { tag },
+    );
 
-    await context.call(ProjectPushArtefact, {
+    await this._context.call(ProjectPushArtefact, {
       artefact,
       destination,
       overwrite: this.overwrite,

@@ -1,4 +1,3 @@
-import { WorkspaceContext } from '@causa/workspace';
 import { readFile } from 'fs/promises';
 import {
   type BackfillTemporaryData,
@@ -13,22 +12,24 @@ import {
  * resources listed in the backfill file.
  */
 export class EventTopicCleanBackfillForAll extends EventTopicCleanBackfill {
-  async _call(context: WorkspaceContext): Promise<void> {
+  async _call(): Promise<void> {
     const dataBuffer = await readFile(this.file);
     const data: BackfillTemporaryData = JSON.parse(dataBuffer.toString());
 
-    context.logger.info('🔥 Removing temporary backfill resources.');
+    this._context.logger.info('🔥 Removing temporary backfill resources.');
 
     const resourceIdsAndPromises = data.temporaryTriggerResourceIds.map(
       (id) => ({
         id,
-        promise: context.call(EventTopicBrokerDeleteTriggerResource, { id }),
+        promise: this._context.call(EventTopicBrokerDeleteTriggerResource, {
+          id,
+        }),
       }),
     );
     if (data.temporaryTopicId) {
       resourceIdsAndPromises.push({
         id: data.temporaryTopicId,
-        promise: context.call(EventTopicBrokerDeleteTopic, {
+        promise: this._context.call(EventTopicBrokerDeleteTopic, {
           id: data.temporaryTopicId,
         }),
       });
@@ -41,7 +42,7 @@ export class EventTopicCleanBackfillForAll extends EventTopicCleanBackfill {
           return true;
         } catch (error: any) {
           const message = error.message ?? error;
-          context.logger.error(
+          this._context.logger.error(
             `❌ Failed to delete resource '${id}': '${message}'.`,
           );
           return false;
@@ -50,7 +51,7 @@ export class EventTopicCleanBackfillForAll extends EventTopicCleanBackfill {
     );
 
     if (results.every((r) => r)) {
-      context.logger.info(
+      this._context.logger.info(
         '✅ Successfully cleaned resources for the backfill.',
       );
     } else {

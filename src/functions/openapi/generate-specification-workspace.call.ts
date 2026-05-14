@@ -202,27 +202,26 @@ function deduplicateComponents(
 
 export default async function call(
   this: OpenApiGenerateSpecificationForWorkspace,
-  context: WorkspaceContext,
 ): Promise<string> {
   const output = this.output
     ? resolve(this.output)
-    : join(context.rootPath, DEFAULT_OPENAPI_OUTPUT);
-  const projectPaths = await context.listProjectPaths();
+    : join(this._context.rootPath, DEFAULT_OPENAPI_OUTPUT);
+  const projectPaths = await this._context.listProjectPaths();
 
   const openApiSpecifications = await Promise.all(
     projectPaths.map((projectPath) =>
-      generateForProject(context, projectPath, output),
+      generateForProject(this._context, projectPath, output),
     ),
   );
 
-  context.logger.info(`📝 Merging OpenAPI specifications.`);
+  this._context.logger.info(`📝 Merging OpenAPI specifications.`);
   const mergedSpecifications = await mergeSpecifications(
-    context,
+    this._context,
     openApiSpecifications.filter((spec) => spec !== null),
   );
-  context.logger.info(`✅ Merged OpenAPI specifications.`);
+  this._context.logger.info(`✅ Merged OpenAPI specifications.`);
 
-  context.logger.info(`📦 Bundling external references.`);
+  this._context.logger.info(`📦 Bundling external references.`);
   await bundle(mergedSpecifications, {
     plugins: [readFiles()],
     treeShake: true,

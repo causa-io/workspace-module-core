@@ -1,4 +1,3 @@
-import { WorkspaceContext } from '@causa/workspace';
 import type { ServiceContainerConfiguration } from '../../configurations/index.js';
 import {
   EventTopicListReferencedInProject,
@@ -11,9 +10,9 @@ import {
  * The produced topics are the ones listed as outputs to the service.
  */
 export class EventTopicListReferencedInProjectForServiceContainer extends EventTopicListReferencedInProject {
-  async _call(context: WorkspaceContext): Promise<ReferencedEventTopics> {
+  async _call(): Promise<ReferencedEventTopics> {
     const serviceContainerConf =
-      context.asConfiguration<ServiceContainerConfiguration>();
+      this._context.asConfiguration<ServiceContainerConfiguration>();
     const triggers =
       serviceContainerConf.get('serviceContainer.triggers', { unsafe: true }) ??
       {};
@@ -31,10 +30,10 @@ export class EventTopicListReferencedInProjectForServiceContainer extends EventT
       ),
     ];
 
-    return await this.mapToDefinitions(context, consumed, produced);
+    return await this.mapToDefinitions(consumed, produced);
   }
 
-  _supports(context: WorkspaceContext): boolean {
-    return context.get('project.type') === 'serviceContainer';
+  _supports(): boolean {
+    return this._context.get('project.type') === 'serviceContainer';
   }
 }

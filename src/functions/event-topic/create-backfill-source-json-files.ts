@@ -65,9 +65,7 @@ async function* iterateJsonFiles(
  * optional `key` fields. Filtering is not supported.
  */
 export class EventTopicCreateBackfillSourceFromJsonFiles extends EventTopicCreateBackfillSource {
-  async _call(
-    context: WorkspaceContext,
-  ): Promise<AsyncIterable<BackfillEvent>> {
+  async _call(): Promise<AsyncIterable<BackfillEvent>> {
     if (this.filter) {
       throw new Error('Filtering JSON events from files is not supported.');
     }
@@ -84,7 +82,7 @@ export class EventTopicCreateBackfillSourceFromJsonFiles extends EventTopicCreat
       followSymbolicLinks: false,
     });
 
-    return iterateJsonFiles(context, files.sort());
+    return iterateJsonFiles(this._context, files.sort());
   }
 
   _supports(): boolean {

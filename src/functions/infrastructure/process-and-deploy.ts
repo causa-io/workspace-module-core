@@ -1,4 +1,3 @@
-import { WorkspaceContext } from '@causa/workspace';
 import { wrapInfrastructureOperation } from '../../context-utils.js';
 import {
   InfrastructureDeploy,
@@ -11,8 +10,8 @@ import {
  * This should probably not be implemented by any other module.
  */
 export class InfrastructureProcessAndDeployForAll extends InfrastructureProcessAndDeploy {
-  async _call(context: WorkspaceContext): Promise<void> {
-    return await wrapInfrastructureOperation(context, (context) =>
+  async _call(): Promise<void> {
+    return await wrapInfrastructureOperation(this._context, (context) =>
       context.call(InfrastructureDeploy, { deployment: this.deployment }),
     );
   }

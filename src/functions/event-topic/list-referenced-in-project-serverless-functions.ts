@@ -1,4 +1,3 @@
-import { WorkspaceContext } from '@causa/workspace';
 import {
   EventTopicListReferencedInProject,
   type ReferencedEventTopics,
@@ -11,9 +10,9 @@ import type { ServerlessFunctionsConfiguration } from '../../index.js';
  * The produced topics are the ones listed as outputs of the functions.
  */
 export class EventTopicListReferencedInProjectForServerlessFunctions extends EventTopicListReferencedInProject {
-  async _call(context: WorkspaceContext): Promise<ReferencedEventTopics> {
+  async _call(): Promise<ReferencedEventTopics> {
     const functions = Object.values(
-      context
+      this._context
         .asConfiguration<ServerlessFunctionsConfiguration>()
         .get('serverlessFunctions.functions', { unsafe: true }) ?? {},
     );
@@ -32,10 +31,10 @@ export class EventTopicListReferencedInProjectForServerlessFunctions extends Eve
       ...new Set(functions.flatMap((fn) => fn.outputs?.eventTopics ?? [])),
     ];
 
-    return await this.mapToDefinitions(context, consumed, produced);
+    return await this.mapToDefinitions(consumed, produced);
   }
 
-  _supports(context: WorkspaceContext) {
-    return context.get('project.type') === 'serverlessFunctions';
+  _supports() {
+    return this._context.get('project.type') === 'serverlessFunctions';
   }
 }

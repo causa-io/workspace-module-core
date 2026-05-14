@@ -38,26 +38,24 @@ export class EventTopicBackfillForAll extends EventTopicBackfill {
   /**
    * Creates a temporary topic for the backfill or returns the ID of the main topic.
    *
-   * @param context The {@link WorkspaceContext}.
    * @param backfillId The unique ID for the backfilling operation.
    * @returns The ID of the topic to use for publishing events, and the {@link BackfillTemporaryData}.
    */
-  private async setUpTopic(
-    context: WorkspaceContext,
-    backfillId: string,
-  ): Promise<{
+  private async setUpTopic(backfillId: string): Promise<{
     topicId: string;
     temporaryData: BackfillTemporaryData;
   }> {
     const topicId = this.createTemporaryTopic
-      ? await context.call(EventTopicBrokerCreateTopic, {
+      ? await this._context.call(EventTopicBrokerCreateTopic, {
           name: `backfill-${backfillId}`,
         })
-      : await context.call(EventTopicBrokerGetTopicId, {
+      : await this._context.call(EventTopicBrokerGetTopicId, {
           eventTopic: this.eventTopic,
         });
 
-    context.logger.info(`📫 Events will be published to topic '${topicId}'.`);
+    this._context.logger.info(
+      `📫 Events will be published to topic '${topicId}'.`,
+    );
 
     const temporaryData: BackfillTemporaryData = {
       temporaryTopicId: this.createTemporaryTopic ? topicId : null,
@@ -74,21 +72,19 @@ export class EventTopicBackfillForAll extends EventTopicBackfill {
    * as working directory and the trigger is forwarded as a {@link EventTopicBrokerTrigger} object. Otherwise, the
    * function is called on the current context with the raw trigger string.
    *
-   * @param context The current {@link WorkspaceContext}.
    * @param backfillId The unique ID for the backfilling operation.
    * @param topicId The ID of the topic to use as trigger.
    * @param trigger The trigger specification to create.
    * @returns The IDs of resources created for the trigger, to be cleaned up after the backfill.
    */
   private async createTrigger(
-    context: WorkspaceContext,
     backfillId: string,
     topicId: string,
     trigger: string,
   ): Promise<string[]> {
     const match = trigger.match(PROJECT_TRIGGER_REGEX);
     if (!match?.groups) {
-      return await context.call(EventTopicBrokerCreateTrigger, {
+      return await this._context.call(EventTopicBrokerCreateTrigger, {
         backfillId,
         topicId,
         trigger,
@@ -99,8 +95,8 @@ export class EventTopicBackfillForAll extends EventTopicBackfill {
 
     let projectContext: WorkspaceContext;
     try {
-      const workingDirectory = join(context.rootPath, projectPath);
-      projectContext = await context.clone({ workingDirectory });
+      const workingDirectory = join(this._context.rootPath, projectPath);
+      projectContext = await this._context.clone({ workingDirectory });
     } catch (error: any) {
       throw new EventTopicTriggerCreationError(error, []);
     }
@@ -127,13 +123,11 @@ export class EventTopicBackfillForAll extends EventTopicBackfill {
   /**
    * Creates temporary triggers for the backfill, and fills the {@link BackfillTemporaryData} accordingly.
    *
-   * @param context The {@link WorkspaceContext}.
    * @param backfillId The unique ID for the backfilling operation.
    * @param topicId The ID of the topic to use as trigger.
    * @param data The {@link BackfillTemporaryData} to fill with crated temporary resource IDs.
    */
   private async createTriggers(
-    context: WorkspaceContext,
     backfillId: string,
     topicId: string,
     data: BackfillTemporaryData,
@@ -142,13 +136,12 @@ export class EventTopicBackfillForAll extends EventTopicBackfill {
       return;
     }
 
-    context.logger.info('🧱 Creating event triggers.');
+    this._context.logger.info('🧱 Creating event triggers.');
 
     const results = await Promise.allSettled(
       this.triggers.map(async (trigger) => {
         try {
           const resourceIds = await this.createTrigger(
-            context,
             backfillId,
             topicId,
             trigger,
@@ -173,7 +166,7 @@ export class EventTopicBackfillForAll extends EventTopicBackfill {
     }
   }
 
-  async _call(context: WorkspaceContext): Promise<string> {
+  async _call(): Promise<string> {
     if (this.createTemporaryTopic && !this.triggers?.length) {
       throw new Error(
         'At least one temporary trigger should be defined when using a temporary topic.',
@@ -181,45 +174,47 @@ export class EventTopicBackfillForAll extends EventTopicBackfill {
     }
 
     const backfillId = randomBytes(3).toString('hex');
-    context.logger.info(`🎉 Initializing backfill with ID '${backfillId}'.`);
-
-    const { topicId, temporaryData } = await this.setUpTopic(
-      context,
-      backfillId,
+    this._context.logger.info(
+      `🎉 Initializing backfill with ID '${backfillId}'.`,
     );
+
+    const { topicId, temporaryData } = await this.setUpTopic(backfillId);
 
     const backfillFile = this.output
       ? resolve(this.output)
-      : join(context.rootPath, `backfill-${backfillId}.json`);
+      : join(this._context.rootPath, `backfill-${backfillId}.json`);
     const cleanBackfillCommand = [
       'cs',
       'events',
       'cleanBackfill',
-      ...(context.environment ? ['-e', context.environment] : []),
+      ...(this._context.environment ? ['-e', this._context.environment] : []),
       `"${backfillFile}"`,
     ].join(' ');
 
     try {
-      await this.createTriggers(context, backfillId, topicId, temporaryData);
+      await this.createTriggers(backfillId, topicId, temporaryData);
 
-      const eventsSource = await context.call(EventTopicCreateBackfillSource, {
-        eventTopic: this.eventTopic,
-        source: this.source,
-        filter: this.filter,
-      });
+      const eventsSource = await this._context.call(
+        EventTopicCreateBackfillSource,
+        {
+          eventTopic: this.eventTopic,
+          source: this.source,
+          filter: this.filter,
+        },
+      );
 
-      await context.call(EventTopicBrokerPublishEvents, {
+      await this._context.call(EventTopicBrokerPublishEvents, {
         topicId,
         eventTopic: this.eventTopic,
         source: () => eventsSource,
       });
 
-      context.logger.info('✅ Successfully published all events.');
-      context.logger.info(
+      this._context.logger.info('✅ Successfully published all events.');
+      this._context.logger.info(
         `💡 Once backfilling is complete, temporary resources can be cleaned using '${cleanBackfillCommand}'.`,
       );
     } catch (error) {
-      context.logger.warn(
+      this._context.logger.warn(
         `⚠️ Backfilling failed but there might be temporary resources to clean up using '${cleanBackfillCommand}'.`,
       );
       throw error;

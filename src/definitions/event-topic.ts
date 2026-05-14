@@ -4,7 +4,7 @@ import {
   CliOption,
   type ParentCliCommandDefinition,
 } from '@causa/cli';
-import { WorkspaceContext, WorkspaceFunction } from '@causa/workspace';
+import { WorkspaceFunction } from '@causa/workspace';
 import { AllowMissing } from '@causa/workspace/validation';
 import { Transform } from 'class-transformer';
 import {
@@ -115,17 +115,15 @@ export abstract class EventTopicListReferencedInProject extends WorkspaceFunctio
    * This is a utility method that can be used by implementations that only retrieve the IDs of the topics from the
    * project's configuration.
    *
-   * @param context The workspace context.
    * @param consumedIds The IDs of the topics that are consumed by the project.
    * @param producedIds The IDs of the topics that are produced by the project.
    * @returns The {@link ReferencedEventTopics} for the project.
    */
   protected async mapToDefinitions(
-    context: WorkspaceContext,
     consumedIds: string[],
     producedIds: string[],
   ): Promise<ReferencedEventTopics> {
-    const allDefinitions = await context.call(EventTopicList, {});
+    const allDefinitions = await this._context.call(EventTopicList, {});
 
     const missingDefinitions: string[] = [];
     const mapTopics = (topics: string[]) =>

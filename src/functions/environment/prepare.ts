@@ -1,4 +1,3 @@
-import { WorkspaceContext } from '@causa/workspace';
 import { cloneContextForEnvironmentProjectIfNeeded } from '../../context-utils.js';
 import {
   EnvironmentPrepare,
@@ -12,8 +11,10 @@ import {
  * This should probably not be implemented by any other module.
  */
 export class EnvironmentPrepareForAll extends EnvironmentPrepare {
-  async _call(context: WorkspaceContext): Promise<PrepareResult> {
-    context = await cloneContextForEnvironmentProjectIfNeeded(context);
+  async _call(): Promise<PrepareResult> {
+    const context = await cloneContextForEnvironmentProjectIfNeeded(
+      this._context,
+    );
 
     return await context.call(InfrastructureProcessAndPrepare, {
       print: this.print,

@@ -1,4 +1,3 @@
-import type { WorkspaceContext } from '@causa/workspace';
 import { NoImplementationFoundError } from '@causa/workspace/function-registry';
 import type { ModelConfiguration } from '../../configurations/index.js';
 import {
@@ -12,9 +11,9 @@ import {
  * This should be the only implementation, as it only iterates over the configured code generators generically.
  */
 export class ModelGenerateCodeForAll extends ModelGenerateCode {
-  async _call(context: WorkspaceContext): Promise<GeneratorsOutput> {
+  async _call(): Promise<GeneratorsOutput> {
     const generators =
-      context
+      this._context
         .asConfiguration<ModelConfiguration>()
         .get('model.codeGenerators') ?? [];
     if (generators.length === 0) {
@@ -28,9 +27,11 @@ export class ModelGenerateCodeForAll extends ModelGenerateCode {
       const { generator, ...configuration } = generatorAndConfiguration;
 
       try {
-        context.logger.info(`🔨 Running code generator '${generator}'...`);
+        this._context.logger.info(
+          `🔨 Running code generator '${generator}'...`,
+        );
 
-        output[generator] = await context.call(ModelRunCodeGenerator, {
+        output[generator] = await this._context.call(ModelRunCodeGenerator, {
           generator,
           configuration,
           previousGeneratorsOutput: output,
@@ -52,12 +53,12 @@ export class ModelGenerateCodeForAll extends ModelGenerateCode {
     }
 
     if (missingGenerators.length > 0) {
-      context.logger.warn(
+      this._context.logger.warn(
         `The following generators were not found or do not match the current project configuration: ${missingGenerators.map((g) => `'${g}'`).join(', ')}.`,
       );
     }
 
-    context.logger.info('✅ Code generation completed successfully.');
+    this._context.logger.info('✅ Code generation completed successfully.');
 
     return output;
   }

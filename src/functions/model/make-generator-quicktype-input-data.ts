@@ -1,4 +1,4 @@
-import { callDeferred, type WorkspaceContext } from '@causa/workspace';
+import { callDeferred } from '@causa/workspace';
 import type { InputData } from 'quicktype-core';
 import type { ModelConfiguration } from '../../configurations/index.js';
 import { ModelMakeGeneratorQuicktypeInputData } from '../../definitions/index.js';
@@ -9,14 +9,15 @@ import { ModelMakeGeneratorQuicktypeInputData } from '../../definitions/index.js
  * configuration.
  */
 export class ModelMakeGeneratorQuicktypeInputDataForJsonSchema extends ModelMakeGeneratorQuicktypeInputData {
-  async _call(context: WorkspaceContext): Promise<InputData> {
-    return await callDeferred(this, context, import.meta.url);
+  async _call(): Promise<InputData> {
+    return await callDeferred(this, import.meta.url);
   }
 
-  _supports(context: WorkspaceContext): boolean {
+  _supports(): boolean {
     return (
-      context.asConfiguration<ModelConfiguration>().get('model.schema') ===
-      'jsonschema'
+      this._context
+        .asConfiguration<ModelConfiguration>()
+        .get('model.schema') === 'jsonschema'
     );
   }
 }

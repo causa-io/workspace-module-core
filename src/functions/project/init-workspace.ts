@@ -1,4 +1,3 @@
-import { WorkspaceContext } from '@causa/workspace';
 import {
   CAUSA_FOLDER,
   setUpCausaFolder,
@@ -18,50 +17,50 @@ import {
  * However, if the `force` option is provided, the Causa folder will be reinitialized.
  */
 export class ProjectInitForWorkspace extends ProjectInit {
-  async _call(context: WorkspaceContext): Promise<void> {
+  async _call(): Promise<void> {
     if (this.force) {
-      context.logger.info('🔥 Forcing reinstallation of Causa modules.');
+      this._context.logger.info('🔥 Forcing reinstallation of Causa modules.');
 
-      const currentDependencies = await this.readCurrentDependencies(context);
+      const currentDependencies = await this.readCurrentDependencies();
       // Merging the current dependencies allows keeping the ones that are not defined in the configuration, but might
       // have been specified by a different process, e.g. the CLI.
       const modules = {
         ...currentDependencies,
-        ...(context.get('causa.modules') ?? {}),
+        ...(this._context.get('causa.modules') ?? {}),
       };
 
-      await setUpCausaFolder(context.rootPath, modules, context.logger);
+      await setUpCausaFolder(
+        this._context.rootPath,
+        modules,
+        this._context.logger,
+      );
 
-      context.logger.info(
+      this._context.logger.info(
         '✅ Successfully initialized workspace dependencies.',
       );
-      context.logger.warn(
+      this._context.logger.warn(
         `⚠️ Rerun initialization without force to complete the initialization using the new modules.`,
       );
 
       return;
     }
 
-    await this.writeConfigurationSchema(context);
+    await this.writeConfigurationSchema();
   }
 
-  _supports(context: WorkspaceContext): boolean {
-    return this.workspace || context.get('project.name') === undefined;
+  _supports(): boolean {
+    return this.workspace || this._context.get('project.name') === undefined;
   }
 
   /**
    * Collects configuration schemas from all modules and writes a combined schema file in the Causa folder.
-   *
-   * @param context The {@link WorkspaceContext}.
    */
-  private async writeConfigurationSchema(
-    context: WorkspaceContext,
-  ): Promise<void> {
+  private async writeConfigurationSchema(): Promise<void> {
     const schemaPaths = await Promise.all(
-      context.callAll(CausaListConfigurationSchemas, {}),
+      this._context.callAll(CausaListConfigurationSchemas, {}),
     );
     const schemaFile = join(
-      context.rootPath,
+      this._context.rootPath,
       CAUSA_FOLDER,
       'configuration-schema.yaml',
     );
@@ -75,26 +74,25 @@ export class ProjectInitForWorkspace extends ProjectInit {
     const content = dump(schema);
     await writeFile(schemaFile, content);
 
-    context.logger.info(`📝 Wrote configuration schema to '${schemaFile}'.`);
+    this._context.logger.info(
+      `📝 Wrote configuration schema to '${schemaFile}'.`,
+    );
   }
 
   /**
    * Parses the currently installed dependencies in the Causa folder from the `package.json` file.
    *
-   * @param context The {@link WorkspaceContext}.
    * @returns The currently installed dependencies in the Causa folder, or an empty object if the package file cannot be
    *   read.
    */
-  private async readCurrentDependencies(
-    context: WorkspaceContext,
-  ): Promise<Record<string, string>> {
+  private async readCurrentDependencies(): Promise<Record<string, string>> {
     try {
-      const causaDir = join(context.rootPath, CAUSA_FOLDER);
+      const causaDir = join(this._context.rootPath, CAUSA_FOLDER);
       const packageFile = join(causaDir, 'package.json');
       const packageJson = await readFile(packageFile);
       return JSON.parse(packageJson.toString()).dependencies;
     } catch (error) {
-      context.logger.warn(
+      this._context.logger.warn(
         `⚠️ Could not read the currently installed dependencies from the Causa folder: '${error}'.`,
       );
 

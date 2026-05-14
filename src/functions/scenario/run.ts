@@ -1,4 +1,3 @@
-import { WorkspaceContext } from '@causa/workspace';
 import { expect } from 'expect';
 import { readFile, writeFile } from 'fs/promises';
 import { dump, load } from 'js-yaml';
@@ -33,10 +32,10 @@ class RetryAttemptsExhaustedError extends Error {
  * executes the scenario's steps in dependency order, running independent steps in parallel.
  */
 export class ScenarioRunForAll extends ScenarioRun {
-  async _call(context: WorkspaceContext): Promise<ScenarioRunSnapshot> {
-    const filePath = resolve(context.rootPath, this.path);
+  async _call(): Promise<ScenarioRunSnapshot> {
+    const filePath = resolve(this._context.rootPath, this.path);
 
-    context.logger.info(`▶️ Running scenario from '${filePath}'.`);
+    this._context.logger.info(`▶️ Running scenario from '${filePath}'.`);
 
     const raw = await readFile(filePath, 'utf-8');
     const scenario = load(raw) as Scenario;
@@ -47,7 +46,7 @@ export class ScenarioRunForAll extends ScenarioRun {
       await Promise.all(
         [...allConfigPaths].map(
           async (path) =>
-            [path, await context.getAndRenderOrThrow(path)] as const,
+            [path, await this._context.getAndRenderOrThrow(path)] as const,
         ),
       ),
     );
@@ -69,7 +68,6 @@ export class ScenarioRunForAll extends ScenarioRun {
     };
 
     const result = await this.runSteps(
-      context,
       scenario,
       stepDeps,
       renderContext,
@@ -77,9 +75,9 @@ export class ScenarioRunForAll extends ScenarioRun {
     );
 
     if (this.output) {
-      const outputPath = resolve(context.rootPath, this.output);
+      const outputPath = resolve(this._context.rootPath, this.output);
       await writeFile(outputPath, dump(result));
-      context.logger.info(`📝 Wrote scenario result to '${outputPath}'.`);
+      this._context.logger.info(`📝 Wrote scenario result to '${outputPath}'.`);
     }
 
     if (result.status === 'failed') {
@@ -93,7 +91,6 @@ export class ScenarioRunForAll extends ScenarioRun {
    * Schedules and runs the scenario's steps in dependency order, running independent steps in parallel. Emits a
    * snapshot through {@link ScenarioRun.onStepUpdate} on every step transition.
    *
-   * @param context The workspace context to forward to step calls.
    * @param scenario The scenario whose steps should be executed.
    * @param stepDeps For each step, the set of other steps it depends on.
    * @param renderContext The render context used to evaluate step arguments and expectations.
@@ -101,7 +98,6 @@ export class ScenarioRunForAll extends ScenarioRun {
    * @returns The final {@link ScenarioRunSnapshot}.
    */
   private async runSteps(
-    context: WorkspaceContext,
     scenario: Scenario,
     stepDeps: Record<string, Set<string>>,
     renderContext: Record<string, any>,
@@ -141,7 +137,6 @@ export class ScenarioRunForAll extends ScenarioRun {
           const startedAt = new Date();
           updateStep(id, { status: 'running', startedAt, numRetries: 0 });
           const runPromise = this.runStep(
-            context,
             id,
             scenario,
             renderContext,
@@ -190,7 +185,6 @@ export class ScenarioRunForAll extends ScenarioRun {
   /**
    * Runs a single step with retry. Returns the final `succeeded` or `failed` {@link ScenarioStepRun}.
    *
-   * @param context The workspace context to use for the step call.
    * @param id The step ID.
    * @param scenario The scenario.
    * @param renderContext The global render context to use for rendering step arguments and expectations.
@@ -198,14 +192,13 @@ export class ScenarioRunForAll extends ScenarioRun {
    * @returns The final `succeeded` or `failed` {@link ScenarioStepRun} for the step.
    */
   private async runStep(
-    context: WorkspaceContext,
     id: string,
     scenario: Scenario,
     renderContext: Record<string, any>,
     startedAt: Date,
   ): Promise<ScenarioStepRun> {
     const step = scenario.steps[id];
-    context.logger.info(
+    this._context.logger.info(
       `▶️ Starting step '${id}' (calling '${step.call.name}').`,
     );
 
@@ -220,7 +213,7 @@ export class ScenarioRunForAll extends ScenarioRun {
           const message =
             error instanceof Error ? error.message : String(error);
           const firstLine = message.split('\n')[0];
-          context.logger.warn(
+          this._context.logger.warn(
             `⚠️ Step '${id}' attempt ${attempt}/${maxAttempts} failed: ${firstLine}`,
           );
         },
@@ -233,7 +226,7 @@ export class ScenarioRunForAll extends ScenarioRun {
             },
             renderContext,
           );
-          output = await context.callByName(step.call.name, args);
+          output = await this._context.callByName(step.call.name, args);
           this.verifyStep(step, id, output, renderContext);
         },
       ));
@@ -253,11 +246,11 @@ export class ScenarioRunForAll extends ScenarioRun {
     const endedAt = new Date();
     const duration = endedAt.getTime() - startedAt.getTime();
     if (status === 'succeeded') {
-      context.logger.info(
+      this._context.logger.info(
         `✅ Step '${id}' finished in ${duration}ms (${attempt} attempt(s)).`,
       );
     } else {
-      context.logger.error(
+      this._context.logger.error(
         `❌ Step '${id}' failed after ${attempt} attempt(s) in ${duration}ms: ${error}`,
       );
     }

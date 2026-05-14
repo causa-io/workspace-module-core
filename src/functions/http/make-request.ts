@@ -1,11 +1,10 @@
-import { WorkspaceContext } from '@causa/workspace';
 import { type HttpResponse, HttpMakeRequest } from '../../definitions/index.js';
 
 /**
  * Implements {@link HttpMakeRequest} using the native `fetch` API.
  */
 export class HttpMakeRequestForAll extends HttpMakeRequest {
-  async _call(context: WorkspaceContext): Promise<HttpResponse> {
+  async _call(): Promise<HttpResponse> {
     const method = (this.method ?? 'GET').toUpperCase();
     const path = this.path ?? '/';
     const baseUrl = /^[a-z][a-z0-9+.-]*:\/\//i.test(this.baseUrl)
@@ -33,7 +32,7 @@ export class HttpMakeRequestForAll extends HttpMakeRequest {
       }
     }
 
-    context.logger.debug(`Making HTTP call '${method} ${url}'.`);
+    this._context.logger.debug(`Making HTTP call '${method} ${url}'.`);
 
     const response = await fetch(url, { method, headers, body });
 

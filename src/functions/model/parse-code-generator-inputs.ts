@@ -1,4 +1,3 @@
-import type { WorkspaceContext } from '@causa/workspace';
 import { globby } from 'globby';
 import { resolve } from 'path';
 import {
@@ -12,8 +11,8 @@ import {
  * This parses the standard code generator configuration and returns the list of input files.
  */
 export class ModelParseCodeGeneratorInputsForAll extends ModelParseCodeGeneratorInputs {
-  async _call(context: WorkspaceContext): Promise<CodeGeneratorInputs> {
-    const projectPath = context.getProjectPathOrThrow();
+  async _call(): Promise<CodeGeneratorInputs> {
+    const projectPath = this._context.getProjectPathOrThrow();
 
     const includeEvents = this.configuration.includeEvents ?? false;
     if (includeEvents !== undefined && typeof includeEvents !== 'boolean') {
@@ -56,9 +55,11 @@ export class ModelParseCodeGeneratorInputsForAll extends ModelParseCodeGenerator
     const filesSet = new Set<string>();
 
     if (includeEvents) {
-      context.logger.debug('Listing event topics referenced in the project.');
+      this._context.logger.debug(
+        'Listing event topics referenced in the project.',
+      );
 
-      const { consumed, produced } = await context.call(
+      const { consumed, produced } = await this._context.call(
         EventTopicListReferencedInProject,
         {},
       );
@@ -67,7 +68,7 @@ export class ModelParseCodeGeneratorInputsForAll extends ModelParseCodeGenerator
     }
 
     if (globs.length > 0) {
-      context.logger.debug(
+      this._context.logger.debug(
         'Listing schemas from globs configured for the generator.',
       );
 
@@ -79,7 +80,7 @@ export class ModelParseCodeGeneratorInputsForAll extends ModelParseCodeGenerator
     }
 
     const files = Array.from(filesSet);
-    context.logger.debug(
+    this._context.logger.debug(
       `Found input schema files to generate:\n${files.join('\n')}`,
     );
 

@@ -48,7 +48,7 @@ describe('EventTopicCreateBackfillSourceFromJsonFiles', () => {
       fileA,
       [
         JSON.stringify({ data: 'a1', attributes: { i: '0' } }),
-        JSON.stringify({ data: 'a2', key: 'k' }),
+        JSON.stringify({ data: 'a2' }),
       ].join('\n'),
     );
     await writeFile(fileB, JSON.stringify({ data: 'b1' }));
@@ -60,9 +60,9 @@ describe('EventTopicCreateBackfillSourceFromJsonFiles', () => {
 
     const events = await Array.fromAsync(iterable);
     expect(events).toEqual([
-      { data: Buffer.from('a1'), attributes: { i: '0' }, key: undefined },
-      { data: Buffer.from('a2'), attributes: undefined, key: 'k' },
-      { data: Buffer.from('b1'), attributes: undefined, key: undefined },
+      { data: Buffer.from('a1'), attributes: { i: '0' } },
+      { data: Buffer.from('a2'), attributes: undefined },
+      { data: Buffer.from('b1'), attributes: undefined },
     ]);
   });
 
@@ -80,7 +80,7 @@ describe('EventTopicCreateBackfillSourceFromJsonFiles', () => {
 
     const events = await Array.fromAsync(iterable);
     expect(events).toEqual([
-      { data: Buffer.from('ok'), attributes: undefined, key: undefined },
+      { data: Buffer.from('ok'), attributes: undefined },
     ]);
   });
 

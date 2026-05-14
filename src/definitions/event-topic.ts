@@ -429,11 +429,6 @@ export type BackfillEvent = {
    * Optional attributes for the message.
    */
   readonly attributes?: Record<string, string>;
-
-  /**
-   * Optional ordering key for the message.
-   */
-  readonly key?: string;
 };
 
 /**

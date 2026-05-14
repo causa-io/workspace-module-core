@@ -26,7 +26,7 @@ function parseEvent(
   try {
     const event = JSON.parse(line);
     const data = Buffer.from(event.data);
-    return { data, attributes: event.attributes, key: event.key };
+    return { data, attributes: event.attributes };
   } catch (error) {
     context.logger.error(`❌ Failed to parse event '${line}': '${error}'.`);
     return null;
@@ -61,8 +61,8 @@ async function* iterateJsonFiles(
 
 /**
  * Implements {@link EventTopicCreateBackfillSource} for `json://<glob>` sources.
- * Each matched file is expected to contain newline-delimited JSON events with `data`, optional `attributes`, and
- * optional `key` fields. Filtering is not supported.
+ * Each matched file is expected to contain newline-delimited JSON events with `data` and optional `attributes` fields.
+ * Filtering is not supported.
  */
 export class EventTopicCreateBackfillSourceFromJsonFiles extends EventTopicCreateBackfillSource {
   async _call(): Promise<AsyncIterable<BackfillEvent>> {

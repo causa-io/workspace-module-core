@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.35.0-beta.1 (2026-05-18)
+
 Breaking changes:
 
 - Remove the `key` (ordering) property from `BackfillEvent`.

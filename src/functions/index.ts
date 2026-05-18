@@ -29,6 +29,7 @@ import {
   ModelGenerateCodeForAll,
   ModelMakeGeneratorQuicktypeInputDataForJsonSchema,
   ModelParseCodeGeneratorInputsForAll,
+  ModelSchemaParseForJsonSchema,
 } from './model/index.js';
 import {
   OpenApiGenerateSpecificationForProjectByMerging,
@@ -66,6 +67,7 @@ export function registerFunctions(context: ModuleRegistrationContext) {
     ModelGenerateCodeForAll,
     ModelMakeGeneratorQuicktypeInputDataForJsonSchema,
     ModelParseCodeGeneratorInputsForAll,
+    ModelSchemaParseForJsonSchema,
     OpenApiGenerateSpecificationForProjectByMerging,
     OpenApiGenerateSpecificationForWorkspace,
     ProjectDependenciesUpdateAndTestForAll,

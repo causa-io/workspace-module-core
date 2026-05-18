@@ -57,6 +57,7 @@
     "@swc/jest": "^0.2.39",
     "@tsconfig/node22": "^22.0.5",
     "@types/jest": "^30.0.0",
+    "@types/json-schema": "^7.0.15",
     "@types/micromatch": "^4.0.10",
     "@types/node": "^20.19.41",
     "eslint": "^10.4.0",

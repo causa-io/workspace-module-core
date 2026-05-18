@@ -45,11 +45,11 @@
     "class-validator": "^0.15.1",
     "expect": "^30.4.1",
     "globby": "^16.2.0",
-    "js-yaml": "^4.1.1",
     "json-e": "^4.8.2",
     "micromatch": "^4.0.8",
     "pino": "^10.3.1",
-    "quicktype-core": "^23.2.6"
+    "quicktype-core": "^23.2.6",
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@scalar/openapi-types": "^0.8.0",
@@ -57,7 +57,6 @@
     "@swc/jest": "^0.2.39",
     "@tsconfig/node22": "^22.0.5",
     "@types/jest": "^30.0.0",
-    "@types/js-yaml": "^4.0.9",
     "@types/micromatch": "^4.0.10",
     "@types/node": "^20.19.41",
     "eslint": "^10.3.0",

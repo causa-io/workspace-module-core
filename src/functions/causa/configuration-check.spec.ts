@@ -4,7 +4,7 @@ import { createContext, registerMockFunction } from '@causa/workspace/testing';
 import { jest } from '@jest/globals';
 import { mkdtemp, rm, writeFile } from 'fs/promises';
 import 'jest-extended';
-import { dump } from 'js-yaml';
+import { stringify } from 'yaml';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
 import {
@@ -25,7 +25,7 @@ describe('ConfigurationCheckForAll', () => {
     schemaPath = join(tmpDir, 'schema.yaml');
     await writeFile(
       schemaPath,
-      dump({
+      stringify({
         type: 'object',
         properties: {
           project: {

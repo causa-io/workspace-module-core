@@ -1,6 +1,6 @@
 import { expect } from 'expect';
 import { readFile, writeFile } from 'fs/promises';
-import { dump, load } from 'js-yaml';
+import { parse, stringify } from 'yaml';
 import jsone from 'json-e';
 import { resolve } from 'path';
 import {
@@ -38,7 +38,7 @@ export class ScenarioRunForAll extends ScenarioRun {
     this._context.logger.info(`▶️ Running scenario from '${filePath}'.`);
 
     const raw = await readFile(filePath, 'utf-8');
-    const scenario = load(raw) as Scenario;
+    const scenario = parse(raw) as Scenario;
 
     const inputValues = this.resolveInputs(scenario);
     const { stepDeps, allConfigPaths } = collectStepRefs(scenario);
@@ -76,7 +76,7 @@ export class ScenarioRunForAll extends ScenarioRun {
 
     if (this.output) {
       const outputPath = resolve(this._context.rootPath, this.output);
-      await writeFile(outputPath, dump(result));
+      await writeFile(outputPath, stringify(result));
       this._context.logger.info(`📝 Wrote scenario result to '${outputPath}'.`);
     }
 

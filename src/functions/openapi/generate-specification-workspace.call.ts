@@ -5,7 +5,7 @@ import { readFiles } from '@scalar/json-magic/bundle/plugins/node';
 import { join as joinSpecs } from '@scalar/openapi-parser';
 import type { OpenAPIV3_1 } from '@scalar/openapi-types';
 import { writeFile } from 'fs/promises';
-import { dump, load } from 'js-yaml';
+import { parse, stringify } from 'yaml';
 import { join, resolve } from 'path';
 import { isDeepStrictEqual } from 'util';
 import type { OpenApiConfiguration } from '../../configurations/index.js';
@@ -49,7 +49,7 @@ async function generateForProject(
       output,
     });
 
-    const openApiSpecification = load(openApiStr) as OpenAPIV3_1.Document;
+    const openApiSpecification = parse(openApiStr) as OpenAPIV3_1.Document;
 
     context.logger.info(
       `📝 Generated OpenAPI specification for project in directory '${projectPath}'.`,
@@ -235,7 +235,7 @@ export default async function call(
     };
   }
 
-  const mergedSpecificationsYaml = dump(mergedSpecifications);
+  const mergedSpecificationsYaml = stringify(mergedSpecifications);
 
   if (this.returnSpecification) {
     return mergedSpecificationsYaml;

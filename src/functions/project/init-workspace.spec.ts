@@ -7,7 +7,7 @@ import { createContext, registerMockFunction } from '@causa/workspace/testing';
 import { jest } from '@jest/globals';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'fs/promises';
 import 'jest-extended';
-import { load } from 'js-yaml';
+import { parse } from 'yaml';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
 import {
@@ -117,7 +117,7 @@ describe('ProjectInitWorkspace', () => {
 
     const schemaFile = join(tmpDir, '.causa', 'configuration-schema.yaml');
     const content = await readFile(schemaFile, 'utf-8');
-    const schema = load(content);
+    const schema = parse(content);
     expect(schema).toEqual({
       $id: schemaFile,
       allOf: [

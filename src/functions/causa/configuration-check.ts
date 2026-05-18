@@ -1,7 +1,7 @@
 import { WorkspaceContext } from '@causa/workspace';
 import { Ajv, type ValidateFunction } from 'ajv';
 import { readFile } from 'fs/promises';
-import { load } from 'js-yaml';
+import { parse } from 'yaml';
 import { composeConfigurationSchema } from '../../configuration-schema.js';
 import {
   CausaListConfigurationSchemas,
@@ -47,7 +47,7 @@ export class ConfigurationCheckForAll extends ConfigurationCheck {
     const moduleSchemas = await Promise.all(
       schemaPaths.map(async (path) => {
         const content = await readFile(path, 'utf-8');
-        return load(content) as Record<string, unknown>;
+        return parse(content) as Record<string, unknown>;
       }),
     );
 

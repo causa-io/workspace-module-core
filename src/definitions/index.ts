@@ -6,6 +6,7 @@ export * from './event-topic.js';
 export * from './http.js';
 export * from './infrastructure.js';
 export * from './model.js';
+export * from './model.types.js';
 export * from './openapi.js';
 export * from './project.js';
 export * from './scenario.js';

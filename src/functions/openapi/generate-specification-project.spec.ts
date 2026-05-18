@@ -2,7 +2,7 @@ import { WorkspaceContext } from '@causa/workspace';
 import { NoImplementationFoundError } from '@causa/workspace/function-registry';
 import { createContext } from '@causa/workspace/testing';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'fs/promises';
-import { dump, load } from 'js-yaml';
+import { parse, stringify } from 'yaml';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { OpenApiGenerateSpecification } from '../../definitions/index.js';
@@ -40,7 +40,7 @@ describe('OpenApiGenerateSpecificationForProjectByMerging', () => {
   async function writeSpec(relativePath: string, spec: object) {
     const fullPath = join(projectPath, relativePath);
     await mkdir(join(fullPath, '..'), { recursive: true });
-    await writeFile(fullPath, dump(spec));
+    await writeFile(fullPath, stringify(spec));
   }
 
   it('should not support when no project is defined', () => {
@@ -88,7 +88,7 @@ describe('OpenApiGenerateSpecificationForProjectByMerging', () => {
     });
 
     expect(actualResult).toEqual(output);
-    const actualSpec = load((await readFile(output)).toString());
+    const actualSpec = parse((await readFile(output)).toString());
     expect(actualSpec).toEqual({
       openapi: expect.any(String),
       info: {},
@@ -111,7 +111,7 @@ describe('OpenApiGenerateSpecificationForProjectByMerging', () => {
       returnSpecification: true,
     });
 
-    const actualSpec = load(actualResult);
+    const actualSpec = parse(actualResult);
     expect(actualSpec).toEqual({
       openapi: expect.any(String),
       info: { title: 'A' },
@@ -135,7 +135,7 @@ describe('OpenApiGenerateSpecificationForProjectByMerging', () => {
     const output = join(rootPath, 'openapi.yaml');
     await context.call(OpenApiGenerateSpecification, { output });
 
-    const actualSpec = load((await readFile(output)).toString());
+    const actualSpec = parse((await readFile(output)).toString());
     expect(actualSpec).toEqual({
       openapi: '3.1.0',
       info: { title: '🎉' },
@@ -156,7 +156,7 @@ describe('OpenApiGenerateSpecificationForProjectByMerging', () => {
       version: '1.2.3',
     });
 
-    const actualSpec = load((await readFile(output)).toString()) as any;
+    const actualSpec = parse((await readFile(output)).toString()) as any;
     expect(actualSpec.info.version).toEqual('1.2.3');
   });
 
@@ -181,7 +181,7 @@ describe('OpenApiGenerateSpecificationForProjectByMerging', () => {
     const output = join(rootPath, 'openapi.yaml');
     await context.call(OpenApiGenerateSpecification, { output });
 
-    const actualSpec = load((await readFile(output)).toString()) as any;
+    const actualSpec = parse((await readFile(output)).toString()) as any;
     expect(actualSpec.paths['/a'].get.responses).toEqual({
       '200': { $ref: 'my-project/schemas/response.yaml#/MyResponse' },
       '201': { $ref: '#/components/schemas/MyResponse' },

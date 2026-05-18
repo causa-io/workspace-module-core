@@ -2,7 +2,7 @@ import { join as joinSpecs } from '@scalar/openapi-parser';
 import type { OpenAPIV3_1 } from '@scalar/openapi-types';
 import { readFile, writeFile } from 'fs/promises';
 import { globby } from 'globby';
-import { dump, load } from 'js-yaml';
+import { parse, stringify } from 'yaml';
 import { dirname, isAbsolute, join, relative, resolve } from 'path';
 import type { OpenApiConfiguration } from '../../configurations/index.js';
 import type { OpenApiGenerateSpecificationForProjectByMerging } from './generate-specification-project.js';
@@ -25,7 +25,7 @@ async function loadAndRewriteRefs(
   outputDir: string,
 ): Promise<any> {
   const content = await readFile(specFilePath, 'utf-8');
-  const spec = load(content);
+  const spec = parse(content);
   const specFileDir = dirname(specFilePath);
   return rewriteRefs(spec, (ref) => {
     const [filePart, fragment] = ref.split('#', 2);
@@ -88,7 +88,7 @@ export default async function call(
     result.document.info = { ...result.document.info, version: this.version };
   }
 
-  const mergedSpecificationsYaml = dump(result.document);
+  const mergedSpecificationsYaml = stringify(result.document);
   this._context.logger.info(`✅ Merged OpenAPI specifications.`);
 
   if (this.returnSpecification) {

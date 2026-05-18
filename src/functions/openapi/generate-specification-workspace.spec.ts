@@ -4,7 +4,7 @@ import { createContext, registerMockFunction } from '@causa/workspace/testing';
 import { jest } from '@jest/globals';
 import type { OpenAPIV3_1 } from '@scalar/openapi-types';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'fs/promises';
-import { dump, load } from 'js-yaml';
+import { parse, stringify } from 'yaml';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { OpenApiGenerateSpecification } from '../../definitions/index.js';
@@ -114,7 +114,9 @@ describe('OpenApiGenerateDocumentationForWorkspace ', () => {
     });
 
     expect(actualResult).toEqual(output);
-    const actualMergedSpecification = load((await readFile(output)).toString());
+    const actualMergedSpecification = parse(
+      (await readFile(output)).toString(),
+    );
     expect(actualMergedSpecification).toEqual({
       openapi: expect.any(String),
       info: { title: '🎉' },
@@ -144,7 +146,9 @@ describe('OpenApiGenerateDocumentationForWorkspace ', () => {
     });
 
     expect(actualResult).toEqual(output);
-    const actualMergedSpecification = load((await readFile(output)).toString());
+    const actualMergedSpecification = parse(
+      (await readFile(output)).toString(),
+    );
     expect(actualMergedSpecification).toEqual({
       openapi: '3.1.0',
       info: expect.any(Object),
@@ -186,7 +190,9 @@ describe('OpenApiGenerateDocumentationForWorkspace ', () => {
     });
 
     expect(actualResult).toEqual(output);
-    const actualMergedSpecification = load((await readFile(output)).toString());
+    const actualMergedSpecification = parse(
+      (await readFile(output)).toString(),
+    );
     expect(actualMergedSpecification).toEqual({
       openapi: expect.any(String),
       info: expect.any(Object),
@@ -284,7 +290,7 @@ describe('OpenApiGenerateDocumentationForWorkspace ', () => {
     expect(context.logger.warn).toHaveBeenCalledWith(
       expect.stringContaining('schemas.Pet'),
     );
-    const actualSpec = load((await readFile(output)).toString()) as any;
+    const actualSpec = parse((await readFile(output)).toString()) as any;
     expect(actualSpec.components.schemas.Pet).toEqual({
       type: 'object',
       properties: { name: { type: 'string' } },
@@ -328,7 +334,7 @@ describe('OpenApiGenerateDocumentationForWorkspace ', () => {
       version: '1.2.3',
     });
 
-    const actualSpec = load((await readFile(output)).toString()) as any;
+    const actualSpec = parse((await readFile(output)).toString()) as any;
     expect(actualSpec.info.version).toEqual('1.2.3');
   });
 
@@ -341,7 +347,7 @@ describe('OpenApiGenerateDocumentationForWorkspace ', () => {
     };
     await writeFile(
       join(schemasDir, 'pet.yaml'),
-      dump({ Pet: externalSchema }),
+      stringify({ Pet: externalSchema }),
     );
     createContextWithMocks({
       projectPaths: ['project1'],
@@ -374,7 +380,7 @@ describe('OpenApiGenerateDocumentationForWorkspace ', () => {
       returnSpecification: true,
     });
 
-    const actualSpec = load(actual) as OpenAPIV3_1.Document;
+    const actualSpec = parse(actual) as OpenAPIV3_1.Document;
     const ref =
       actualSpec.paths?.['/pets']?.get?.responses?.['200'].content[
         'application/json'

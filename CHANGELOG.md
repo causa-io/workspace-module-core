@@ -6,6 +6,16 @@ Breaking changes:
 
 - Remove the `key` (ordering) property from `BackfillEvent`.
 
+Features:
+
+- Define the format-neutral schema model types (`Schema`, `ObjectSchema`, `EnumSchema`, `UnionSchema`, `Property`, `PropertyType`, `SchemaDatabase`, `CausaExtensions`, `InvalidSchemaError`).
+- Define the `ModelSchemaParse`, `ModelSchemaExtractDatabase`, and `ModelSchemaWrite` workspace functions.
+- Implement `ModelSchemaParse` and `ModelSchemaWrite` for JSONSchema.
+
+Chores:
+
+- Replace the `js-yaml` dependency with `yaml`.
+
 ## v0.34.0 (2026-05-04)
 
 Breaking changes:

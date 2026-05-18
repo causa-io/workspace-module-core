@@ -9,7 +9,7 @@ import { AllowMissing } from '@causa/workspace/validation';
 import { IsString } from 'class-validator';
 import { mkdtemp, readFile, rm, writeFile } from 'fs/promises';
 import 'jest-extended';
-import { dump } from 'js-yaml';
+import { stringify } from 'yaml';
 import { join, resolve } from 'path';
 import {
   Scenario,
@@ -53,7 +53,7 @@ describe('ScenarioRunForAll', () => {
 
   async function writeScenario(scenario: Scenario): Promise<string> {
     const path = join(tmpDir, 'scenario.yaml');
-    await writeFile(path, dump(scenario));
+    await writeFile(path, stringify(scenario));
     return path;
   }
 

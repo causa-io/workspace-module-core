@@ -3,7 +3,7 @@ import {
   setUpCausaFolder,
 } from '@causa/workspace/initialization';
 import { readFile, writeFile } from 'fs/promises';
-import { dump } from 'js-yaml';
+import { stringify } from 'yaml';
 import { join } from 'path';
 import { composeConfigurationSchema } from '../../configuration-schema.js';
 import {
@@ -71,7 +71,7 @@ export class ProjectInitForWorkspace extends ProjectInit {
       ),
     };
 
-    const content = dump(schema);
+    const content = stringify(schema);
     await writeFile(schemaFile, content);
 
     this._context.logger.info(

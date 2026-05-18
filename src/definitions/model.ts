@@ -1,7 +1,22 @@
 import { CliCommand, type ParentCliCommandDefinition } from '@causa/cli';
 import { WorkspaceFunction } from '@causa/workspace';
-import { IsObject, IsString } from 'class-validator';
+import { AllowMissing } from '@causa/workspace/validation';
+import { Allow, IsArray, IsObject, IsString } from 'class-validator';
 import type { InputData } from 'quicktype-core';
+import type {
+  LoadSchemasResult,
+  ObjectSchemaWithoutDatabases,
+  Schema,
+  SchemaDatabase,
+} from './model.types.js';
+
+/**
+ * A function reading the UTF-8 contents of a file at the given absolute path.
+ *
+ * Used by schema parsers to fetch the raw text of every file the loader touches — both files discovered via the input
+ * paths and files pulled in transitively via `$ref` resolution.
+ */
+export type SchemaFileReader = (path: string) => Promise<string>;
 
 /**
  * The `model` parent command, grouping all commands related to business modelling, e.g. generating code from schemas.
@@ -153,4 +168,111 @@ export abstract class ModelMakeGeneratorQuicktypeInputData extends WorkspaceFunc
    */
   @IsObject()
   readonly configuration!: Record<string, unknown>;
+}
+
+/**
+ * Loads and parses one or more schema files into the format-neutral schema model, transitively following references to
+ * pull in any files reachable from the input set.
+ *
+ * Implementations are selected based on the workspace's `model.schema` configuration.
+ */
+export abstract class ModelSchemaParse extends WorkspaceFunction<
+  Promise<LoadSchemasResult>
+> {
+  /**
+   * Absolute paths of the initial schema files to load.
+   */
+  @IsArray()
+  @IsString({ each: true })
+  readonly paths!: string[];
+
+  /**
+   * Optional reader used to fetch the raw text of every file the loader touches. When omitted, implementations default
+   * to reading from the filesystem.
+   */
+  @Allow()
+  @AllowMissing()
+  readonly fileReader?: SchemaFileReader;
+}
+
+/**
+ * Extracts a {@link SchemaDatabase} binding from an object schema's causa extensions.
+ *
+ * No implementation is provided in this package: engine modules each register their own implementation, whose
+ * `_supports` decides whether the schema is persisted in that engine (e.g. by looking up an engine-specific causa
+ * extension).
+ */
+export abstract class ModelSchemaExtractDatabase extends WorkspaceFunction<SchemaDatabase> {
+  /**
+   * The object schema to derive a database binding from, before its own `databases` field is computed.
+   */
+  @IsObject()
+  readonly schema!: ObjectSchemaWithoutDatabases;
+}
+
+/**
+ * The action to perform when writing schema-formatted contents through {@link ModelSchemaWrite}.
+ */
+export type SchemaWriteAction =
+  | {
+      /**
+       * Apply (create or update) a single schema in the file.
+       */
+      type: 'apply';
+
+      /**
+       * The schema whose body should be written. The target location is identified by {@link Schema.path}.
+       */
+      schema: Schema;
+    }
+  | {
+      /**
+       * Delete a schema from the file.
+       */
+      type: 'delete';
+
+      /**
+       * Absolute path of the schema to delete.
+       */
+      path: string;
+    }
+  | {
+      /**
+       * Rename a nested schema within a file. Updates the parent key, sets the schema's title to the new leaf name,
+       * and rewrites every in-file ref containing the old fragment.
+       */
+      type: 'rename';
+
+      /**
+       * The old JSON Pointer fragment of the schema, e.g. `#/$defs/Foo`.
+       */
+      oldFragment: string;
+
+      /**
+       * The new JSON Pointer fragment of the schema, e.g. `#/$defs/Bar`.
+       */
+      newFragment: string;
+    };
+
+/**
+ * Writes schema-formatted file contents, applying one of: creating/updating a schema, deleting a schema, or renaming a
+ * nested schema within the file.
+ *
+ * Implementations are selected based on the workspace's `model.schema` configuration. They are pure transformers:
+ * callers are responsible for reading the source file and persisting the returned contents.
+ */
+export abstract class ModelSchemaWrite extends WorkspaceFunction<
+  Promise<string>
+> {
+  /**
+   * The current text of the file the schema lives in. May be empty when creating a new file.
+   */
+  @IsString()
+  readonly contents!: string;
+
+  /**
+   * The write action to perform.
+   */
+  @IsObject()
+  readonly action!: SchemaWriteAction;
 }

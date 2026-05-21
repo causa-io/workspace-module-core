@@ -196,6 +196,32 @@ properties:
                 - type
                 - queue
 
+      healthCheck:
+        description: |-
+          Configuration for the HTTP health check probes of the service.
+          Setting this to `null` disables both the startup and liveness probes.
+        oneOf:
+          - type: 'null'
+          - title: ServiceContainerHealthCheck
+            type: object
+            description: Configuration for the HTTP health check probes of the service.
+            properties:
+              startup:
+                description: |-
+                  Configuration for the startup probe.
+                  Setting this to `null` disables the startup probe.
+                oneOf:
+                  - type: 'null'
+                  - $ref: '#/$defs/ServiceContainerHealthCheckProbe'
+
+              liveness:
+                description: |-
+                  Configuration for the liveness probe.
+                  Setting this to `null` disables the liveness probe.
+                oneOf:
+                  - type: 'null'
+                  - $ref: '#/$defs/ServiceContainerHealthCheckProbe'
+
       outputs:
         title: ServiceContainerOutputs
         description: The data this service produces.
@@ -210,3 +236,28 @@ properties:
 $defs:
   _TemplateString:
     type: string
+
+  ServiceContainerHealthCheckProbe:
+    title: ServiceContainerHealthCheckProbe
+    type: object
+    description: Configuration for an HTTP health check probe.
+    properties:
+      path:
+        type: string
+        description: The HTTP path called by the probe. Defaults to `/health`.
+
+      initialDelay:
+        type: number
+        description: The number of seconds after the container has started before the probe is first invoked.
+
+      period:
+        type: number
+        description: The period in seconds at which the probe is invoked.
+
+      timeout:
+        type: number
+        description: The number of seconds after which the probe times out.
+
+      failureThreshold:
+        type: number
+        description: The number of consecutive failures after which the probe is considered failed.

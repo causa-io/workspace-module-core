@@ -609,6 +609,77 @@ export class ServiceContainerEndpoints {
 }
 
 /**
+ * Configuration for an HTTP health check probe.
+ */
+export class ServiceContainerHealthCheckProbe {
+  constructor(init: ServiceContainerHealthCheckProbe) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * The number of consecutive failures after which the probe is considered failed.
+   */
+  @AllowMissing()
+  @IsNumber()
+  readonly failureThreshold?: number;
+
+  /**
+   * The number of seconds after the container has started before the probe is first invoked.
+   */
+  @AllowMissing()
+  @IsNumber()
+  readonly initialDelay?: number;
+
+  /**
+   * The HTTP path called by the probe. Defaults to `/health`.
+   */
+  @AllowMissing()
+  @IsString()
+  readonly path?: string;
+
+  /**
+   * The period in seconds at which the probe is invoked.
+   */
+  @AllowMissing()
+  @IsNumber()
+  readonly period?: number;
+
+  /**
+   * The number of seconds after which the probe times out.
+   */
+  @AllowMissing()
+  @IsNumber()
+  readonly timeout?: number;
+  [property: string]: any;
+}
+
+/**
+ * Configuration for the HTTP health check probes of the service.
+ */
+export class ServiceContainerHealthCheck {
+  constructor(init: ServiceContainerHealthCheck) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * Configuration for the liveness probe.
+   * Setting this to `null` disables the liveness probe.
+   */
+  @IsNullable()
+  @AllowMissing()
+  readonly liveness?: null | ServiceContainerHealthCheckProbe;
+
+  /**
+   * Configuration for the startup probe.
+   * Setting this to `null` disables the startup probe.
+   */
+  @IsNullable()
+  @AllowMissing()
+  readonly startup?: null | ServiceContainerHealthCheckProbe;
+  [property: string]: any;
+}
+
+/**
  * The data this service produces.
  */
 export class ServiceContainerOutputs {
@@ -760,6 +831,14 @@ export class ServiceContainer {
   @AllowMissing()
   @IsObject()
   readonly environmentVariables?: { [key: string]: string };
+
+  /**
+   * Configuration for the HTTP health check probes of the service.
+   * Setting this to `null` disables both the startup and liveness probes.
+   */
+  @IsNullable()
+  @AllowMissing()
+  readonly healthCheck?: null | ServiceContainerHealthCheck;
 
   /**
    * The maximum number of instances of the service that should be running.

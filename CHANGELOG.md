@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.35.0-beta.3 (2026-05-21)
+
 Features:
 
 - Define the `serviceContainer.healthCheck` configuration for service containers, with `startup` and `liveness` probe blocks supporting `path`, `initialDelay`, `period`, `timeout`, and `failureThreshold`.

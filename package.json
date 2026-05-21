@@ -15,7 +15,7 @@
   "types": "dist/index.d.ts",
   "exports": {
     ".": "./dist/index.js",
-    "./code-generation": "./dist/code-generation/index.js",
+    "./jsonschema": "./dist/jsonschema/index.js",
     "./services": "./dist/services/index.js"
   },
   "files": [
@@ -48,7 +48,6 @@
     "json-e": "^4.8.2",
     "micromatch": "^4.0.8",
     "pino": "^10.3.1",
-    "quicktype-core": "^23.2.6",
     "yaml": "^2.9.0"
   },
   "devDependencies": {

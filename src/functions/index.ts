@@ -1,7 +1,7 @@
 import type { ModuleRegistrationContext } from '@causa/workspace';
 import {
-  ConfigurationCheckForAll,
   CausaListConfigurationSchemasForCore,
+  ConfigurationCheckForAll,
 } from './causa/index.js';
 import {
   EmulatorListForAll,
@@ -27,7 +27,6 @@ import {
 } from './infrastructure/index.js';
 import {
   ModelGenerateCodeForAll,
-  ModelMakeGeneratorQuicktypeInputDataForJsonSchema,
   ModelParseCodeGeneratorInputsForAll,
   ModelSchemaParseForJsonSchema,
   ModelSchemaWriteForJsonSchema,
@@ -66,7 +65,6 @@ export function registerFunctions(context: ModuleRegistrationContext) {
     InfrastructureProcessAndPrepareForAll,
     HttpMakeRequestForAll,
     ModelGenerateCodeForAll,
-    ModelMakeGeneratorQuicktypeInputDataForJsonSchema,
     ModelParseCodeGeneratorInputsForAll,
     ModelSchemaParseForJsonSchema,
     ModelSchemaWriteForJsonSchema,

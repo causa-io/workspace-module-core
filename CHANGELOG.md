@@ -10,6 +10,10 @@ Features:
 
 - Export the `./jsonschema` subpath.
 
+Chores:
+
+- Remove the `axios` dependency in favor of the Node.js-provided `fetch`.
+
 ## v0.35.0-beta.1 (2026-05-18)
 
 Breaking changes:

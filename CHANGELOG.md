@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.35.0-beta.2 (2026-05-21)
+
 Breaking changes:
 
 - Remove the `quicktype`-based code generation, including the `./code-generation` subpath export, the `MakeGeneratorQuicktypeInputData` workspace function, and the `quicktype-core` dependency.

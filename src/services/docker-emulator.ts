@@ -1,5 +1,4 @@
 import { WorkspaceContext } from '@causa/workspace';
-import axios from 'axios';
 import type { Logger } from 'pino';
 import { type DockerContainerPublish, DockerService } from './docker.js';
 
@@ -116,9 +115,10 @@ export class DockerEmulatorService {
       );
 
       try {
-        await axios.get(endpoint, {
-          validateStatus: (status) => status === expectedStatus,
-        });
+        const response = await fetch(endpoint);
+        if (response.status !== expectedStatus) {
+          throw new Error(`Unexpected status code '${response.status}'.`);
+        }
 
         this.logger.debug(`😍 Emulator '${emulatorName}' is available.`);
         return;

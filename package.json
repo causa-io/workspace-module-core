@@ -16,6 +16,7 @@
   "exports": {
     ".": "./dist/index.js",
     "./code-generation": "./dist/code-generation/index.js",
+    "./jsonschema": "./dist/jsonschema/index.js",
     "./services": "./dist/services/index.js"
   },
   "files": [

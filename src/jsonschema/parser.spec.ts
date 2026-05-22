@@ -567,6 +567,176 @@ properties:
       });
     });
 
+    it('should extract an inline object schema declared inside array items', () => {
+      const schemas = parseJsonSchema(
+        `
+title: Root
+type: object
+properties:
+  addresses:
+    type: array
+    items:
+      title: Address
+      type: object
+      properties:
+        street:
+          type: string`,
+        path,
+      );
+
+      const inlinePointer = `${path}#/properties/addresses/items`;
+      const inline = schemas.find((s) => s.name === 'Address');
+      expect(inline).toMatchObject({ kind: 'object', path: inlinePointer });
+      expect((schemas[0] as any).properties[0].type).toEqual({
+        kind: 'array',
+        items: { kind: 'ref', ref: inlinePointer },
+        itemNullable: false,
+      });
+    });
+
+    it('should extract a nullable inline object schema declared inside array items', () => {
+      const schemas = parseJsonSchema(
+        `
+title: Root
+type: object
+properties:
+  addresses:
+    type: array
+    items:
+      type: [object, "null"]
+      title: Address
+      properties:
+        street:
+          type: string`,
+        path,
+      );
+
+      const inlinePointer = `${path}#/properties/addresses/items/oneOf/0`;
+      const inline = schemas.find((s) => s.name === 'Address');
+      expect(inline).toMatchObject({ kind: 'object', path: inlinePointer });
+      expect((schemas[0] as any).properties[0].type).toEqual({
+        kind: 'array',
+        items: { kind: 'ref', ref: inlinePointer },
+        itemNullable: true,
+      });
+    });
+
+    it('should extract an inline enum schema declared inside array items', () => {
+      const schemas = parseJsonSchema(
+        `
+title: Root
+type: object
+properties:
+  statuses:
+    type: array
+    items:
+      title: Status
+      type: string
+      enum: [active, archived]`,
+        path,
+      );
+
+      const inlinePointer = `${path}#/properties/statuses/items`;
+      const inline = schemas.find((s) => s.name === 'Status');
+      expect(inline).toMatchObject({
+        kind: 'enum',
+        type: 'string',
+        values: ['active', 'archived'],
+        path: inlinePointer,
+      });
+    });
+
+    it('should extract an inline union declared inside array items', () => {
+      const schemas = parseJsonSchema(
+        `
+title: Root
+type: object
+properties:
+  values:
+    type: array
+    items:
+      title: Value
+      oneOf:
+        - type: string
+        - type: integer`,
+        path,
+      );
+
+      const inlinePointer = `${path}#/properties/values/items`;
+      const union = schemas.find((s) => s.name === 'Value');
+      expect(union).toMatchObject({ kind: 'union', path: inlinePointer });
+    });
+
+    it('should fall back to `${propertyName}Item` for an untitled inline schema in array items', () => {
+      const schemas = parseJsonSchema(
+        `
+title: Root
+type: object
+properties:
+  addresses:
+    type: array
+    items:
+      type: object
+      properties:
+        street:
+          type: string`,
+        path,
+      );
+
+      const inline = schemas.find(
+        (s) => s.path === `${path}#/properties/addresses/items`,
+      );
+      expect(inline).toMatchObject({ kind: 'object', name: 'addressesItem' });
+    });
+
+    it('should extract an inline object schema declared inside additionalProperties', () => {
+      const schemas = parseJsonSchema(
+        `
+title: Root
+type: object
+properties:
+  byId:
+    type: object
+    additionalProperties:
+      title: Entry
+      type: object
+      properties:
+        name:
+          type: string`,
+        path,
+      );
+
+      const inlinePointer = `${path}#/properties/byId/additionalProperties`;
+      const inline = schemas.find((s) => s.name === 'Entry');
+      expect(inline).toMatchObject({ kind: 'object', path: inlinePointer });
+      expect((schemas[0] as any).properties[0].type).toEqual({
+        kind: 'map',
+        items: { kind: 'ref', ref: inlinePointer },
+      });
+    });
+
+    it('should fall back to `${propertyName}Value` for an untitled inline schema in additionalProperties', () => {
+      const schemas = parseJsonSchema(
+        `
+title: Root
+type: object
+properties:
+  byId:
+    type: object
+    additionalProperties:
+      type: object
+      properties:
+        name:
+          type: string`,
+        path,
+      );
+
+      const inline = schemas.find(
+        (s) => s.path === `${path}#/properties/byId/additionalProperties`,
+      );
+      expect(inline).toMatchObject({ kind: 'object', name: 'byIdValue' });
+    });
+
     it('should extract inline object schemas with their own path', () => {
       const schemas = parseJsonSchema(
         `

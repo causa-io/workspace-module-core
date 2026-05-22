@@ -19,6 +19,34 @@ import {
 type CausaSchema = JSONSchema7 & { causa?: Record<string, unknown> };
 
 /**
+ * Context threaded through type resolution to enable extraction of inline schemas (objects, enums, unions) declared
+ * directly inside `items`, `additionalProperties`, or as the property's own type.
+ *
+ * When this context is provided, {@link resolveInnerType} runs inline detection before its normal type-handling
+ * branches; any inline schemas it finds are appended to {@link InlineContext.schemas}, and the returned
+ * {@link PropertyType} is a `ref` pointing at the inline schema's pointer.
+ *
+ * `pointer` is the JSON Pointer addressing the current node; `fallbackName` is used as the schema name when the inline
+ * schema does not declare its own `title`.
+ */
+type InlineContext = {
+  /**
+   * List of inline schemas extracted so far, to which new entries are appended when discovered.
+   */
+  schemas: Schema[];
+
+  /**
+   * JSON Pointer addressing the current node, used to build the ref for any inline schema discovered at this node.
+   */
+  pointer: string;
+
+  /**
+   * Fallback name to use for any inline schema discovered at this node.
+   */
+  fallbackName: string;
+};
+
+/**
  * Set of primitive type names recognized by the model.
  */
 const PRIMITIVE_TYPES = new Set<PrimitiveType>([
@@ -213,21 +241,11 @@ function parseProperties(
       path,
     );
 
-    const inline = tryResolveInlineSchema(inner, pointer, name);
-    if (inline) {
-      nested.push(...inline.nested);
-      properties.push({
-        name,
-        type: inline.type,
-        nullable,
-        required,
-        description,
-        extensions,
-      });
-      continue;
-    }
-
-    const type = resolveInnerType(inner, path);
+    const type = resolveInnerType(inner, path, {
+      schemas: nested,
+      pointer,
+      fallbackName: name,
+    });
     properties.push({
       name,
       type,
@@ -366,9 +384,27 @@ function expandTypeArray(prop: CausaSchema, path: string): CausaSchema {
  *
  * @param prop Raw schema node.
  * @param path Absolute path of the containing file.
+ * @param inline Optional context enabling inline-schema extraction. When provided, inline objects/enums/unions become
+ *   nested {@link Schema} entries pushed onto {@link InlineContext.schemas} and a `ref` is returned in their place.
  * @returns The resolved type.
  */
-function resolveInnerType(prop: CausaSchema, path: string): PropertyType {
+function resolveInnerType(
+  prop: CausaSchema,
+  path: string,
+  inline?: InlineContext,
+): PropertyType {
+  if (inline) {
+    const matched = tryResolveInlineSchema(
+      prop,
+      inline.pointer,
+      inline.fallbackName,
+    );
+    if (matched) {
+      inline.schemas.push(...matched.nested);
+      return matched.type;
+    }
+  }
+
   if (typeof prop.$ref === 'string') {
     return { kind: 'ref', ref: resolveRef(prop.$ref, path) };
   }
@@ -390,11 +426,11 @@ function resolveInnerType(prop: CausaSchema, path: string): PropertyType {
   }
 
   if (rawType === 'array') {
-    return resolveArrayType(prop, path);
+    return resolveArrayType(prop, path, inline);
   }
 
   if (rawType === 'object' && prop.additionalProperties !== undefined) {
-    return resolveMapType(prop, path);
+    return resolveMapType(prop, path, inline);
   }
 
   return resolvePrimitiveType(rawType, prop.format, path);
@@ -457,13 +493,19 @@ function resolveConstType(prop: CausaSchema, path: string): PropertyType {
 /**
  * Resolve an `array`-typed schema node into a {@link PropertyType} of kind `array`.
  *
- * Item types may themselves use the nullable `oneOf: [..., {type: null}]` pattern.
+ * Item types may themselves use the nullable `oneOf: [..., {type: null}]` pattern, or carry inline object/enum/union
+ * shapes when an {@link InlineContext} is threaded in.
  *
  * @param prop Raw schema node with `type: 'array'`.
  * @param path Absolute path of the containing file.
+ * @param inline Optional context propagated to the items so inline schemas declared inside `items` can be extracted.
  * @returns The resolved array type.
  */
-function resolveArrayType(prop: CausaSchema, path: string): PropertyType {
+function resolveArrayType(
+  prop: CausaSchema,
+  path: string,
+  inline?: InlineContext,
+): PropertyType {
   if (
     !prop.items ||
     typeof prop.items !== 'object' ||
@@ -472,28 +514,24 @@ function resolveArrayType(prop: CausaSchema, path: string): PropertyType {
     throw new InvalidSchemaError(path, 'array must declare an items schema');
   }
 
-  const rawItems = expandTypeArray(prop.items as CausaSchema, path);
-  const itemOneOf = rawItems.oneOf as CausaSchema[] | undefined;
-  if (itemOneOf) {
-    const nonNull = itemOneOf.filter((o) => o.type !== 'null');
-    if (nonNull.length !== 1) {
-      throw new InvalidSchemaError(
-        path,
-        'array items oneOf must have exactly one non-null variant',
-      );
-    }
-
-    return {
-      kind: 'array',
-      items: resolveInnerType(nonNull[0], path),
-      itemNullable: itemOneOf.some((o) => o.type === 'null'),
-    };
-  }
+  const itemsPointer = inline ? `${inline.pointer}/items` : '';
+  const {
+    inner,
+    nullable: itemNullable,
+    pointer,
+  } = unwrapNullableOneOf(prop.items as CausaSchema, itemsPointer, path);
+  const itemInline = inline
+    ? {
+        schemas: inline.schemas,
+        pointer,
+        fallbackName: `${inline.fallbackName}Item`,
+      }
+    : undefined;
 
   return {
     kind: 'array',
-    items: resolveInnerType(rawItems, path),
-    itemNullable: false,
+    items: resolveInnerType(inner, path, itemInline),
+    itemNullable,
   };
 }
 
@@ -501,14 +539,22 @@ function resolveArrayType(prop: CausaSchema, path: string): PropertyType {
  * Resolve a `type: object` schema node carrying `additionalProperties` into a {@link PropertyType} of kind `map`.
  *
  * The value type is `'any'` when `additionalProperties` is the boolean `true`, or the resolved inner type when it is
- * a schema. Any other shape throws.
+ * a schema. Any other shape throws. When an {@link InlineContext} is provided, inline object/enum/union shapes
+ * declared directly as the value schema are extracted as nested {@link Schema} entries; their pointer is
+ * `${inline.pointer}/additionalProperties` and their fallback name is `${inline.fallbackName}Value`.
  *
  * @param prop Raw schema node.
  * @param path Absolute path of the containing file.
+ * @param inline Optional context propagated to the value schema so inline schemas declared inside
+ *   `additionalProperties` can be extracted.
  * @returns The resolved map type.
  * @throws {InvalidSchemaError} When `additionalProperties` is `false` or any value other than `true` or a schema.
  */
-function resolveMapType(prop: CausaSchema, path: string): PropertyType {
+function resolveMapType(
+  prop: CausaSchema,
+  path: string,
+  inline?: InlineContext,
+): PropertyType {
   const additional = prop.additionalProperties;
   if (additional === true) {
     return { kind: 'map', items: 'any' };
@@ -532,9 +578,17 @@ function resolveMapType(prop: CausaSchema, path: string): PropertyType {
     );
   }
 
+  const valueInline = inline
+    ? {
+        schemas: inline.schemas,
+        pointer: `${inline.pointer}/additionalProperties`,
+        fallbackName: `${inline.fallbackName}Value`,
+      }
+    : undefined;
+
   return {
     kind: 'map',
-    items: resolveInnerType(additional as CausaSchema, path),
+    items: resolveInnerType(additional as CausaSchema, path, valueInline),
   };
 }
 

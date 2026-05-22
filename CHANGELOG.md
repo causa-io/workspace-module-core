@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.35.0-beta.4 (2026-05-22)
+
 Features:
 
 - Support inline object, enum, and union schemas declared inside a property's `oneOf` (including the nullable wrapper), inside array `items`, and inside `additionalProperties` during JSONSchema parsing.

@@ -142,6 +142,24 @@ properties:
       });
     });
 
+    it('should ignore an unrecognized format and fall back to the bare type', () => {
+      const [schema] = parseJsonSchema(
+        `
+title: U
+type: object
+properties:
+  email:
+    type: string
+    format: email`,
+        path,
+      );
+
+      expect((schema as any).properties[0].type).toEqual({
+        kind: 'primitive',
+        type: 'string',
+      });
+    });
+
     it('should resolve datetime format', () => {
       const [schema] = parseJsonSchema(
         `

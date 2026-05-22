@@ -545,7 +545,7 @@ function resolveMapType(prop: CausaSchema, path: string): PropertyType {
  * @param format The raw JSON Schema `format` value, if any.
  * @param path Absolute path of the containing file, used for error reporting.
  * @returns The resolved primitive type.
- * @throws {InvalidSchemaError} When the type/format combination is missing, unrecognized, or inconsistent.
+ * @throws {InvalidSchemaError} When `type` is missing or not a recognized primitive.
  */
 function resolvePrimitiveType(
   rawType: string | undefined,
@@ -558,7 +558,7 @@ function resolvePrimitiveType(
   if (rawType === 'string' && format === 'uuid') {
     return { kind: 'primitive', type: 'uuid' };
   }
-  if (!format && rawType && PRIMITIVE_TYPES.has(rawType as PrimitiveType)) {
+  if (rawType && PRIMITIVE_TYPES.has(rawType as PrimitiveType)) {
     return { kind: 'primitive', type: rawType as PrimitiveType };
   }
   throw new InvalidSchemaError(

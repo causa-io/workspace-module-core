@@ -1,5 +1,5 @@
 import type { JSONSchema7 } from 'json-schema';
-import { dirname, join, normalize } from 'node:path';
+import { basename, dirname, extname, join, normalize } from 'node:path';
 import * as yaml from 'yaml';
 import {
   InvalidSchemaError,
@@ -17,6 +17,34 @@ import {
  * Internal alias used while walking the source JSON Schema.
  */
 type CausaSchema = JSONSchema7 & { causa?: Record<string, unknown> };
+
+/**
+ * Context threaded through type resolution to enable extraction of inline schemas (objects, enums, unions) declared
+ * directly inside `items`, `additionalProperties`, or as the property's own type.
+ *
+ * When this context is provided, {@link resolveInnerType} runs inline detection before its normal type-handling
+ * branches; any inline schemas it finds are appended to {@link InlineContext.schemas}, and the returned
+ * {@link PropertyType} is a `ref` pointing at the inline schema's pointer.
+ *
+ * `pointer` is the JSON Pointer addressing the current node; `fallbackName` is used as the schema name when the inline
+ * schema does not declare its own `title`.
+ */
+type InlineContext = {
+  /**
+   * List of inline schemas extracted so far, to which new entries are appended when discovered.
+   */
+  schemas: Schema[];
+
+  /**
+   * JSON Pointer addressing the current node, used to build the ref for any inline schema discovered at this node.
+   */
+  pointer: string;
+
+  /**
+   * Fallback name to use for any inline schema discovered at this node.
+   */
+  fallbackName: string;
+};
 
 /**
  * Set of primitive type names recognized by the model.
@@ -74,7 +102,7 @@ function parseSchema(rawSchema: unknown, path: string): Schema[] {
   }
 
   const schema = rawSchema as CausaSchema;
-  const name = schema.title;
+  const name = schema.title ?? defaultSchemaName(path);
   if (!name) {
     throw new InvalidSchemaError(path, 'missing title');
   }
@@ -83,9 +111,29 @@ function parseSchema(rawSchema: unknown, path: string): Schema[] {
 }
 
 /**
+ * Derive a default schema name from a schema's path.
+ *
+ * - When the path is a plain file path (`/abs/file.yaml`), the basename without extension is returned (`file`).
+ * - When the path carries a JSON Pointer fragment (`/abs/file.yaml#/$defs/Foo`), the last fragment segment is
+ *   returned (`Foo`).
+ *
+ * @param path Absolute path identifying the schema (with or without a fragment).
+ * @returns The fallback name, or an empty string when nothing usable can be derived.
+ */
+function defaultSchemaName(path: string): string {
+  const [filePath, fragment] = path.split('#', 2);
+  if (fragment !== undefined) {
+    return fragment.split('/').filter(Boolean).pop() ?? '';
+  }
+  const base = basename(filePath);
+  const ext = extname(base);
+  return ext ? base.slice(0, -ext.length) : base;
+}
+
+/**
  * Build one or more {@link Schema} entries from a recognized node shape.
  *
- * @param schema The source schema node.
+ * @param rawSchema The source schema node.
  * @param name Display name for the produced schema.
  * @param path Full path identifying the produced schema.
  * @returns The produced schema followed by any inline schemas extracted from its properties (object case only).
@@ -93,10 +141,11 @@ function parseSchema(rawSchema: unknown, path: string): Schema[] {
  *   `type: object`.
  */
 function parseSchemaBody(
-  schema: CausaSchema,
+  rawSchema: CausaSchema,
   name: string,
   path: string,
 ): Schema[] {
+  const schema = expandTypeArray(rawSchema, path);
   const description = schema.description;
   const extensions = buildExtensions(schema.causa, path);
 
@@ -118,26 +167,11 @@ function parseSchemaBody(
   }
 
   if (schema.oneOf) {
-    const types = schema.oneOf.filter(
-      (o): o is JSONSchema7 => typeof o === 'object' && o.type !== 'null',
-    );
-    if (types.length < 2) {
-      throw new InvalidSchemaError(
-        path,
-        'a union must have at least two non-null variants',
-      );
-    }
+    const types = schema.oneOf
+      .filter((t): t is JSONSchema7 => typeof t === 'object')
+      .map((t) => resolveInnerType(t, path));
 
-    return [
-      {
-        kind: 'union',
-        name,
-        path,
-        description,
-        types: types.map((v) => resolveInnerType(v, path)),
-        extensions,
-      },
-    ];
+    return [{ kind: 'union', name, path, description, types, extensions }];
   }
 
   if (schema.type !== 'object') {
@@ -201,21 +235,17 @@ function parseProperties(
     const extensions = buildExtensions(prop.causa, path);
     const required = requiredSet.has(name);
     const { description } = prop;
-    const inline = tryResolveInlineSchema(prop, `${pointerPrefix}/${name}`);
-    if (inline) {
-      nested.push(...inline.nested);
-      properties.push({
-        name,
-        type: inline.type,
-        nullable: false,
-        required,
-        description,
-        extensions,
-      });
-      continue;
-    }
+    const { inner, nullable, pointer } = unwrapNullableOneOf(
+      prop,
+      `${pointerPrefix}/${name}`,
+      path,
+    );
 
-    const { type, nullable } = resolvePropertyType(prop, path);
+    const type = resolveInnerType(inner, path, {
+      schemas: nested,
+      pointer,
+      fallbackName: name,
+    });
     properties.push({
       name,
       type,
@@ -238,22 +268,25 @@ function parseProperties(
  *
  * @param prop Raw property schema.
  * @param pointer JSON Pointer that will identify the inline schema, e.g. `"/abs/file.yaml#/properties/address"`.
+ * @param fallbackName Name to use when the inline schema does not declare a `title` (typically the property name).
  * @returns The resolved type and extracted nested schemas, or `null` to fall through.
  */
 function tryResolveInlineSchema(
   prop: CausaSchema,
   pointer: string,
+  fallbackName: string,
 ): { type: PropertyType; nested: Schema[] } | null {
   const isEnum = Array.isArray(prop.enum);
   const isObject = prop.type === 'object' && prop.properties !== undefined;
-  if (!isEnum && !isObject) {
+  const isUnion =
+    Array.isArray(prop.oneOf) &&
+    prop.oneOf.filter((v) => typeof v === 'object' && v.type !== 'null')
+      .length >= 2;
+  if (!isEnum && !isObject && !isUnion) {
     return null;
   }
 
-  const name = prop.title;
-  if (!name) {
-    throw new InvalidSchemaError(pointer, 'missing title');
-  }
+  const name = prop.title ?? fallbackName;
 
   return {
     type: { kind: 'ref', ref: pointer },
@@ -262,39 +295,87 @@ function tryResolveInlineSchema(
 }
 
 /**
- * Resolve a property's outer shape into a {@link PropertyType} plus a nullability flag.
+ * Unwrap a property's `oneOf` (or array `type`) into the inner schema that drives type resolution, plus the property's
+ * nullability and the JSON Pointer addressing the inner schema.
+ *
+ * Behavior by `oneOf` shape (after array-`type` normalization):
+ * - Absent: the prop itself is returned, `nullable` false.
+ * - Exactly one non-null variant: that variant becomes the inner schema; `nullable` reflects the presence of a `null`
+ *   variant; the pointer is suffixed with `"/oneOf/<index>"`.
+ * - Two or more non-null variants: the prop itself is returned (will be recognized as an inline union by the caller);
+ *   `nullable` is false because the `null` variant, if any, belongs to the union schema rather than to the property.
+ * - Only `null` variants: the inner schema is `{ type: 'null' }`, `nullable` false.
  *
  * @param prop Raw property schema.
- * @param path Absolute path of the containing file.
- * @returns The resolved type and whether `null` is an accepted value.
+ * @param pointer JSON Pointer addressing the property itself.
+ * @param path Absolute path of the containing file, used for error reporting.
+ * @returns The inner schema, its nullability, and the pointer addressing it.
  */
-function resolvePropertyType(
+function unwrapNullableOneOf(
   prop: CausaSchema,
+  pointer: string,
   path: string,
-): Pick<Property, 'type' | 'nullable'> {
-  const oneOf = prop.oneOf as CausaSchema[] | undefined;
+): { inner: CausaSchema; nullable: boolean; pointer: string } {
+  const normalized = expandTypeArray(prop, path);
+  const oneOf = normalized.oneOf as CausaSchema[] | undefined;
   if (!oneOf) {
-    return { type: resolveInnerType(prop, path), nullable: false };
+    return { inner: normalized, nullable: false, pointer };
   }
 
-  const nullVariants = oneOf.filter((o) => o.type === 'null');
-  const nonNullVariants = oneOf.filter((o) => o.type !== 'null');
-  if (nullVariants.length > 1) {
-    throw new InvalidSchemaError(
-      path,
-      'oneOf may contain at most one null variant',
-    );
+  const nullable = oneOf.some((v) => v.type === 'null');
+  const nonNullIndices = oneOf.flatMap((v, i) =>
+    v.type === 'null' ? [] : [i],
+  );
+
+  if (nonNullIndices.length === 0) {
+    return { inner: { type: 'null' }, nullable: false, pointer };
   }
-  if (nonNullVariants.length !== 1) {
+
+  if (nonNullIndices.length === 1) {
+    const idx = nonNullIndices[0];
+    return { inner: oneOf[idx], nullable, pointer: `${pointer}/oneOf/${idx}` };
+  }
+
+  return { inner: normalized, nullable: false, pointer };
+}
+
+/**
+ * Rewrite a schema node that declares `type` as an array into an equivalent `oneOf` form, leaving other shapes
+ * unchanged.
+ *
+ * Each entry in the source `type` array becomes a `oneOf` variant carrying that single type. The non-`null` variants
+ * also inherit the rest of the original node's fields (e.g. `properties`, `items`, `format`, `title`), so that
+ * downstream nullable-unwrapping and inline-schema detection apply unchanged.
+ *
+ * Validation of how many `null`/non-`null` entries are present is left to the consuming `oneOf` logic.
+ *
+ * @param prop Raw schema node.
+ * @param path Absolute path of the containing file, used for error reporting.
+ * @returns The normalized schema node.
+ * @throws {InvalidSchemaError} When both `type` (as an array) and `oneOf` are declared on the same node.
+ */
+function expandTypeArray(prop: CausaSchema, path: string): CausaSchema {
+  if (!Array.isArray(prop.type)) {
+    return prop;
+  }
+  if (prop.oneOf !== undefined) {
     throw new InvalidSchemaError(
       path,
-      'oneOf must have exactly one non-null variant',
+      'cannot combine an array `type` with `oneOf`',
     );
   }
 
+  const { type, ...rest } = prop;
+  const oneOf: CausaSchema[] = type.map((type) => ({
+    type,
+    ...(type !== 'null' ? rest : {}),
+  }));
+  const { title, description, causa } = rest;
   return {
-    type: resolveInnerType(nonNullVariants[0], path),
-    nullable: nullVariants.length === 1,
+    oneOf,
+    ...(title !== undefined && { title }),
+    ...(description !== undefined && { description }),
+    ...(causa !== undefined && { causa }),
   };
 }
 
@@ -303,9 +384,27 @@ function resolvePropertyType(
  *
  * @param prop Raw schema node.
  * @param path Absolute path of the containing file.
+ * @param inline Optional context enabling inline-schema extraction. When provided, inline objects/enums/unions become
+ *   nested {@link Schema} entries pushed onto {@link InlineContext.schemas} and a `ref` is returned in their place.
  * @returns The resolved type.
  */
-function resolveInnerType(prop: CausaSchema, path: string): PropertyType {
+function resolveInnerType(
+  prop: CausaSchema,
+  path: string,
+  inline?: InlineContext,
+): PropertyType {
+  if (inline) {
+    const matched = tryResolveInlineSchema(
+      prop,
+      inline.pointer,
+      inline.fallbackName,
+    );
+    if (matched) {
+      inline.schemas.push(...matched.nested);
+      return matched.type;
+    }
+  }
+
   if (typeof prop.$ref === 'string') {
     return { kind: 'ref', ref: resolveRef(prop.$ref, path) };
   }
@@ -327,11 +426,17 @@ function resolveInnerType(prop: CausaSchema, path: string): PropertyType {
   }
 
   if (rawType === 'array') {
-    return resolveArrayType(prop, path);
+    return resolveArrayType(prop, path, inline);
   }
 
-  if (rawType === 'object' && prop.additionalProperties !== undefined) {
-    return resolveMapType(prop, path);
+  if (rawType === 'object') {
+    if (prop.properties !== undefined) {
+      throw new InvalidSchemaError(
+        path,
+        'inline object schemas with `properties` are not supported here',
+      );
+    }
+    return resolveMapType(prop, path, inline);
   }
 
   return resolvePrimitiveType(rawType, prop.format, path);
@@ -394,13 +499,19 @@ function resolveConstType(prop: CausaSchema, path: string): PropertyType {
 /**
  * Resolve an `array`-typed schema node into a {@link PropertyType} of kind `array`.
  *
- * Item types may themselves use the nullable `oneOf: [..., {type: null}]` pattern.
+ * Item types may themselves use the nullable `oneOf: [..., {type: null}]` pattern, or carry inline object/enum/union
+ * shapes when an {@link InlineContext} is threaded in.
  *
  * @param prop Raw schema node with `type: 'array'`.
  * @param path Absolute path of the containing file.
+ * @param inline Optional context propagated to the items so inline schemas declared inside `items` can be extracted.
  * @returns The resolved array type.
  */
-function resolveArrayType(prop: CausaSchema, path: string): PropertyType {
+function resolveArrayType(
+  prop: CausaSchema,
+  path: string,
+  inline?: InlineContext,
+): PropertyType {
   if (
     !prop.items ||
     typeof prop.items !== 'object' ||
@@ -409,45 +520,50 @@ function resolveArrayType(prop: CausaSchema, path: string): PropertyType {
     throw new InvalidSchemaError(path, 'array must declare an items schema');
   }
 
-  const rawItems = prop.items as CausaSchema;
-  const itemOneOf = rawItems.oneOf as CausaSchema[] | undefined;
-  if (itemOneOf) {
-    const nonNull = itemOneOf.filter((o) => o.type !== 'null');
-    if (nonNull.length !== 1) {
-      throw new InvalidSchemaError(
-        path,
-        'array items oneOf must have exactly one non-null variant',
-      );
-    }
-
-    return {
-      kind: 'array',
-      items: resolveInnerType(nonNull[0], path),
-      itemNullable: itemOneOf.some((o) => o.type === 'null'),
-    };
-  }
+  const itemsPointer = inline ? `${inline.pointer}/items` : '';
+  const {
+    inner,
+    nullable: itemNullable,
+    pointer,
+  } = unwrapNullableOneOf(prop.items as CausaSchema, itemsPointer, path);
+  const itemInline = inline
+    ? {
+        schemas: inline.schemas,
+        pointer,
+        fallbackName: `${inline.fallbackName}Item`,
+      }
+    : undefined;
 
   return {
     kind: 'array',
-    items: resolveInnerType(rawItems, path),
-    itemNullable: false,
+    items: resolveInnerType(inner, path, itemInline),
+    itemNullable,
   };
 }
 
 /**
  * Resolve a `type: object` schema node carrying `additionalProperties` into a {@link PropertyType} of kind `map`.
  *
- * The value type is `'any'` when `additionalProperties` is the boolean `true`, or the resolved inner type when it is
- * a schema. Any other shape throws.
+ * The value type is `'any'` when `additionalProperties` is absent (JSON Schema default) or the boolean `true`, or
+ * the resolved inner type when it is a schema. Any other shape throws. When an {@link InlineContext} is provided,
+ * inline object/enum/union shapes
+ * declared directly as the value schema are extracted as nested {@link Schema} entries; their pointer is
+ * `${inline.pointer}/additionalProperties` and their fallback name is `${inline.fallbackName}Value`.
  *
  * @param prop Raw schema node.
  * @param path Absolute path of the containing file.
+ * @param inline Optional context propagated to the value schema so inline schemas declared inside
+ *   `additionalProperties` can be extracted.
  * @returns The resolved map type.
  * @throws {InvalidSchemaError} When `additionalProperties` is `false` or any value other than `true` or a schema.
  */
-function resolveMapType(prop: CausaSchema, path: string): PropertyType {
+function resolveMapType(
+  prop: CausaSchema,
+  path: string,
+  inline?: InlineContext,
+): PropertyType {
   const additional = prop.additionalProperties;
-  if (additional === true) {
+  if (additional === undefined || additional === true) {
     return { kind: 'map', items: 'any' };
   }
 
@@ -469,9 +585,17 @@ function resolveMapType(prop: CausaSchema, path: string): PropertyType {
     );
   }
 
+  const valueInline = inline
+    ? {
+        schemas: inline.schemas,
+        pointer: `${inline.pointer}/additionalProperties`,
+        fallbackName: `${inline.fallbackName}Value`,
+      }
+    : undefined;
+
   return {
     kind: 'map',
-    items: resolveInnerType(additional as CausaSchema, path),
+    items: resolveInnerType(additional as CausaSchema, path, valueInline),
   };
 }
 
@@ -482,7 +606,7 @@ function resolveMapType(prop: CausaSchema, path: string): PropertyType {
  * @param format The raw JSON Schema `format` value, if any.
  * @param path Absolute path of the containing file, used for error reporting.
  * @returns The resolved primitive type.
- * @throws {InvalidSchemaError} When the type/format combination is missing, unrecognized, or inconsistent.
+ * @throws {InvalidSchemaError} When `type` is missing or not a recognized primitive.
  */
 function resolvePrimitiveType(
   rawType: string | undefined,
@@ -495,7 +619,7 @@ function resolvePrimitiveType(
   if (rawType === 'string' && format === 'uuid') {
     return { kind: 'primitive', type: 'uuid' };
   }
-  if (!format && rawType && PRIMITIVE_TYPES.has(rawType as PrimitiveType)) {
+  if (rawType && PRIMITIVE_TYPES.has(rawType as PrimitiveType)) {
     return { kind: 'primitive', type: rawType as PrimitiveType };
   }
   throw new InvalidSchemaError(

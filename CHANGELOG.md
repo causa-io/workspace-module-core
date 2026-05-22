@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+Features:
+
+- Support inline object, enum, and union schemas declared inside a property's `oneOf` (including the nullable wrapper), inside array `items`, and inside `additionalProperties` during JSONSchema parsing.
+- Support `type` declared as an array (e.g. `[string, "null"]`, `[string, integer]`) during JSONSchema parsing, both as a nullable wrapper and as a shorthand for a union.
+- Infer a schema name from the source path (filename, `$defs`/`definitions` key, or property name) when no `title` is provided during JSONSchema parsing.
+
+Fixes:
+
+- Ignore unsupported JSONSchema `format` values for primitive types rather than throwing, falling back to the bare type.
+- Treat a missing `additionalProperties` as `true` (the JSONSchema default) when parsing maps, so that `{ type: object }` with no `properties` resolves to a map of any.
+
 ## v0.35.0-beta.3 (2026-05-21)
 
 Features:

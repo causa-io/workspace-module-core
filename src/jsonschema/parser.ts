@@ -1,5 +1,5 @@
 import type { JSONSchema7 } from 'json-schema';
-import { dirname, join, normalize } from 'node:path';
+import { basename, dirname, extname, join, normalize } from 'node:path';
 import * as yaml from 'yaml';
 import {
   InvalidSchemaError,
@@ -74,12 +74,32 @@ function parseSchema(rawSchema: unknown, path: string): Schema[] {
   }
 
   const schema = rawSchema as CausaSchema;
-  const name = schema.title;
+  const name = schema.title ?? defaultSchemaName(path);
   if (!name) {
     throw new InvalidSchemaError(path, 'missing title');
   }
 
   return parseSchemaBody(schema, name, path);
+}
+
+/**
+ * Derive a default schema name from a schema's path.
+ *
+ * - When the path is a plain file path (`/abs/file.yaml`), the basename without extension is returned (`file`).
+ * - When the path carries a JSON Pointer fragment (`/abs/file.yaml#/$defs/Foo`), the last fragment segment is
+ *   returned (`Foo`).
+ *
+ * @param path Absolute path identifying the schema (with or without a fragment).
+ * @returns The fallback name, or an empty string when nothing usable can be derived.
+ */
+function defaultSchemaName(path: string): string {
+  const [filePath, fragment] = path.split('#', 2);
+  if (fragment !== undefined) {
+    return fragment.split('/').filter(Boolean).pop() ?? '';
+  }
+  const base = basename(filePath);
+  const ext = extname(base);
+  return ext ? base.slice(0, -ext.length) : base;
 }
 
 /**
@@ -207,7 +227,7 @@ function parseProperties(
       path,
     );
 
-    const inline = tryResolveInlineSchema(inner, pointer);
+    const inline = tryResolveInlineSchema(inner, pointer, name);
     if (inline) {
       nested.push(...inline.nested);
       properties.push({
@@ -244,11 +264,13 @@ function parseProperties(
  *
  * @param prop Raw property schema.
  * @param pointer JSON Pointer that will identify the inline schema, e.g. `"/abs/file.yaml#/properties/address"`.
+ * @param fallbackName Name to use when the inline schema does not declare a `title` (typically the property name).
  * @returns The resolved type and extracted nested schemas, or `null` to fall through.
  */
 function tryResolveInlineSchema(
   prop: CausaSchema,
   pointer: string,
+  fallbackName: string,
 ): { type: PropertyType; nested: Schema[] } | null {
   const isEnum = Array.isArray(prop.enum);
   const isObject = prop.type === 'object' && prop.properties !== undefined;
@@ -256,10 +278,7 @@ function tryResolveInlineSchema(
     return null;
   }
 
-  const name = prop.title;
-  if (!name) {
-    throw new InvalidSchemaError(pointer, 'missing title');
-  }
+  const name = prop.title ?? fallbackName;
 
   return {
     type: { kind: 'ref', ref: pointer },

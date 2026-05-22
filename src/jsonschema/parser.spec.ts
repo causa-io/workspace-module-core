@@ -70,12 +70,6 @@ oneOf:
       );
     });
 
-    it('should throw when the title is missing', () => {
-      expect(() => parseJsonSchema('type: object', path)).toThrow(
-        /missing title/,
-      );
-    });
-
     it('should throw when a union has fewer than two non-null variants', () => {
       expect(() =>
         parseJsonSchema('title: Bad\noneOf:\n  - type: string', path),
@@ -398,6 +392,70 @@ properties:
         kind: 'ref',
         ref: `${path}#/properties/address`,
       });
+    });
+  });
+
+  describe('title fallbacks', () => {
+    it('should fall back to the filename without extension for the top-level schema', () => {
+      const [schema] = parseJsonSchema('type: object', path);
+
+      expect(schema).toMatchObject({ kind: 'object', name: 'file', path });
+    });
+
+    it('should fall back to the entry key for $defs schemas', () => {
+      const schemas = parseJsonSchema(
+        `
+type: object
+$defs:
+  Address:
+    type: object`,
+        path,
+      );
+
+      const address = schemas.find((s) => s.path === `${path}#/$defs/Address`);
+      expect(address).toMatchObject({ name: 'Address' });
+    });
+
+    it('should fall back to the property name for inline object schemas', () => {
+      const schemas = parseJsonSchema(
+        `
+title: Root
+type: object
+properties:
+  address:
+    type: object
+    properties:
+      street:
+        type: string`,
+        path,
+      );
+
+      const inline = schemas.find(
+        (s) => s.path === `${path}#/properties/address`,
+      );
+      expect(inline).toMatchObject({ kind: 'object', name: 'address' });
+    });
+
+    it('should fall back to the property name for inline schemas nested in a nullable oneOf', () => {
+      const schemas = parseJsonSchema(
+        `
+title: Root
+type: object
+properties:
+  address:
+    oneOf:
+      - type: object
+        properties:
+          street:
+            type: string
+      - type: "null"`,
+        path,
+      );
+
+      const inline = schemas.find(
+        (s) => s.path === `${path}#/properties/address/oneOf/0`,
+      );
+      expect(inline).toMatchObject({ kind: 'object', name: 'address' });
     });
   });
 

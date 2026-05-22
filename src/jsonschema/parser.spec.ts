@@ -315,6 +315,23 @@ properties:
       });
     });
 
+    it('should treat type: object with no properties and no additionalProperties as a map of any', () => {
+      const [schema] = parseJsonSchema(
+        `
+title: U
+type: object
+properties:
+  bag:
+    type: object`,
+        path,
+      );
+
+      expect((schema as any).properties[0].type).toEqual({
+        kind: 'map',
+        items: 'any',
+      });
+    });
+
     it('should parse a map with any values when additionalProperties is true', () => {
       const [schema] = parseJsonSchema(
         `

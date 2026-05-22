@@ -429,7 +429,13 @@ function resolveInnerType(
     return resolveArrayType(prop, path, inline);
   }
 
-  if (rawType === 'object' && prop.additionalProperties !== undefined) {
+  if (rawType === 'object') {
+    if (prop.properties !== undefined) {
+      throw new InvalidSchemaError(
+        path,
+        'inline object schemas with `properties` are not supported here',
+      );
+    }
     return resolveMapType(prop, path, inline);
   }
 
@@ -538,8 +544,9 @@ function resolveArrayType(
 /**
  * Resolve a `type: object` schema node carrying `additionalProperties` into a {@link PropertyType} of kind `map`.
  *
- * The value type is `'any'` when `additionalProperties` is the boolean `true`, or the resolved inner type when it is
- * a schema. Any other shape throws. When an {@link InlineContext} is provided, inline object/enum/union shapes
+ * The value type is `'any'` when `additionalProperties` is absent (JSON Schema default) or the boolean `true`, or
+ * the resolved inner type when it is a schema. Any other shape throws. When an {@link InlineContext} is provided,
+ * inline object/enum/union shapes
  * declared directly as the value schema are extracted as nested {@link Schema} entries; their pointer is
  * `${inline.pointer}/additionalProperties` and their fallback name is `${inline.fallbackName}Value`.
  *
@@ -556,7 +563,7 @@ function resolveMapType(
   inline?: InlineContext,
 ): PropertyType {
   const additional = prop.additionalProperties;
-  if (additional === true) {
+  if (additional === undefined || additional === true) {
     return { kind: 'map', items: 'any' };
   }
 

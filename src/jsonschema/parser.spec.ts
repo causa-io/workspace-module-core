@@ -320,6 +320,61 @@ $defs:
       });
     });
 
+    it('should extract a nullable inline object schema with the oneOf-suffixed pointer', () => {
+      const schemas = parseJsonSchema(
+        `
+title: Root
+type: object
+properties:
+  address:
+    oneOf:
+      - title: Address
+        type: object
+        properties:
+          street:
+            type: string
+      - type: "null"`,
+        path,
+      );
+
+      const inlinePointer = `${path}#/properties/address/oneOf/0`;
+      const inline = schemas.find((s) => s.name === 'Address');
+      expect(inline).toMatchObject({ path: inlinePointer });
+      expect((schemas[0] as any).properties[0]).toMatchObject({
+        type: { kind: 'ref', ref: inlinePointer },
+        nullable: true,
+      });
+    });
+
+    it('should extract a nullable inline enum schema with the oneOf-suffixed pointer', () => {
+      const schemas = parseJsonSchema(
+        `
+title: Root
+type: object
+properties:
+  status:
+    oneOf:
+      - type: "null"
+      - title: Status
+        type: string
+        enum: [active, archived]`,
+        path,
+      );
+
+      const inlinePointer = `${path}#/properties/status/oneOf/1`;
+      const inline = schemas.find((s) => s.name === 'Status');
+      expect(inline).toMatchObject({
+        kind: 'enum',
+        type: 'string',
+        values: ['active', 'archived'],
+        path: inlinePointer,
+      });
+      expect((schemas[0] as any).properties[0]).toMatchObject({
+        type: { kind: 'ref', ref: inlinePointer },
+        nullable: true,
+      });
+    });
+
     it('should extract inline object schemas with their own path', () => {
       const schemas = parseJsonSchema(
         `

@@ -201,13 +201,19 @@ function parseProperties(
     const extensions = buildExtensions(prop.causa, path);
     const required = requiredSet.has(name);
     const { description } = prop;
-    const inline = tryResolveInlineSchema(prop, `${pointerPrefix}/${name}`);
+    const { inner, nullable, pointer } = unwrapNullableOneOf(
+      prop,
+      `${pointerPrefix}/${name}`,
+      path,
+    );
+
+    const inline = tryResolveInlineSchema(inner, pointer);
     if (inline) {
       nested.push(...inline.nested);
       properties.push({
         name,
         type: inline.type,
-        nullable: false,
+        nullable,
         required,
         description,
         extensions,
@@ -215,7 +221,7 @@ function parseProperties(
       continue;
     }
 
-    const { type, nullable } = resolvePropertyType(prop, path);
+    const type = resolveInnerType(inner, path);
     properties.push({
       name,
       type,
@@ -262,30 +268,50 @@ function tryResolveInlineSchema(
 }
 
 /**
- * Resolve a property's outer shape into a {@link PropertyType} plus a nullability flag.
+ * Unwrap a property's optional nullable `oneOf` wrapper, yielding the inner schema, its nullability, and the JSON
+ * Pointer addressing the inner variant.
+ *
+ * When `prop.oneOf` is absent, `prop` itself is returned as the inner schema. When present, the `oneOf` must consist
+ * of exactly one non-null variant plus at most one `{ type: 'null' }` variant; the pointer is suffixed with
+ * `"/oneOf/<index>"` to address the non-null variant.
  *
  * @param prop Raw property schema.
- * @param path Absolute path of the containing file.
- * @returns The resolved type and whether `null` is an accepted value.
+ * @param pointer JSON Pointer addressing the property itself.
+ * @param path Absolute path of the containing file, used for error reporting.
+ * @returns The inner schema, its nullability, and the pointer addressing it.
+ * @throws {InvalidSchemaError} When `oneOf` is present but does not have exactly one non-null variant, or has more
+ *   than one null variant.
  */
-function resolvePropertyType(
+function unwrapNullableOneOf(
   prop: CausaSchema,
+  pointer: string,
   path: string,
-): Pick<Property, 'type' | 'nullable'> {
+): { inner: CausaSchema; nullable: boolean; pointer: string } {
   const oneOf = prop.oneOf as CausaSchema[] | undefined;
   if (!oneOf) {
-    return { type: resolveInnerType(prop, path), nullable: false };
+    return { inner: prop, nullable: false, pointer };
   }
 
-  const nullVariants = oneOf.filter((o) => o.type === 'null');
-  const nonNullVariants = oneOf.filter((o) => o.type !== 'null');
-  if (nullVariants.length > 1) {
+  let nullCount = 0;
+  let nonNullIndex = -1;
+  let hasExtraNonNull = false;
+  oneOf.forEach((variant, i) => {
+    if (variant.type === 'null') {
+      nullCount++;
+    } else if (nonNullIndex === -1) {
+      nonNullIndex = i;
+    } else {
+      hasExtraNonNull = true;
+    }
+  });
+
+  if (nullCount > 1) {
     throw new InvalidSchemaError(
       path,
       'oneOf may contain at most one null variant',
     );
   }
-  if (nonNullVariants.length !== 1) {
+  if (nonNullIndex === -1 || hasExtraNonNull) {
     throw new InvalidSchemaError(
       path,
       'oneOf must have exactly one non-null variant',
@@ -293,8 +319,9 @@ function resolvePropertyType(
   }
 
   return {
-    type: resolveInnerType(nonNullVariants[0], path),
-    nullable: nullVariants.length === 1,
+    inner: oneOf[nonNullIndex],
+    nullable: nullCount === 1,
+    pointer: `${pointer}/oneOf/${nonNullIndex}`,
   };
 }
 

@@ -105,7 +105,7 @@ function defaultSchemaName(path: string): string {
 /**
  * Build one or more {@link Schema} entries from a recognized node shape.
  *
- * @param schema The source schema node.
+ * @param rawSchema The source schema node.
  * @param name Display name for the produced schema.
  * @param path Full path identifying the produced schema.
  * @returns The produced schema followed by any inline schemas extracted from its properties (object case only).
@@ -113,10 +113,11 @@ function defaultSchemaName(path: string): string {
  *   `type: object`.
  */
 function parseSchemaBody(
-  schema: CausaSchema,
+  rawSchema: CausaSchema,
   name: string,
   path: string,
 ): Schema[] {
+  const schema = expandTypeArray(rawSchema, path);
   const description = schema.description;
   const extensions = buildExtensions(schema.causa, path);
 
@@ -138,26 +139,11 @@ function parseSchemaBody(
   }
 
   if (schema.oneOf) {
-    const types = schema.oneOf.filter(
-      (o): o is JSONSchema7 => typeof o === 'object' && o.type !== 'null',
-    );
-    if (types.length < 2) {
-      throw new InvalidSchemaError(
-        path,
-        'a union must have at least two non-null variants',
-      );
-    }
+    const types = schema.oneOf
+      .filter((t): t is JSONSchema7 => typeof t === 'object')
+      .map((t) => resolveInnerType(t, path));
 
-    return [
-      {
-        kind: 'union',
-        name,
-        path,
-        description,
-        types: types.map((v) => resolveInnerType(v, path)),
-        extensions,
-      },
-    ];
+    return [{ kind: 'union', name, path, description, types, extensions }];
   }
 
   if (schema.type !== 'object') {
@@ -274,7 +260,11 @@ function tryResolveInlineSchema(
 ): { type: PropertyType; nested: Schema[] } | null {
   const isEnum = Array.isArray(prop.enum);
   const isObject = prop.type === 'object' && prop.properties !== undefined;
-  if (!isEnum && !isObject) {
+  const isUnion =
+    Array.isArray(prop.oneOf) &&
+    prop.oneOf.filter((v) => typeof v === 'object' && v.type !== 'null')
+      .length >= 2;
+  if (!isEnum && !isObject && !isUnion) {
     return null;
   }
 
@@ -287,60 +277,87 @@ function tryResolveInlineSchema(
 }
 
 /**
- * Unwrap a property's optional nullable `oneOf` wrapper, yielding the inner schema, its nullability, and the JSON
- * Pointer addressing the inner variant.
+ * Unwrap a property's `oneOf` (or array `type`) into the inner schema that drives type resolution, plus the property's
+ * nullability and the JSON Pointer addressing the inner schema.
  *
- * When `prop.oneOf` is absent, `prop` itself is returned as the inner schema. When present, the `oneOf` must consist
- * of exactly one non-null variant plus at most one `{ type: 'null' }` variant; the pointer is suffixed with
- * `"/oneOf/<index>"` to address the non-null variant.
+ * Behavior by `oneOf` shape (after array-`type` normalization):
+ * - Absent: the prop itself is returned, `nullable` false.
+ * - Exactly one non-null variant: that variant becomes the inner schema; `nullable` reflects the presence of a `null`
+ *   variant; the pointer is suffixed with `"/oneOf/<index>"`.
+ * - Two or more non-null variants: the prop itself is returned (will be recognized as an inline union by the caller);
+ *   `nullable` is false because the `null` variant, if any, belongs to the union schema rather than to the property.
+ * - Only `null` variants: the inner schema is `{ type: 'null' }`, `nullable` false.
  *
  * @param prop Raw property schema.
  * @param pointer JSON Pointer addressing the property itself.
  * @param path Absolute path of the containing file, used for error reporting.
  * @returns The inner schema, its nullability, and the pointer addressing it.
- * @throws {InvalidSchemaError} When `oneOf` is present but does not have exactly one non-null variant, or has more
- *   than one null variant.
  */
 function unwrapNullableOneOf(
   prop: CausaSchema,
   pointer: string,
   path: string,
 ): { inner: CausaSchema; nullable: boolean; pointer: string } {
-  const oneOf = prop.oneOf as CausaSchema[] | undefined;
+  const normalized = expandTypeArray(prop, path);
+  const oneOf = normalized.oneOf as CausaSchema[] | undefined;
   if (!oneOf) {
-    return { inner: prop, nullable: false, pointer };
+    return { inner: normalized, nullable: false, pointer };
   }
 
-  let nullCount = 0;
-  let nonNullIndex = -1;
-  let hasExtraNonNull = false;
-  oneOf.forEach((variant, i) => {
-    if (variant.type === 'null') {
-      nullCount++;
-    } else if (nonNullIndex === -1) {
-      nonNullIndex = i;
-    } else {
-      hasExtraNonNull = true;
-    }
-  });
+  const nullable = oneOf.some((v) => v.type === 'null');
+  const nonNullIndices = oneOf.flatMap((v, i) =>
+    v.type === 'null' ? [] : [i],
+  );
 
-  if (nullCount > 1) {
+  if (nonNullIndices.length === 0) {
+    return { inner: { type: 'null' }, nullable: false, pointer };
+  }
+
+  if (nonNullIndices.length === 1) {
+    const idx = nonNullIndices[0];
+    return { inner: oneOf[idx], nullable, pointer: `${pointer}/oneOf/${idx}` };
+  }
+
+  return { inner: normalized, nullable: false, pointer };
+}
+
+/**
+ * Rewrite a schema node that declares `type` as an array into an equivalent `oneOf` form, leaving other shapes
+ * unchanged.
+ *
+ * Each entry in the source `type` array becomes a `oneOf` variant carrying that single type. The non-`null` variants
+ * also inherit the rest of the original node's fields (e.g. `properties`, `items`, `format`, `title`), so that
+ * downstream nullable-unwrapping and inline-schema detection apply unchanged.
+ *
+ * Validation of how many `null`/non-`null` entries are present is left to the consuming `oneOf` logic.
+ *
+ * @param prop Raw schema node.
+ * @param path Absolute path of the containing file, used for error reporting.
+ * @returns The normalized schema node.
+ * @throws {InvalidSchemaError} When both `type` (as an array) and `oneOf` are declared on the same node.
+ */
+function expandTypeArray(prop: CausaSchema, path: string): CausaSchema {
+  if (!Array.isArray(prop.type)) {
+    return prop;
+  }
+  if (prop.oneOf !== undefined) {
     throw new InvalidSchemaError(
       path,
-      'oneOf may contain at most one null variant',
-    );
-  }
-  if (nonNullIndex === -1 || hasExtraNonNull) {
-    throw new InvalidSchemaError(
-      path,
-      'oneOf must have exactly one non-null variant',
+      'cannot combine an array `type` with `oneOf`',
     );
   }
 
+  const { type, ...rest } = prop;
+  const oneOf: CausaSchema[] = type.map((type) => ({
+    type,
+    ...(type !== 'null' ? rest : {}),
+  }));
+  const { title, description, causa } = rest;
   return {
-    inner: oneOf[nonNullIndex],
-    nullable: nullCount === 1,
-    pointer: `${pointer}/oneOf/${nonNullIndex}`,
+    oneOf,
+    ...(title !== undefined && { title }),
+    ...(description !== undefined && { description }),
+    ...(causa !== undefined && { causa }),
   };
 }
 
@@ -455,7 +472,7 @@ function resolveArrayType(prop: CausaSchema, path: string): PropertyType {
     throw new InvalidSchemaError(path, 'array must declare an items schema');
   }
 
-  const rawItems = prop.items as CausaSchema;
+  const rawItems = expandTypeArray(prop.items as CausaSchema, path);
   const itemOneOf = rawItems.oneOf as CausaSchema[] | undefined;
   if (itemOneOf) {
     const nonNull = itemOneOf.filter((o) => o.type !== 'null');

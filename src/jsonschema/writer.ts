@@ -283,7 +283,10 @@ function applyObject(
   const target = {
     title: schema.name,
     type: 'object',
-    additionalProperties: false,
+    additionalProperties:
+      typeof schema.additionalProperties === 'boolean'
+        ? schema.additionalProperties
+        : buildTypeNode(schema.additionalProperties, filePath),
   };
   applyMinimalChange(
     node,

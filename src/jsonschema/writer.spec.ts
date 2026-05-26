@@ -24,6 +24,7 @@ describe('apply', () => {
           extensions: {},
         },
       ],
+      additionalProperties: false,
       extensions: {},
       databases: [],
     };
@@ -42,6 +43,33 @@ describe('apply', () => {
     });
   });
 
+  it('should write additionalProperties: true and a typed additionalProperties schema', () => {
+    const openSchema: ObjectSchema = {
+      kind: 'object',
+      name: 'Open',
+      path: filePath,
+      properties: [],
+      additionalProperties: true,
+      extensions: {},
+      databases: [],
+    };
+
+    const typedSchema: ObjectSchema = {
+      kind: 'object',
+      name: 'Typed',
+      path: filePath,
+      properties: [],
+      additionalProperties: { kind: 'primitive', type: 'integer' },
+      extensions: {},
+      databases: [],
+    };
+
+    expect(yaml.parse(apply('', openSchema)).additionalProperties).toBe(true);
+    expect(yaml.parse(apply('', typedSchema)).additionalProperties).toEqual({
+      type: 'integer',
+    });
+  });
+
   it('should write a nullable property as a oneOf with a null variant', () => {
     const schema: ObjectSchema = {
       kind: 'object',
@@ -56,6 +84,7 @@ describe('apply', () => {
           extensions: {},
         },
       ],
+      additionalProperties: false,
       extensions: {},
       databases: [],
     };
@@ -123,6 +152,7 @@ describe('apply', () => {
           extensions: {},
         },
       ],
+      additionalProperties: false,
       extensions: {},
       databases: [],
     };
@@ -149,6 +179,7 @@ describe('apply', () => {
           extensions: {},
         },
       ],
+      additionalProperties: false,
       extensions: {},
       databases: [],
     };
@@ -167,6 +198,7 @@ describe('apply', () => {
       name: 'User',
       path: filePath,
       properties: [],
+      additionalProperties: false,
       extensions: { constraintFor: '/abs/other.yaml#/$defs/Foo' },
       databases: [],
     };
@@ -194,6 +226,7 @@ $defs:
       name: 'Added',
       path: `${filePath}#/$defs/Added`,
       properties: [],
+      additionalProperties: false,
       extensions: {},
       databases: [],
     };

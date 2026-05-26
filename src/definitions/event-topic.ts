@@ -181,7 +181,11 @@ Temporary triggers can be created for the backfill, and deleted afterwards using
 If no source is specified, the events are retrieved from the default storage for the broker. Optionally, a custom source might be used.
 Finally, some event sources might support filtering of the events to backfill.`,
   summary: 'Backfills events for an event topic.',
-  outputFn: (result) => console.log(result),
+  outputFn: (result) => {
+    if (result) {
+      console.log(result);
+    }
+  },
 })
 export abstract class EventTopicBackfill extends WorkspaceFunction<
   Promise<string>
@@ -262,6 +266,21 @@ export abstract class EventTopicBackfill extends WorkspaceFunction<
   @IsString()
   @AllowMissing()
   readonly output?: string;
+
+  /**
+   * Whether to wait for events to be processed after publishing, then clean up temporary resources inline.
+   * When set, after a successful publish the implementation calls {@link EventTopicBrokerWaitForProcessing}, then
+   * {@link EventTopicCleanBackfill}. On success no backfill file is written and the function returns an empty string.
+   * On any failure during wait or clean, the backfill file is written so that `cleanBackfill` can be run manually.
+   */
+  @CliOption({
+    flags: '--autoClean',
+    description:
+      'Wait for events to be processed after publishing and clean up temporary resources in the same command.',
+  })
+  @IsBoolean()
+  @AllowMissing()
+  readonly autoClean?: boolean;
 }
 
 /**
@@ -491,6 +510,30 @@ export abstract class EventTopicBrokerPublishEvents extends WorkspaceFunction<
   // and throws on async-generator instances. A function-typed value is passed through untouched.
   @IsInstance(Function)
   readonly source!: () => AsyncIterable<BackfillEvent>;
+}
+
+/**
+ * Waits for events published during a backfill to be processed by the triggers that received them.
+ * Called by {@link EventTopicBackfill} when `autoClean` is set, before invoking {@link EventTopicCleanBackfill}.
+ * The exact "processed" semantics, polling cadence, and timeout are decided by the broker-specific implementation.
+ * Should throw if processing cannot be confirmed (e.g. on timeout), so the backfill file is preserved for manual
+ * cleanup.
+ */
+export abstract class EventTopicBrokerWaitForProcessing extends WorkspaceFunction<
+  Promise<void>
+> {
+  /**
+   * The full event topic name (e.g. `my-domain.my-event.v1`) the events were published for.
+   */
+  @IsString()
+  readonly eventTopic!: string;
+
+  /**
+   * The temporary resources created during the backfill, as written to the backfill file.
+   * Implementations typically use {@link BackfillTemporaryData.temporaryTriggerResourceIds} to know which subscriptions
+   * to monitor, and {@link BackfillTemporaryData.temporaryTopicId} when set.
+   */
+  readonly temporaryData!: BackfillTemporaryData;
 }
 
 /**

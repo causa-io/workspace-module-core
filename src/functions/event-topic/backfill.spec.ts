@@ -6,7 +6,7 @@ import {
   registerMockFunction,
 } from '@causa/workspace/testing';
 import { jest } from '@jest/globals';
-import { mkdtemp, readFile, rm } from 'fs/promises';
+import { access, mkdtemp, readFile, rm } from 'fs/promises';
 import 'jest-extended';
 import { join, resolve } from 'path';
 import {
@@ -16,6 +16,8 @@ import {
   EventTopicBrokerCreateTrigger,
   EventTopicBrokerGetTopicId,
   EventTopicBrokerPublishEvents,
+  EventTopicBrokerWaitForProcessing,
+  EventTopicCleanBackfill,
   EventTopicCreateBackfillSource,
   EventTopicTriggerCreationError,
 } from '../../definitions/index.js';
@@ -30,7 +32,18 @@ describe('EventTopicBackfillForAll', () => {
   let createTriggerMock: WorkspaceFunctionCallMock<EventTopicBrokerCreateTrigger>;
   let publishEventsMock: WorkspaceFunctionCallMock<EventTopicBrokerPublishEvents>;
   let createBackfillSourceMock: WorkspaceFunctionCallMock<EventTopicCreateBackfillSource>;
+  let waitForProcessingMock: WorkspaceFunctionCallMock<EventTopicBrokerWaitForProcessing>;
+  let cleanBackfillMock: WorkspaceFunctionCallMock<EventTopicCleanBackfill>;
   let backfillSource: AsyncIterable<BackfillEvent>;
+
+  async function fileExists(path: string): Promise<boolean> {
+    try {
+      await access(path);
+      return true;
+    } catch {
+      return false;
+    }
+  }
 
   beforeEach(async () => {
     tmpDir = resolve(await mkdtemp('causa-test-'));
@@ -72,6 +85,16 @@ describe('EventTopicBackfillForAll', () => {
       EventTopicCreateBackfillSource,
       async () => backfillSource,
     );
+    waitForProcessingMock = registerMockFunction(
+      functionRegistry,
+      EventTopicBrokerWaitForProcessing,
+      () => Promise.resolve(),
+    );
+    cleanBackfillMock = registerMockFunction(
+      functionRegistry,
+      EventTopicCleanBackfill,
+      () => Promise.resolve(),
+    );
   });
 
   afterEach(async () => {
@@ -89,19 +112,19 @@ describe('EventTopicBackfillForAll', () => {
     );
   });
 
-  it('should default the output file to the workspace root', async () => {
+  it('should not write a backfill file when no temporary resources were created', async () => {
     const actualFile = await context.call(EventTopicBackfill, {
       eventTopic: 'test-topic',
     });
 
-    expect(actualFile).toMatch(
-      new RegExp(`^${tmpDir}/backfill-[0-9a-f]+\\.json$`),
-    );
-    const actualFileContent = await readFile(actualFile);
-    expect(JSON.parse(actualFileContent.toString())).toEqual({
-      temporaryTopicId: null,
-      temporaryTriggerResourceIds: [],
+    expect(actualFile).toBe('');
+    expect(publishEventsMock).toHaveBeenCalledExactlyOnceWith(context, {
+      topicId: 'broker/test-topic',
+      eventTopic: 'test-topic',
+      source: expect.any(Function),
     });
+    expect(waitForProcessingMock).not.toHaveBeenCalled();
+    expect(cleanBackfillMock).not.toHaveBeenCalled();
   });
 
   it('should use an existing topic, create triggers, and publish events', async () => {
@@ -250,7 +273,7 @@ describe('EventTopicBackfillForAll', () => {
     });
   });
 
-  it('should still output the backfill file when publishing events fails', async () => {
+  it('should not write a backfill file when publishing fails with no temporary resources', async () => {
     const expectedFile = resolve(tmpDir, 'backfill.json');
     publishEventsMock.mockImplementation(async () => {
       throw new Error('💥');
@@ -272,10 +295,29 @@ describe('EventTopicBackfillForAll', () => {
       eventTopic: 'test-topic',
       source: expect.any(Function),
     });
+    expect(await fileExists(expectedFile)).toBe(false);
+  });
+
+  it('should write the backfill file when publishing fails with temporary resources', async () => {
+    const expectedFile = resolve(tmpDir, 'backfill.json');
+    publishEventsMock.mockImplementation(async () => {
+      throw new Error('💥');
+    });
+
+    const actualPromise = context.call(EventTopicBackfill, {
+      eventTopic: 'test-topic',
+      triggers: ['trigger1'],
+      output: expectedFile,
+    });
+
+    await expect(actualPromise).rejects.toThrow('💥');
+    const actualBackfillId = createTriggerMock.mock.calls[0][1].backfillId;
     const actualFileContent = await readFile(expectedFile);
     expect(JSON.parse(actualFileContent.toString())).toEqual({
       temporaryTopicId: null,
-      temporaryTriggerResourceIds: [],
+      temporaryTriggerResourceIds: [
+        `backfill/${actualBackfillId}/broker/test-topic/trigger/trigger1`,
+      ],
     });
   });
 
@@ -340,11 +382,7 @@ describe('EventTopicBackfillForAll', () => {
     await expect(actualPromise).rejects.toThrow('💥 nope');
     expect(createTriggerMock).not.toHaveBeenCalled();
     expect(publishEventsMock).not.toHaveBeenCalled();
-    const actualFileContent = await readFile(expectedFile);
-    expect(JSON.parse(actualFileContent.toString())).toEqual({
-      temporaryTopicId: null,
-      temporaryTriggerResourceIds: [],
-    });
+    expect(await fileExists(expectedFile)).toBe(false);
   });
 
   it('should fail when the cloned context has no project path', async () => {
@@ -371,10 +409,151 @@ describe('EventTopicBackfillForAll', () => {
     );
     expect(createTriggerMock).not.toHaveBeenCalled();
     expect(publishEventsMock).not.toHaveBeenCalled();
-    const actualFileContent = await readFile(expectedFile);
-    expect(JSON.parse(actualFileContent.toString())).toEqual({
-      temporaryTopicId: null,
-      temporaryTriggerResourceIds: [],
+    expect(await fileExists(expectedFile)).toBe(false);
+  });
+
+  describe('autoClean', () => {
+    it('should publish without waiting or cleaning when no temporary resources are created', async () => {
+      const expectedFile = resolve(tmpDir, 'backfill.json');
+
+      const actualFile = await context.call(EventTopicBackfill, {
+        eventTopic: 'test-topic',
+        autoClean: true,
+        output: expectedFile,
+      });
+
+      expect(actualFile).toBe('');
+      expect(publishEventsMock).toHaveBeenCalledExactlyOnceWith(context, {
+        topicId: 'broker/test-topic',
+        eventTopic: 'test-topic',
+        source: expect.any(Function),
+      });
+      expect(waitForProcessingMock).not.toHaveBeenCalled();
+      expect(cleanBackfillMock).not.toHaveBeenCalled();
+      expect(await fileExists(expectedFile)).toBe(false);
+    });
+
+    it('should wait then clean and not persist the backfill file on success', async () => {
+      const expectedFile = resolve(tmpDir, 'backfill.json');
+      let fileContentAtCleanCall: string | null = null;
+      cleanBackfillMock.mockImplementation(async (_, { file }) => {
+        fileContentAtCleanCall = (await readFile(file)).toString();
+      });
+
+      const actualFile = await context.call(EventTopicBackfill, {
+        eventTopic: 'test-topic',
+        triggers: ['trigger1'],
+        createTemporaryTopic: true,
+        autoClean: true,
+        output: expectedFile,
+      });
+
+      expect(actualFile).toBe('');
+      const actualTopicName = createTopicMock.mock.calls[0][1].name;
+      const expectedTopicId = `created/${actualTopicName}`;
+      const actualBackfillId = createTriggerMock.mock.calls[0][1].backfillId;
+      const expectedTemporaryData = {
+        temporaryTopicId: expectedTopicId,
+        temporaryTriggerResourceIds: [
+          `backfill/${actualBackfillId}/${expectedTopicId}/trigger/trigger1`,
+        ],
+      };
+      expect(waitForProcessingMock).toHaveBeenCalledExactlyOnceWith(context, {
+        eventTopic: 'test-topic',
+        temporaryData: expectedTemporaryData,
+      });
+      expect(cleanBackfillMock).toHaveBeenCalledExactlyOnceWith(context, {
+        file: expectedFile,
+      });
+      expect(JSON.parse(fileContentAtCleanCall!)).toEqual(
+        expectedTemporaryData,
+      );
+      expect(await fileExists(expectedFile)).toBe(false);
+    });
+
+    it('should persist the backfill file when waiting for processing fails', async () => {
+      const expectedFile = resolve(tmpDir, 'backfill.json');
+      waitForProcessingMock.mockImplementation(async () => {
+        throw new Error('💥 timeout');
+      });
+
+      const actualPromise = context.call(EventTopicBackfill, {
+        eventTopic: 'test-topic',
+        triggers: ['trigger1'],
+        createTemporaryTopic: true,
+        autoClean: true,
+        output: expectedFile,
+      });
+
+      await expect(actualPromise).rejects.toThrow('💥 timeout');
+      expect(cleanBackfillMock).not.toHaveBeenCalled();
+      const actualTopicName = createTopicMock.mock.calls[0][1].name;
+      const expectedTopicId = `created/${actualTopicName}`;
+      const actualBackfillId = createTriggerMock.mock.calls[0][1].backfillId;
+      const actualFileContent = await readFile(expectedFile);
+      expect(JSON.parse(actualFileContent.toString())).toEqual({
+        temporaryTopicId: expectedTopicId,
+        temporaryTriggerResourceIds: [
+          `backfill/${actualBackfillId}/${expectedTopicId}/trigger/trigger1`,
+        ],
+      });
+    });
+
+    it('should persist the backfill file when cleaning fails', async () => {
+      const expectedFile = resolve(tmpDir, 'backfill.json');
+      cleanBackfillMock.mockImplementation(async () => {
+        throw new Error('💥 clean');
+      });
+
+      const actualPromise = context.call(EventTopicBackfill, {
+        eventTopic: 'test-topic',
+        triggers: ['trigger1'],
+        createTemporaryTopic: true,
+        autoClean: true,
+        output: expectedFile,
+      });
+
+      await expect(actualPromise).rejects.toThrow('💥 clean');
+      expect(waitForProcessingMock).toHaveBeenCalledOnce();
+      const actualTopicName = createTopicMock.mock.calls[0][1].name;
+      const expectedTopicId = `created/${actualTopicName}`;
+      const actualBackfillId = createTriggerMock.mock.calls[0][1].backfillId;
+      const actualFileContent = await readFile(expectedFile);
+      expect(JSON.parse(actualFileContent.toString())).toEqual({
+        temporaryTopicId: expectedTopicId,
+        temporaryTriggerResourceIds: [
+          `backfill/${actualBackfillId}/${expectedTopicId}/trigger/trigger1`,
+        ],
+      });
+    });
+
+    it('should not wait or clean when publishing fails', async () => {
+      const expectedFile = resolve(tmpDir, 'backfill.json');
+      publishEventsMock.mockImplementation(async () => {
+        throw new Error('💥 publish');
+      });
+
+      const actualPromise = context.call(EventTopicBackfill, {
+        eventTopic: 'test-topic',
+        triggers: ['trigger1'],
+        createTemporaryTopic: true,
+        autoClean: true,
+        output: expectedFile,
+      });
+
+      await expect(actualPromise).rejects.toThrow('💥 publish');
+      expect(waitForProcessingMock).not.toHaveBeenCalled();
+      expect(cleanBackfillMock).not.toHaveBeenCalled();
+      const actualTopicName = createTopicMock.mock.calls[0][1].name;
+      const expectedTopicId = `created/${actualTopicName}`;
+      const actualBackfillId = createTriggerMock.mock.calls[0][1].backfillId;
+      const actualFileContent = await readFile(expectedFile);
+      expect(JSON.parse(actualFileContent.toString())).toEqual({
+        temporaryTopicId: expectedTopicId,
+        temporaryTriggerResourceIds: [
+          `backfill/${actualBackfillId}/${expectedTopicId}/trigger/trigger1`,
+        ],
+      });
     });
   });
 });

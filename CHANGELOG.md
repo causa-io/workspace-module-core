@@ -9,6 +9,7 @@ Breaking changes:
 Features:
 
 - Add the `--autoClean` option to `cs events backfill`, which waits for events to be processed after publishing and runs `cleanBackfill` inline. Introduces the broker-side `EventTopicBrokerWaitForProcessing` workspace function, which implementations should provide to support `--autoClean`.
+- Parse the `additionalProperties` declaration on object schemas during JSONSchema parsing, exposing it on `ObjectSchema.additionalProperties` as a boolean or a resolved `PropertyType` (with inline object, enum, and union shapes extracted as nested schemas, like map values).
 
 ## v0.35.0-beta.4 (2026-05-22)
 

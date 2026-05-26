@@ -837,6 +837,188 @@ properties:
       expect(inline).toMatchObject({ kind: 'object', name: 'byIdValue' });
     });
 
+    it('should extract an inline object variant inside a top-level union', () => {
+      const schemas = parseJsonSchema(
+        `
+title: Either
+oneOf:
+  - title: Address
+    type: object
+    properties:
+      street:
+        type: string
+  - type: string`,
+        path,
+      );
+
+      const variantPointer = `${path}#/oneOf/0`;
+      const inline = schemas.find((s) => s.name === 'Address');
+      expect(inline).toMatchObject({ kind: 'object', path: variantPointer });
+      expect(schemas[0]).toMatchObject({
+        kind: 'union',
+        name: 'Either',
+        types: [
+          { kind: 'ref', ref: variantPointer },
+          { kind: 'primitive', type: 'string' },
+        ],
+      });
+    });
+
+    it('should extract an inline enum variant inside a top-level union', () => {
+      const schemas = parseJsonSchema(
+        `
+title: Either
+oneOf:
+  - type: integer
+  - title: Status
+    type: string
+    enum: [active, archived]`,
+        path,
+      );
+
+      const variantPointer = `${path}#/oneOf/1`;
+      const inline = schemas.find((s) => s.name === 'Status');
+      expect(inline).toMatchObject({
+        kind: 'enum',
+        type: 'string',
+        values: ['active', 'archived'],
+        path: variantPointer,
+      });
+      expect((schemas[0] as any).types).toEqual([
+        { kind: 'primitive', type: 'integer' },
+        { kind: 'ref', ref: variantPointer },
+      ]);
+    });
+
+    it('should extract an inline object variant inside a property union', () => {
+      const schemas = parseJsonSchema(
+        `
+title: Root
+type: object
+properties:
+  value:
+    title: Value
+    oneOf:
+      - title: Address
+        type: object
+        properties:
+          street:
+            type: string
+      - type: string`,
+        path,
+      );
+
+      const unionPointer = `${path}#/properties/value`;
+      const variantPointer = `${unionPointer}/oneOf/0`;
+      const union = schemas.find((s) => s.name === 'Value');
+      const inline = schemas.find((s) => s.name === 'Address');
+      expect(union).toMatchObject({
+        kind: 'union',
+        path: unionPointer,
+        types: [
+          { kind: 'ref', ref: variantPointer },
+          { kind: 'primitive', type: 'string' },
+        ],
+      });
+      expect(inline).toMatchObject({ kind: 'object', path: variantPointer });
+      expect((schemas[0] as any).properties[0]).toMatchObject({
+        type: { kind: 'ref', ref: unionPointer },
+      });
+    });
+
+    it('should recursively extract inline schemas nested inside union variants', () => {
+      const schemas = parseJsonSchema(
+        `
+title: Root
+type: object
+properties:
+  value:
+    title: Value
+    oneOf:
+      - title: Wrapper
+        type: object
+        properties:
+          inner:
+            title: Inner
+            oneOf:
+              - title: Detail
+                type: object
+                properties:
+                  label:
+                    type: string
+              - type: integer
+      - type: string`,
+        path,
+      );
+
+      const valuePointer = `${path}#/properties/value`;
+      const wrapperPointer = `${valuePointer}/oneOf/0`;
+      const innerPointer = `${wrapperPointer}/properties/inner`;
+      const detailPointer = `${innerPointer}/oneOf/0`;
+
+      const value = schemas.find((s) => s.name === 'Value');
+      const wrapper = schemas.find((s) => s.name === 'Wrapper');
+      const inner = schemas.find((s) => s.name === 'Inner');
+      const detail = schemas.find((s) => s.name === 'Detail');
+
+      expect(value).toMatchObject({
+        kind: 'union',
+        path: valuePointer,
+        types: [
+          { kind: 'ref', ref: wrapperPointer },
+          { kind: 'primitive', type: 'string' },
+        ],
+      });
+      expect(wrapper).toMatchObject({
+        kind: 'object',
+        path: wrapperPointer,
+        properties: [
+          {
+            name: 'inner',
+            type: { kind: 'ref', ref: innerPointer },
+          },
+        ],
+      });
+      expect(inner).toMatchObject({
+        kind: 'union',
+        path: innerPointer,
+        types: [
+          { kind: 'ref', ref: detailPointer },
+          { kind: 'primitive', type: 'integer' },
+        ],
+      });
+      expect(detail).toMatchObject({
+        kind: 'object',
+        path: detailPointer,
+        properties: [
+          {
+            name: 'label',
+            type: { kind: 'primitive', type: 'string' },
+          },
+        ],
+      });
+    });
+
+    it('should fall back to `${unionName}Variant${i}` for an untitled inline variant', () => {
+      const schemas = parseJsonSchema(
+        `
+title: Either
+oneOf:
+  - type: object
+    properties:
+      street:
+        type: string
+  - type: string`,
+        path,
+      );
+
+      const inline = schemas.find((s) => s.path === `${path}#/oneOf/0`);
+      expect(inline).toMatchObject({
+        kind: 'object',
+        name: 'EitherVariant0',
+      });
+    });
+
     it('should extract inline object schemas with their own path', () => {
       const schemas = parseJsonSchema(
         `

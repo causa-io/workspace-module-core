@@ -167,11 +167,25 @@ function parseSchemaBody(
   }
 
   if (schema.oneOf) {
+    const selfPointer = path.includes('#') ? path : `${path}#`;
+    const nested: Schema[] = [];
     const types = schema.oneOf
-      .filter((t): t is JSONSchema7 => typeof t === 'object')
-      .map((t) => resolveInnerType(t, path));
+      .map((t, i) => ({ t, i }))
+      .filter(
+        (e): e is { t: JSONSchema7; i: number } => typeof e.t === 'object',
+      )
+      .map(({ t, i }) =>
+        resolveInnerType(t as CausaSchema, path, {
+          schemas: nested,
+          pointer: `${selfPointer}/oneOf/${i}`,
+          fallbackName: `${name}Variant${i}`,
+        }),
+      );
 
-    return [{ kind: 'union', name, path, description, types, extensions }];
+    return [
+      { kind: 'union', name, path, description, types, extensions },
+      ...nested,
+    ];
   }
 
   if (schema.type !== 'object') {

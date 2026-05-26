@@ -97,6 +97,8 @@ Triggers passed with `--trigger` are free-form URIs by default and are interpret
 
 The events to publish are built by `EventTopicCreateBackfillSource`, which returns an `AsyncIterable<BackfillEvent>` passed to `EventTopicBrokerPublishEvents`. This module ships an implementation for `json://<glob>` sources (newline-delimited JSON files with `data`, optional `attributes`, and optional `key` fields). When no `--source` is passed, the broker module is expected to provide an implementation that yields from its default storage for the topic. Filtering, when supported, is applied inside the source implementation — the returned iterable yields only the events that should actually be published.
 
+Passing `--autoClean` to `cs events backfill` makes the command wait for events to be processed once publishing succeeds, then run the equivalent of `cs events cleanBackfill` inline — so a single call handles publish, drain, and cleanup. The wait is delegated to `EventTopicBrokerWaitForProcessing`, which is broker-specific (timeout and "processed" semantics live there). On success no backfill file is written and the command outputs nothing. On any failure during publish, wait, or cleanup, the backfill file is written so `cs events cleanBackfill` can still be run manually.
+
 ## 🎬 Scenarios
 
 Scenarios are YAML files that orchestrate calls to workspace functions, with templated arguments, dependency-driven scheduling, expectations, and retries. They are run with `cs scenario run <path>` (relative paths are resolved from the workspace root). The schema for a scenario file is shipped with this module at [`./src/scenarios/schemas/scenario.yaml`](./src/scenarios/schemas/scenario.yaml) and embedded under `dist/scenarios/schemas/` when published.

@@ -181,14 +181,19 @@ function parseSchemaBody(
     );
   }
 
-  const propertiesPointer = path.includes('#')
-    ? `${path}/properties`
-    : `${path}#/properties`;
+  const selfPointer = path.includes('#') ? path : `${path}#`;
+  const propertiesPointer = `${selfPointer}/properties`;
   const { properties, nested } = parseProperties(
     schema,
     path,
     propertiesPointer,
   );
+
+  const additionalProperties = resolveAdditionalProperties(schema, path, {
+    schemas: nested,
+    pointer: selfPointer,
+    fallbackName: name,
+  });
 
   return [
     {
@@ -197,6 +202,7 @@ function parseSchemaBody(
       path,
       description,
       properties,
+      additionalProperties,
       extensions,
       databases: [],
     },
@@ -544,11 +550,7 @@ function resolveArrayType(
 /**
  * Resolve a `type: object` schema node carrying `additionalProperties` into a {@link PropertyType} of kind `map`.
  *
- * The value type is `'any'` when `additionalProperties` is absent (JSON Schema default) or the boolean `true`, or
- * the resolved inner type when it is a schema. Any other shape throws. When an {@link InlineContext} is provided,
- * inline object/enum/union shapes
- * declared directly as the value schema are extracted as nested {@link Schema} entries; their pointer is
- * `${inline.pointer}/additionalProperties` and their fallback name is `${inline.fallbackName}Value`.
+ * Behavior follows {@link resolveAdditionalProperties}. `false` is rejected because a map cannot forbid all entries.
  *
  * @param prop Raw schema node.
  * @param path Absolute path of the containing file.
@@ -562,16 +564,45 @@ function resolveMapType(
   path: string,
   inline?: InlineContext,
 ): PropertyType {
-  const additional = prop.additionalProperties;
-  if (additional === undefined || additional === true) {
-    return { kind: 'map', items: 'any' };
-  }
+  const value = resolveAdditionalProperties(prop, path, inline);
 
-  if (additional === false) {
+  if (value === false) {
     throw new InvalidSchemaError(
       path,
       "map cannot have 'additionalProperties: false'",
     );
+  }
+
+  return { kind: 'map', items: value === true ? 'any' : value };
+}
+
+/**
+ * Resolve an `additionalProperties` declaration on a schema node into either a boolean or a {@link PropertyType}.
+ *
+ * - `undefined` and `true` yield `true` (the JSON Schema default).
+ * - `false` yields `false`.
+ * - A schema value is resolved via {@link resolveInnerType}, propagating the inline context to extract inline
+ *   object/enum/union shapes. The inline pointer is suffixed with `/additionalProperties` and the fallback name is
+ *   `${inline.fallbackName}Value` to match the convention used for map values.
+ *
+ * @param prop Raw schema node carrying (or not) `additionalProperties`.
+ * @param path Absolute path of the containing file.
+ * @param inline Optional context propagated to the value schema so inline schemas can be extracted.
+ * @returns The resolved boolean or property type.
+ * @throws {InvalidSchemaError} When `additionalProperties` is not `true`, `false`, or a schema.
+ */
+function resolveAdditionalProperties(
+  prop: CausaSchema,
+  path: string,
+  inline?: InlineContext,
+): boolean | PropertyType {
+  const additional = prop.additionalProperties;
+  if (additional === undefined || additional === true) {
+    return true;
+  }
+
+  if (additional === false) {
+    return false;
   }
 
   if (
@@ -581,7 +612,7 @@ function resolveMapType(
   ) {
     throw new InvalidSchemaError(
       path,
-      'map additionalProperties must be a schema or true',
+      'additionalProperties must be a boolean or a schema',
     );
   }
 
@@ -593,10 +624,7 @@ function resolveMapType(
       }
     : undefined;
 
-  return {
-    kind: 'map',
-    items: resolveInnerType(additional as CausaSchema, path, valueInline),
-  };
+  return resolveInnerType(additional as CausaSchema, path, valueInline);
 }
 
 /**

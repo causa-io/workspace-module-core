@@ -27,6 +27,7 @@ describe('ModelSchemaWriteForJsonSchema', () => {
       name: 'User',
       path: '/virtual/user.yaml',
       properties: [],
+      additionalProperties: false,
       extensions: {},
       databases: [],
     };
@@ -104,6 +105,7 @@ $defs:
             name: 'X',
             path: '/x.yaml',
             properties: [],
+            additionalProperties: false,
             extensions: {},
             databases: [],
           },

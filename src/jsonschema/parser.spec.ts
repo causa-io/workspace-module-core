@@ -13,6 +13,7 @@ describe('parseJsonSchema', () => {
         name: 'User',
         path,
         properties: [],
+        additionalProperties: true,
         extensions: {},
         databases: [],
       });
@@ -105,6 +106,88 @@ oneOf:
         name: 'Maybe',
         types: [{ kind: 'primitive', type: 'string' }, { kind: 'null' }],
       });
+    });
+
+    it('should preserve explicit additionalProperties: false on an object schema', () => {
+      const [schema] = parseJsonSchema(
+        `
+title: User
+type: object
+additionalProperties: false
+properties:
+  id:
+    type: string`,
+        path,
+      );
+
+      expect((schema as any).additionalProperties).toBe(false);
+    });
+
+    it('should resolve a typed additionalProperties schema on an object schema', () => {
+      const [schema] = parseJsonSchema(
+        `
+title: User
+type: object
+additionalProperties:
+  type: integer
+properties:
+  id:
+    type: string`,
+        path,
+      );
+
+      expect((schema as any).additionalProperties).toEqual({
+        kind: 'primitive',
+        type: 'integer',
+      });
+    });
+
+    it('should extract an inline schema declared in an object schema additionalProperties', () => {
+      const schemas = parseJsonSchema(
+        `
+title: Root
+type: object
+additionalProperties:
+  title: Extra
+  type: object
+  properties:
+    value:
+      type: string
+properties:
+  id:
+    type: string`,
+        path,
+      );
+
+      const inlinePointer = `${path}#/additionalProperties`;
+      const inline = schemas.find((s) => s.name === 'Extra');
+      expect(inline).toMatchObject({ kind: 'object', path: inlinePointer });
+      expect((schemas[0] as any).additionalProperties).toEqual({
+        kind: 'ref',
+        ref: inlinePointer,
+      });
+    });
+
+    it('should fall back to `${schemaName}Value` for an untitled inline additionalProperties schema', () => {
+      const schemas = parseJsonSchema(
+        `
+title: Root
+type: object
+additionalProperties:
+  type: object
+  properties:
+    value:
+      type: string
+properties:
+  id:
+    type: string`,
+        path,
+      );
+
+      const inline = schemas.find(
+        (s) => s.path === `${path}#/additionalProperties`,
+      );
+      expect(inline).toMatchObject({ kind: 'object', name: 'RootValue' });
     });
   });
 

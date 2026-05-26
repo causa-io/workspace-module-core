@@ -100,6 +100,9 @@ function* collectRefs(schema: Schema): Generator<string> {
       yield* refsFromType(property.type);
       yield* refsFromExtensions(property.extensions);
     }
+    if (typeof schema.additionalProperties === 'object') {
+      yield* refsFromType(schema.additionalProperties);
+    }
   } else if (schema.kind === 'union') {
     for (const type of schema.types) {
       yield* refsFromType(type);

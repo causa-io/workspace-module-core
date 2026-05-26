@@ -39,6 +39,27 @@ properties:
     expect(schemas['/abs/address.yaml']).toMatchObject({ name: 'Address' });
   });
 
+  it('should follow $ref declared inside additionalProperties', async () => {
+    const files: Record<string, string> = {
+      '/abs/root.yaml': `
+title: Root
+type: object
+additionalProperties:
+  $ref: "./extra.yaml"
+properties:
+  id:
+    type: string`,
+      '/abs/extra.yaml': 'title: Extra\ntype: object',
+    };
+
+    const { schemas, errors } = await loadSchemas(['/abs/root.yaml'], {
+      fileReader: async (p) => files[p],
+    });
+
+    expect(errors).toEqual({});
+    expect(schemas['/abs/extra.yaml']).toMatchObject({ name: 'Extra' });
+  });
+
   it('should follow ref-bearing causa extensions transitively', async () => {
     const files: Record<string, string> = {
       '/abs/root.yaml': `

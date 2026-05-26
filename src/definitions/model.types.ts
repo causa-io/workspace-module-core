@@ -113,6 +113,14 @@ export type ObjectSchema = BaseSchema & {
   properties: Property[];
 
   /**
+   * Whether properties not declared in {@link ObjectSchema.properties} are allowed, and what shape their values take.
+   *
+   * `true` and `false` mirror the boolean form of JSON Schema's `additionalProperties`. A {@link PropertyType} captures
+   * the resolved type of the value schema.
+   */
+  additionalProperties: boolean | PropertyType;
+
+  /**
    * Database bindings derived from causa extensions on this object.
    */
   databases: SchemaDatabase[];

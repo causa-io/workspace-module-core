@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+Breaking changes:
+
+- `cs events backfill` no longer writes a backfill file when no temporary resources were created (e.g. no temporary topic and no triggers, or when the command fails before any temporary resource exists). In that case, the command returns an empty string instead of a path, and its output is suppressed.
+
+Features:
+
+- Add the `--autoClean` option to `cs events backfill`, which waits for events to be processed after publishing and runs `cleanBackfill` inline. Introduces the broker-side `EventTopicBrokerWaitForProcessing` workspace function, which implementations should provide to support `--autoClean`.
+
 ## v0.35.0-beta.4 (2026-05-22)
 
 Features:

@@ -1,6 +1,6 @@
 import { WorkspaceContext } from '@causa/workspace';
 import { randomBytes } from 'crypto';
-import { writeFile } from 'fs/promises';
+import { unlink, writeFile } from 'fs/promises';
 import { join, resolve } from 'path';
 import {
   type BackfillTemporaryData,
@@ -9,6 +9,8 @@ import {
   EventTopicBrokerCreateTrigger,
   EventTopicBrokerGetTopicId,
   EventTopicBrokerPublishEvents,
+  EventTopicBrokerWaitForProcessing,
+  EventTopicCleanBackfill,
   EventTopicCreateBackfillSource,
   EventTopicTriggerCreationError,
 } from '../../definitions/index.js';
@@ -191,6 +193,8 @@ export class EventTopicBackfillForAll extends EventTopicBackfill {
       `"${backfillFile}"`,
     ].join(' ');
 
+    let hasTempResources = false;
+    let publishFailed = false;
     try {
       await this.createTriggers(backfillId, topicId, temporaryData);
 
@@ -210,19 +214,60 @@ export class EventTopicBackfillForAll extends EventTopicBackfill {
       });
 
       this._context.logger.info('✅ Successfully published all events.');
-      this._context.logger.info(
-        `💡 Once backfilling is complete, temporary resources can be cleaned using '${cleanBackfillCommand}'.`,
-      );
     } catch (error) {
-      this._context.logger.warn(
-        `⚠️ Backfilling failed but there might be temporary resources to clean up using '${cleanBackfillCommand}'.`,
-      );
+      publishFailed = true;
       throw error;
     } finally {
-      await writeFile(backfillFile, JSON.stringify(temporaryData));
+      hasTempResources =
+        !!temporaryData.temporaryTopicId ||
+        temporaryData.temporaryTriggerResourceIds.length > 0;
+      if (hasTempResources) {
+        if (publishFailed) {
+          this._context.logger.warn(
+            `⚠️ Backfilling failed but there might be temporary resources to clean up using '${cleanBackfillCommand}'.`,
+          );
+        }
+
+        await writeFile(backfillFile, JSON.stringify(temporaryData));
+      }
     }
 
-    return backfillFile;
+    if (!this.autoClean) {
+      if (hasTempResources) {
+        this._context.logger.info(
+          `💡 Once backfilling is complete, temporary resources can be cleaned using '${cleanBackfillCommand}'.`,
+        );
+      }
+      return hasTempResources ? backfillFile : '';
+    }
+
+    if (!hasTempResources) {
+      this._context.logger.info(
+        'ℹ️ No temporary resources were created, skipping wait and clean.',
+      );
+      return '';
+    }
+
+    try {
+      this._context.logger.info(
+        '⏳ Waiting for events to be processed before cleaning up.',
+      );
+      await this._context.call(EventTopicBrokerWaitForProcessing, {
+        eventTopic: this.eventTopic,
+        temporaryData,
+      });
+
+      await this._context.call(EventTopicCleanBackfill, { file: backfillFile });
+    } catch (error) {
+      this._context.logger.warn(
+        `⚠️ Auto-clean failed, temporary resources can be cleaned using '${cleanBackfillCommand}'.`,
+      );
+      throw error;
+    }
+
+    await unlink(backfillFile);
+
+    return '';
   }
 
   _supports(): boolean {

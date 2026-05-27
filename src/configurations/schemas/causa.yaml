@@ -5,6 +5,7 @@ type: object
 description: A configuration with additional `causa` properties used by workspace functions in this package.
 properties:
   causa:
+    title: Causa
     type: object
     description: Additional causa properties used by workspace functions in this package.
     properties:

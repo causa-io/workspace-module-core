@@ -78,7 +78,7 @@ $defs:
         description: The maximum number of attempts before giving up.
 
       delay:
-        type: number
+        type: integer
         description: The delay in milliseconds between attempts.
 
   StepCall:
@@ -120,9 +120,17 @@ $defs:
         description: Whether to require an exact deep-equality match. Defaults to `false`.
 
       actual:
+        title: ExpectationActual
+        oneOf:
+          - type: string
+          - type: object
         description: The value to match against. May be a templatable expression. Defaults to the output of the current step.
 
       value:
+        title: ExpectationValue
+        oneOf:
+          - type: string
+          - type: object
         description: The expected value. May contain `${ match(...) }` and `${ output(...) }` templates.
 
   ScenarioStep:

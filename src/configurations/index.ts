@@ -4,7 +4,7 @@ export {
   EventsConfiguration,
   InfrastructureConfiguration,
   ModelConfiguration,
-  OpenAPIConfiguration as OpenApiConfiguration,
+  OpenApiConfiguration,
   ServerlessFunctionsConfiguration,
   ServiceContainerConfiguration,
 } from './generated.js';

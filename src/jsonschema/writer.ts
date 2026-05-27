@@ -22,6 +22,7 @@ const TYPE_KEYWORDS = [
   'type',
   'format',
   'oneOf',
+  'anyOf',
   'items',
   '$ref',
   'enum',
@@ -339,9 +340,9 @@ function applyUnion(
 ): void {
   const target: Record<string, unknown> = {
     title: schema.name,
-    oneOf: schema.types.map((t) => buildTypeNode(t, filePath)),
+    [schema.combiner]: schema.types.map((t) => buildTypeNode(t, filePath)),
   };
-  applyMinimalChange(node, target, excludeTypeKeywordsExcept('oneOf'));
+  applyMinimalChange(node, target, excludeTypeKeywordsExcept(schema.combiner));
   applyDescription(node, schema.description);
   applyExtensions(node, schema.extensions, filePath);
 }

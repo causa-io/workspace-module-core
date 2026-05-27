@@ -184,6 +184,14 @@ export type UnionSchema = BaseSchema & {
   kind: 'union';
 
   /**
+   * The way types are combined in this union.
+   *
+   * - `oneOf` requires exactly one variant to match (exclusive).
+   * - `anyOf` requires at least one variant to match (inclusive).
+   */
+  combiner: 'oneOf' | 'anyOf';
+
+  /**
    * The non-null member types of the union, in source order.
    */
   types: PropertyType[];

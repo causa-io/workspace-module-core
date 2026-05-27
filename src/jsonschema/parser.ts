@@ -11,6 +11,7 @@ import {
   type Property,
   type PropertyType,
   type Schema,
+  type UnionSchema,
 } from '../definitions/index.js';
 
 /**
@@ -45,6 +46,33 @@ type InlineContext = {
    */
   fallbackName: string;
 };
+
+/**
+ * Identifies the JSON Schema combiner keyword used by a node, if any, returning its key and variants.
+ *
+ * @param schema Raw schema node.
+ * @param path Absolute path of the containing schema, used for error reporting.
+ * @returns The combiner key and its variant list, or `null` when neither keyword is present.
+ * @throws {InvalidSchemaError} When both `oneOf` and `anyOf` are declared on the same node.
+ */
+function readCombiner(
+  schema: CausaSchema,
+  path: string,
+): { key: UnionSchema['combiner']; variants: JSONSchema7[] } | null {
+  if (schema.oneOf && schema.anyOf) {
+    throw new InvalidSchemaError(
+      path,
+      'cannot combine `oneOf` and `anyOf` on the same node',
+    );
+  }
+  if (schema.oneOf) {
+    return { key: 'oneOf', variants: schema.oneOf as JSONSchema7[] };
+  }
+  if (schema.anyOf) {
+    return { key: 'anyOf', variants: schema.anyOf as JSONSchema7[] };
+  }
+  return null;
+}
 
 /**
  * Set of primitive type names recognized by the model.
@@ -166,24 +194,31 @@ function parseSchemaBody(
     ];
   }
 
-  if (schema.oneOf) {
+  const combiner = readCombiner(schema, path);
+  if (combiner) {
+    const { key, variants } = combiner;
     const selfPointer = path.includes('#') ? path : `${path}#`;
     const nested: Schema[] = [];
-    const types = schema.oneOf
-      .map((t, i) => ({ t, i }))
-      .filter(
-        (e): e is { t: JSONSchema7; i: number } => typeof e.t === 'object',
-      )
-      .map(({ t, i }) =>
-        resolveInnerType(t as CausaSchema, path, {
-          schemas: nested,
-          pointer: `${selfPointer}/oneOf/${i}`,
-          fallbackName: `${name}Variant${i}`,
-        }),
-      );
+    const types = variants.flatMap((t, i) =>
+      typeof t === 'object'
+        ? resolveInnerType(t as CausaSchema, path, {
+            schemas: nested,
+            pointer: `${selfPointer}/${key}/${i}`,
+            fallbackName: `${name}Variant${i}`,
+          })
+        : [],
+    );
 
     return [
-      { kind: 'union', name, path, description, types, extensions },
+      {
+        kind: 'union',
+        name,
+        path,
+        description,
+        combiner: key,
+        types,
+        extensions,
+      },
       ...nested,
     ];
   }
@@ -295,12 +330,14 @@ function tryResolveInlineSchema(
   prop: CausaSchema,
   pointer: string,
   fallbackName: string,
+  path: string,
 ): { type: PropertyType; nested: Schema[] } | null {
   const isEnum = Array.isArray(prop.enum);
   const isObject = prop.type === 'object' && prop.properties !== undefined;
+  const combiner = readCombiner(prop, path);
   const isUnion =
-    Array.isArray(prop.oneOf) &&
-    prop.oneOf.filter((v) => typeof v === 'object' && v.type !== 'null')
+    combiner !== null &&
+    combiner.variants.filter((v) => typeof v === 'object' && v.type !== 'null')
       .length >= 2;
   if (!isEnum && !isObject && !isUnion) {
     return null;
@@ -337,13 +374,13 @@ function unwrapNullableOneOf(
   path: string,
 ): { inner: CausaSchema; nullable: boolean; pointer: string } {
   const normalized = expandTypeArray(prop, path);
-  const oneOf = normalized.oneOf as CausaSchema[] | undefined;
-  if (!oneOf) {
+  const combiner = readCombiner(normalized, path);
+  if (!combiner) {
     return { inner: normalized, nullable: false, pointer };
   }
 
-  const nullable = oneOf.some((v) => v.type === 'null');
-  const nonNullIndices = oneOf.flatMap((v, i) =>
+  const nullable = combiner.variants.some((v) => v.type === 'null');
+  const nonNullIndices = combiner.variants.flatMap((v, i) =>
     v.type === 'null' ? [] : [i],
   );
 
@@ -353,7 +390,11 @@ function unwrapNullableOneOf(
 
   if (nonNullIndices.length === 1) {
     const idx = nonNullIndices[0];
-    return { inner: oneOf[idx], nullable, pointer: `${pointer}/oneOf/${idx}` };
+    return {
+      inner: combiner.variants[idx],
+      nullable,
+      pointer: `${pointer}/${combiner.key}/${idx}`,
+    };
   }
 
   return { inner: normalized, nullable: false, pointer };
@@ -378,10 +419,10 @@ function expandTypeArray(prop: CausaSchema, path: string): CausaSchema {
   if (!Array.isArray(prop.type)) {
     return prop;
   }
-  if (prop.oneOf !== undefined) {
+  if (prop.oneOf !== undefined || prop.anyOf !== undefined) {
     throw new InvalidSchemaError(
       path,
-      'cannot combine an array `type` with `oneOf`',
+      'cannot combine an array `type` with `oneOf` or `anyOf`',
     );
   }
 
@@ -418,6 +459,7 @@ function resolveInnerType(
       prop,
       inline.pointer,
       inline.fallbackName,
+      path,
     );
     if (matched) {
       inline.schemas.push(...matched.nested);

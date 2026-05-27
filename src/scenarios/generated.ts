@@ -3,16 +3,47 @@
 import { AllowMissing } from '@causa/workspace/validation';
 import { Type } from 'class-transformer';
 import {
+  Allow,
   IsArray,
   IsBoolean,
   IsDefined,
   IsIn,
   IsInt,
-  IsNumber,
   IsObject,
   IsString,
   ValidateNested,
 } from 'class-validator';
+
+/**
+ * The value to match against. May be a templatable expression. Defaults to the output of the current step.
+ */
+export type ExpectationActual = string | Record<string, any>;
+
+/**
+ * The expected value. May contain `${ match(...) }` and `${ output(...) }` templates.
+ */
+export type ExpectationValue = string | Record<string, any>;
+
+/**
+ * Configuration for a single retry policy (number of attempts and delay between them).
+ */
+export class RetryPolicy {
+  constructor(init: RetryPolicy) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * The maximum number of attempts before giving up.
+   */
+  @IsInt()
+  readonly maxAttempts!: number;
+
+  /**
+   * The delay in milliseconds between attempts.
+   */
+  @IsInt()
+  readonly delay!: number;
+}
 
 /**
  * The type of the input value.
@@ -30,13 +61,6 @@ export class ScenarioInput {
   }
 
   /**
-   * The default value to use when the input is not provided at runtime.
-   */
-  @AllowMissing()
-  @IsString()
-  readonly default?: string;
-
-  /**
    * A human-readable description of the input.
    */
   @AllowMissing()
@@ -48,6 +72,13 @@ export class ScenarioInput {
    */
   @IsIn(['string'])
   readonly type!: ScenarioInputType;
+
+  /**
+   * The default value to use when the input is not provided at runtime.
+   */
+  @AllowMissing()
+  @IsString()
+  readonly default?: string;
 }
 
 /**
@@ -59,17 +90,17 @@ export class StepCall {
   }
 
   /**
-   * The arguments passed to the function. Free-form and may contain `${ ... }` template expressions.
-   */
-  @AllowMissing()
-  @IsObject()
-  readonly args?: { [key: string]: any };
-
-  /**
    * The name of the workspace function to invoke.
    */
   @IsString()
   readonly name!: string;
+
+  /**
+   * The arguments passed to the function. Free-form and may contain `${ ... }` template expressions.
+   */
+  @AllowMissing()
+  @IsObject()
+  readonly args?: Record<string, any>;
 }
 
 /**
@@ -86,12 +117,6 @@ export class StepExpectation {
   }
 
   /**
-   * The value to match against. May be a templatable expression. Defaults to the output of the current step.
-   */
-  @AllowMissing()
-  readonly actual?: any;
-
-  /**
    * A short human-readable description of what the expectation checks.
    */
   @AllowMissing()
@@ -106,30 +131,16 @@ export class StepExpectation {
   readonly exact?: boolean;
 
   /**
+   * The value to match against. May be a templatable expression. Defaults to the output of the current step.
+   */
+  @AllowMissing()
+  readonly actual?: ExpectationActual;
+
+  /**
    * The expected value. May contain `${ match(...) }` and `${ output(...) }` templates.
    */
-  readonly value!: any;
-}
-
-/**
- * Configuration for a single retry policy (number of attempts and delay between them).
- */
-export class RetryPolicy {
-  constructor(init: RetryPolicy) {
-    Object.assign(this, init);
-  }
-
-  /**
-   * The delay in milliseconds between attempts.
-   */
-  @IsNumber()
-  readonly delay!: number;
-
-  /**
-   * The maximum number of attempts before giving up.
-   */
-  @IsInt()
-  readonly maxAttempts!: number;
+  @Allow()
+  readonly value!: ExpectationValue;
 }
 
 /**
@@ -144,20 +155,11 @@ export class ScenarioStep {
   }
 
   /**
-   * IDs of other steps this step explicitly depends on. The referenced steps are guaranteed to have completed
-   * successfully before this step runs, even when no `output('<id>')` template references them.
-   *
+   * A short human-readable name for the step.
    */
   @AllowMissing()
-  @IsArray()
-  @IsString({ each: true })
-  readonly after?: string[];
-
-  @IsObject()
-  @ValidateNested()
-  @IsDefined()
-  @Type(() => StepCall)
-  readonly call!: StepCall;
+  @IsString()
+  readonly name?: string;
 
   /**
    * A longer description of what the step does.
@@ -166,28 +168,37 @@ export class ScenarioStep {
   @IsString()
   readonly description?: string;
 
+  @IsDefined()
+  @IsObject()
+  @Type(() => StepCall)
+  @ValidateNested()
+  readonly call!: StepCall;
+
+  @AllowMissing()
+  @IsObject()
+  @Type(() => RetryPolicy)
+  @ValidateNested()
+  readonly retry?: RetryPolicy;
+
   /**
    * The expectations evaluated against the step's call output, in order.
    */
   @AllowMissing()
   @IsArray()
   @IsObject({ each: true })
-  @ValidateNested()
   @Type(() => StepExpectation)
+  @ValidateNested()
   readonly expectations?: StepExpectation[];
 
   /**
-   * A short human-readable name for the step.
+   * IDs of other steps this step explicitly depends on. The referenced steps are guaranteed to have completed
+   * successfully before this step runs, even when no `output('<id>')` template references them.
+   *
    */
   @AllowMissing()
-  @IsString()
-  readonly name?: string;
-
-  @AllowMissing()
-  @IsObject()
-  @ValidateNested()
-  @Type(() => RetryPolicy)
-  readonly retry?: RetryPolicy;
+  @IsArray()
+  @IsString({ each: true })
+  readonly after?: string[];
 }
 
 /**
@@ -199,14 +210,10 @@ export class Scenario {
   }
 
   /**
-   * Default `args` to set when a step calls a given workspace function, keyed by function name. Per-step `args` are
-   * shallow-merged on top of these defaults. Values may contain `${ ... }` template expressions, evaluated when
-   * collecting dependencies and right before each step call.
-   *
+   * The unique identifier of the scenario.
    */
-  @AllowMissing()
-  @IsObject()
-  readonly defaultCallArgs?: { [key: string]: { [key: string]: any } };
+  @IsString()
+  readonly id!: string;
 
   /**
    * A human-readable description of what the scenario does.
@@ -216,17 +223,21 @@ export class Scenario {
   readonly description?: string;
 
   /**
-   * The unique identifier of the scenario.
-   */
-  @IsString()
-  readonly id!: string;
-
-  /**
    * Inputs accepted by the scenario, keyed by input name. Referenced as `${ input('<name>') }` in steps.
    */
   @AllowMissing()
   @IsObject()
-  readonly inputs?: { [key: string]: ScenarioInput };
+  readonly inputs?: Record<string, ScenarioInput>;
+
+  /**
+   * Default `args` to set when a step calls a given workspace function, keyed by function name. Per-step `args` are
+   * shallow-merged on top of these defaults. Values may contain `${ ... }` template expressions, evaluated when
+   * collecting dependencies and right before each step call.
+   *
+   */
+  @AllowMissing()
+  @IsObject()
+  readonly defaultCallArgs?: Record<string, Record<string, any>>;
 
   /**
    * The steps of the scenario, keyed by step ID. Outputs of previous steps are referenced as
@@ -234,5 +245,5 @@ export class Scenario {
    *
    */
   @IsObject()
-  readonly steps!: { [key: string]: ScenarioStep };
+  readonly steps!: Record<string, ScenarioStep>;
 }

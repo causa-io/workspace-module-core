@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+Features:
+
+- Support JSONSchema `anyOf` unions during parsing and writing.
+- Support inline object, enum, and union schemas declared as variants of a `oneOf` or `anyOf`.
+
+## v0.35.0-beta.5 (2026-05-26)
+
 Breaking changes:
 
 - `cs events backfill` no longer writes a backfill file when no temporary resources were created (e.g. no temporary topic and no triggers, or when the command fails before any temporary resource exists). In that case, the command returns an empty string instead of a path, and its output is suppressed.

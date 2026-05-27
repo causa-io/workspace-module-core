@@ -117,11 +117,12 @@ describe('apply', () => {
     });
   });
 
-  it('should write a union schema', () => {
+  it('should write a oneOf union schema', () => {
     const schema: UnionSchema = {
       kind: 'union',
       name: 'Either',
       path: filePath,
+      combiner: 'oneOf',
       types: [
         { kind: 'primitive', type: 'string' },
         { kind: 'primitive', type: 'integer' },
@@ -135,6 +136,52 @@ describe('apply', () => {
     expect(parsed).toEqual({
       title: 'Either',
       oneOf: [{ type: 'string' }, { type: 'integer' }],
+    });
+  });
+
+  it('should write an anyOf union schema', () => {
+    const schema: UnionSchema = {
+      kind: 'union',
+      name: 'Either',
+      path: filePath,
+      combiner: 'anyOf',
+      types: [
+        { kind: 'primitive', type: 'string' },
+        { kind: 'primitive', type: 'integer' },
+      ],
+      extensions: {},
+    };
+
+    const out = apply('', schema);
+
+    const parsed = yaml.parse(out);
+    expect(parsed).toEqual({
+      title: 'Either',
+      anyOf: [{ type: 'string' }, { type: 'integer' }],
+    });
+  });
+
+  it('should rewrite a union when switching combiner', () => {
+    const initial =
+      'title: Either\noneOf:\n  - type: string\n  - type: integer\n';
+    const schema: UnionSchema = {
+      kind: 'union',
+      name: 'Either',
+      path: filePath,
+      combiner: 'anyOf',
+      types: [
+        { kind: 'primitive', type: 'string' },
+        { kind: 'primitive', type: 'integer' },
+      ],
+      extensions: {},
+    };
+
+    const out = apply(initial, schema);
+
+    const parsed = yaml.parse(out);
+    expect(parsed).toEqual({
+      title: 'Either',
+      anyOf: [{ type: 'string' }, { type: 'integer' }],
     });
   });
 

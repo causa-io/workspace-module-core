@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.35.0-beta.6 (2026-05-27)
+
 Features:
 
 - Support JSONSchema `anyOf` unions during parsing and writing.

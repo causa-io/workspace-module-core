@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+Features:
+
+- Support JSONSchema `anyOf` unions during parsing and writing.
+- Support inline object, enum, and union schemas declared as variants of a `oneOf` or `anyOf`.
+
 ## v0.35.0-beta.5 (2026-05-26)
 
 Breaking changes:

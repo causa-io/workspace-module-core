@@ -45,7 +45,8 @@ properties:
               title: ServerlessFunctionTrigger
               description: The event that triggers the function.
               anyOf:
-                - type: object
+                - title: ServerlessFunctionGenericTrigger
+                  type: object
                   properties:
                     type:
                       type: string
@@ -57,10 +58,7 @@ properties:
                   type: object
                   properties:
                     type:
-                      title: ServerlessFunctionEventTriggerType
-                      type: string
-                      enum:
-                        - event
+                      const: event
                       description: The type of trigger.
 
                     topic:

@@ -15,6 +15,7 @@ properties:
           The list of processors that should be run prior to infrastructure operations to set up the workspace.
           Processors should implement the `InfrastructureProcessor` interface.
         items:
+          title: InfrastructureProcessor
           anyOf:
             - title: ProcessorInstruction
               type: object
@@ -35,9 +36,8 @@ properties:
                 Sets the `causa.projectConfigurationsDirectory` configuration value.
               properties:
                 name:
-                  type: string
-                  enum:
-                    - ProjectWriteConfigurations
+                  const: ProjectWriteConfigurations
+                  description: The name of the WorkspaceFunction.
               required:
                 - name
 
@@ -55,4 +55,5 @@ properties:
 
 $defs:
   _TemplateString:
-    type: string
+    oneOf:
+      - type: string

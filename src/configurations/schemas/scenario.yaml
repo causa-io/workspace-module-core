@@ -5,6 +5,7 @@ type: object
 description: A configuration for scenarios.
 properties:
   scenario:
+    title: Scenario
     type: object
     description: Configuration for scenarios.
     properties:

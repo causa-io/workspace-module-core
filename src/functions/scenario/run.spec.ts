@@ -300,6 +300,56 @@ describe('ScenarioRunForAll', () => {
     await context.call(ScenarioRun, { path: 'scenario.yaml' });
   });
 
+  it('should support the rand function for uuids, integers, and floats', async () => {
+    stepMock.mockImplementation(async (_, { value }) => ({ value }));
+    await writeScenario({
+      id: 'rand-builtin',
+      steps: {
+        uuid: {
+          call: { name: 'TestStep', args: { value: "${ rand('uuid') }" } },
+        },
+        int: {
+          call: { name: 'TestStep', args: { value: "${ rand('int', 5, 5) }" } },
+        },
+        float: {
+          call: {
+            name: 'TestStep',
+            args: { value: "${ rand('float', 5.2, 5.2) }" },
+          },
+        },
+      },
+    });
+
+    await context.call(ScenarioRun, { path: 'scenario.yaml' });
+
+    expect(stepMock.mock.calls.map((c) => c[1].value)).toEqual([
+      expect.stringMatching(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+      ),
+      '5',
+      '5.2',
+    ]);
+  });
+
+  it('should fail the step when the rand function is misused', async () => {
+    await writeScenario({
+      id: 'rand-invalid',
+      steps: {
+        only: {
+          call: { name: 'TestStep', args: { value: "${ rand('nope') }" } },
+        },
+      },
+    });
+
+    const actualPromise = context.call(ScenarioRun, { path: 'scenario.yaml' });
+
+    await expect(actualPromise).rejects.toBeInstanceOf(ScenarioFailedError);
+    await expect(actualPromise).rejects.toHaveProperty(
+      'result.steps.only.error',
+      expect.stringContaining("Unsupported 'rand' kind 'nope'"),
+    );
+  });
+
   it('should support expectation values that are not strings or objects', async () => {
     stepMock.mockImplementation(async (_, { value }) => {
       switch (value) {

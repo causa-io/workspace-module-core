@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { expect } from 'expect';
 import { readFile, writeFile } from 'fs/promises';
 import jsone from 'json-e';
@@ -25,6 +26,38 @@ class RetryAttemptsExhaustedError extends Error {
   ) {
     super(cause instanceof Error ? cause.message : String(cause), { cause });
   }
+}
+
+/**
+ * Generates a random value, exposed to scenario templates as `rand(...)`:
+ * - `rand('uuid')` returns a random UUID;
+ * - `rand('int', min, max)` returns a random integer in `[min, max)`;
+ * - `rand('float', min, max)` returns a random floating-point number in `[min, max)`.
+ *
+ * @param kind The kind of value to generate (`'uuid'`, `'int'`, or `'float'`).
+ * @param min The lower bound (inclusive), required for `'int'` and `'float'`.
+ * @param max The upper bound (exclusive), required for `'int'` and `'float'`.
+ * @returns The generated value.
+ */
+function rand(kind: unknown, min?: unknown, max?: unknown): string | number {
+  if (kind === 'uuid') {
+    return randomUUID();
+  }
+
+  if (kind !== 'int' && kind !== 'float') {
+    throw new Error(
+      `Unsupported 'rand' kind '${kind}'. Expected 'uuid', 'int' or 'float'.`,
+    );
+  }
+
+  if (typeof min !== 'number' || typeof max !== 'number') {
+    throw new Error(
+      `'rand('${kind}', min, max)' requires numeric 'min' and 'max' bounds.`,
+    );
+  }
+
+  const value = min + Math.random() * (max - min);
+  return kind === 'int' ? Math.floor(value) : value;
 }
 
 /**
@@ -65,6 +98,7 @@ export class ScenarioRunForAll extends ScenarioRun {
       },
       str: (value: any) =>
         value instanceof Date ? value.toISOString() : String(value),
+      rand,
     };
 
     const result = await this.runSteps(

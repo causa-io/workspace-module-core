@@ -20,9 +20,15 @@ import {
 export type ExpectationActual = string | Record<string, any>;
 
 /**
- * The expected value. May contain `${ match(...) }` and `${ output(...) }` templates.
+ * The expected value. May be any JSON value supported by json-e / JavaScript (string, number, boolean, object, array, or null), and may contain `${ output(...) }` templates.
  */
-export type ExpectationValue = string | Record<string, any>;
+export type ExpectationValue =
+  | string
+  | number
+  | boolean
+  | null
+  | ExpectationValue[]
+  | Record<string, any>;
 
 /**
  * Configuration for a single retry policy (number of attempts and delay between them).
@@ -137,7 +143,7 @@ export class StepExpectation {
   readonly actual?: ExpectationActual;
 
   /**
-   * The expected value. May contain `${ match(...) }` and `${ output(...) }` templates.
+   * The expected value. May be any JSON value supported by json-e / JavaScript (string, number, boolean, object, array, or null), and may contain `${ output(...) }` templates.
    */
   @Allow()
   readonly value!: ExpectationValue;

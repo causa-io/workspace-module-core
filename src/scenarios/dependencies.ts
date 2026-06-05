@@ -1,42 +1,101 @@
-import jsone from 'json-e';
 import type { Scenario } from './index.js';
 
 /**
- * Builds a permissive proxy that absorbs arbitrary property accesses and function calls, returning another proxy
- * recursively. Used as a placeholder value during dependency detection so json-e expressions like
- * `${ output('x').body.id }` evaluate without throwing.
+ * The object keys json-e recognizes as operators, mirroring its `operators` table (json-e 4.8).
  */
-function makeSpyValue(): any {
-  const target: any = function () {};
-  return new Proxy(target, {
-    get(_, prop) {
-      if (prop === Symbol.toPrimitive) {
-        return () => '';
-      }
+const JSONE_OPERATORS = new Set([
+  '$eval',
+  '$find',
+  '$flatten',
+  '$flattenDeep',
+  '$fromNow',
+  '$if',
+  '$json',
+  '$let',
+  '$map',
+  '$match',
+  '$merge',
+  '$mergeDeep',
+  '$reduce',
+  '$reverse',
+  '$sort',
+  '$switch',
+]);
 
-      if (prop === 'toString') {
-        return () => '';
-      }
+/**
+ * The json-e operators whose operand is a map keyed by condition expressions (`{ "<condition>": <result>, ... }`).
+ */
+const CONDITION_OPERATORS = new Set(['$match', '$switch']);
 
-      return makeSpyValue();
-    },
-    apply() {
-      return makeSpyValue();
-    },
-  });
+/**
+ * Matches an `output('<id>')` or `configuration('<path>')` call with a string-literal argument.
+ */
+const REFERENCE = /(?<![\w.])(output|configuration)\s*\(\s*(['"])(.*?)\2\s*\)/g;
+
+/**
+ * Extracts the contents of each `${ ... }` interpolation from a template string, respecting `$${` escapes and quoted
+ * substrings so that braces inside string literals do not end an expression early.
+ *
+ * @param template The string to scan.
+ * @returns The expression source of each interpolation, in order.
+ */
+function extractInterpolations(template: string): string[] {
+  const expressions: string[] = [];
+
+  for (let i = 0; i < template.length; i++) {
+    // An interpolation starts at `${`, unless it is an escaped `$${`.
+    if (
+      !(
+        template[i] === '$' &&
+        template[i + 1] === '{' &&
+        template[i - 1] !== '$'
+      )
+    ) {
+      continue;
+    }
+
+    let depth = 1;
+    let quote: string | null = null;
+    let j = i + 2;
+    for (; j < template.length && depth > 0; j++) {
+      const char = template[j];
+      if (quote !== null) {
+        if (char === '\\') {
+          j++;
+        } else if (char === quote) {
+          quote = null;
+        }
+      } else if (char === "'" || char === '"') {
+        quote = char;
+      } else if (char === '{') {
+        depth++;
+      } else if (char === '}') {
+        depth--;
+      }
+    }
+
+    if (depth === 0) {
+      expressions.push(template.slice(i + 2, j - 1));
+      i = j - 1;
+    }
+  }
+
+  return expressions;
 }
 
 /**
- * Detects which step outputs and configuration paths are referenced by `args` by rendering it through json-e with a
- * spy context that records every `output('<id>')` and `configuration('<path>')` call. The spy returns a permissive
- * value, so member accesses and chained calls in templates do not break detection. Errors raised by json-e are
- * swallowed: references collected up to the error are still returned, which is sufficient since unresolved references
- * will surface again at actual rendering time.
+ * Detects which step outputs and configuration paths are referenced by `args` by scanning its expressions for
+ * `output('<id>')` and `configuration('<path>')` calls.
+ *
+ * References can occur in only two places, and detection scans exactly those (which keeps a plain string value that
+ * merely mentions `output('x')` in prose from being mistaken for a reference):
+ * - Inside a `${ ... }` interpolation in any string.
+ * - In the raw expression of a json-e operator — e.g. an `$if` condition or an `$eval`.
  *
  * @param args The (potentially nested) value to scan for references.
  * @returns The set of output IDs and configuration paths referenced in `args`.
  */
-function findRefs(args: any): {
+function findRefs(args: unknown): {
   /**
    * The IDs of the step outputs referenced in `args`, from expressions like `${ output('<id>') }`.
    */
@@ -49,31 +108,49 @@ function findRefs(args: any): {
 } {
   const outputs = new Set<string>();
   const configurations = new Set<string>();
-  if (args === undefined || args === null) {
-    return { outputs, configurations };
-  }
 
-  try {
-    jsone(args, {
-      input: () => makeSpyValue(),
-      output: (id: string) => {
-        if (typeof id === 'string') {
-          outputs.add(id);
-        }
+  const scan = (expression: string) =>
+    expression
+      .matchAll(REFERENCE)
+      .forEach(([, name, , reference]) =>
+        (name === 'output' ? outputs : configurations).add(reference),
+      );
 
-        return makeSpyValue();
-      },
-      configuration: (path: string) => {
-        if (typeof path === 'string') {
-          configurations.add(path);
-        }
+  const visit = (value: unknown) => {
+    if (typeof value === 'string') {
+      extractInterpolations(value).forEach(scan);
+      return;
+    }
 
-        return makeSpyValue();
-      },
-    });
-  } catch {
-    // Partial detection is acceptable; rendering will fail loudly later if a ref is missed.
-  }
+    if (value === null || typeof value !== 'object') {
+      return;
+    }
+
+    Object.values(value).forEach(visit);
+
+    if (Array.isArray(value)) {
+      return;
+    }
+
+    for (const [key, nested] of Object.entries(value)) {
+      // A json-e operator's own value is a raw expression (e.g. an `$if` condition), so scan it as a whole.
+      if (JSONE_OPERATORS.has(key) && typeof nested === 'string') {
+        scan(nested);
+      }
+
+      // `$match` / `$switch` carry their condition expressions as the keys of their operand map (`$default` aside).
+      if (
+        CONDITION_OPERATORS.has(key) &&
+        nested !== null &&
+        typeof nested === 'object' &&
+        !Array.isArray(nested)
+      ) {
+        Object.keys(nested).forEach(scan);
+      }
+    }
+  };
+
+  visit(args);
 
   return { outputs, configurations };
 }

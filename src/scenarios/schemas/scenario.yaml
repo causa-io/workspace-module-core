@@ -127,11 +127,23 @@ $defs:
         description: The value to match against. May be a templatable expression. Defaults to the output of the current step.
 
       value:
-        title: ExpectationValue
         oneOf:
-          - type: string
-          - type: object
-        description: The expected value. May contain `${ match(...) }` and `${ output(...) }` templates.
+          - $ref: '#/$defs/ExpectationValue'
+        description: The expected value. May be any JSON value supported by json-e / JavaScript (string, number, boolean, object, array, or null), and may contain `${ output(...) }` templates.
+
+  ExpectationValue:
+    title: ExpectationValue
+    description: The expected value. May be any JSON value supported by json-e / JavaScript (string, number, boolean, object, array, or null), and may contain `${ output(...) }` templates.
+    oneOf:
+      - type: string
+      - type: number
+      - type: boolean
+      - type: 'null'
+      - type: array
+        items:
+          $ref: '#/$defs/ExpectationValue'
+      - type: object
+        additionalProperties: true
 
   ScenarioStep:
     title: ScenarioStep

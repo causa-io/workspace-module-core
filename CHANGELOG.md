@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+Features:
+
+- Add the `rand` function to scenario templates, generating a random UUID (`rand('uuid')`), integer (`rand('int', min, max)`), or floating-point number (`rand('float', min, max)`).
+- Support `multipart/form-data` bodies in `HttpMakeRequest`: when the `Content-Type` header is `multipart/form-data`, the `body` object is sent as a form.
+- JSON-serialize the `HttpMakeRequest` body (even when it is a string) when the `Content-Type` header is set to `application/json`.
+
+Fixes:
+
+- Detect scenario step dependencies across all `json-e` expression forms, including member access, indexing, builtins, both branches of `$if`/`$switch`, and multiple interpolations in a single string.
+- Allow any JSON value (string, number, boolean, object, array, or null) as a scenario step expectation `value`.
+
 ## v0.35.0-beta.6 (2026-05-27)
 
 Features:

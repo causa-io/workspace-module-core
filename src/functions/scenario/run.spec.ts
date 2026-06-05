@@ -9,8 +9,8 @@ import { AllowMissing } from '@causa/workspace/validation';
 import { IsString } from 'class-validator';
 import { mkdtemp, readFile, rm, writeFile } from 'fs/promises';
 import 'jest-extended';
-import { stringify } from 'yaml';
 import { join, resolve } from 'path';
+import { stringify } from 'yaml';
 import {
   Scenario,
   ScenarioFailedError,
@@ -293,6 +293,44 @@ describe('ScenarioRunForAll', () => {
               value: date.toISOString(),
             },
           ],
+        },
+      },
+    });
+
+    await context.call(ScenarioRun, { path: 'scenario.yaml' });
+  });
+
+  it('should support expectation values that are not strings or objects', async () => {
+    stepMock.mockImplementation(async (_, { value }) => {
+      switch (value) {
+        case 'number':
+          return 42;
+        case 'boolean':
+          return true;
+        case 'array':
+          return [1, 'a'];
+        default:
+          return null;
+      }
+    });
+    await writeScenario({
+      id: 'value-types',
+      steps: {
+        number: {
+          call: { name: 'TestStep', args: { value: 'number' } },
+          expectations: [{ value: 42 }],
+        },
+        boolean: {
+          call: { name: 'TestStep', args: { value: 'boolean' } },
+          expectations: [{ value: true }],
+        },
+        array: {
+          call: { name: 'TestStep', args: { value: 'array' } },
+          expectations: [{ value: [1, 'a'] }],
+        },
+        null: {
+          call: { name: 'TestStep', args: { value: 'null' } },
+          expectations: [{ value: null }],
         },
       },
     });

@@ -1,8 +1,8 @@
 import { expect } from 'expect';
 import { readFile, writeFile } from 'fs/promises';
-import { parse, stringify } from 'yaml';
 import jsone from 'json-e';
 import { resolve } from 'path';
+import { parse, stringify } from 'yaml';
 import {
   type RetryPolicy,
   type Scenario,
@@ -341,7 +341,12 @@ export class ScenarioRunForAll extends ScenarioRun {
         exp.actual !== undefined
           ? jsone(exp.actual, verifyRenderContext)
           : output;
-      const expectedValue = jsone(exp.value, verifyRenderContext);
+      // `value` may be any JSON value. json-e renders all of them, even though its type definition only allows
+      // strings and objects.
+      const expectedValue = jsone(
+        exp.value as Record<string, any> | string,
+        verifyRenderContext,
+      );
       const isObject =
         expectedValue !== null && typeof expectedValue === 'object';
       try {

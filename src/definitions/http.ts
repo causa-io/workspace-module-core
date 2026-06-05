@@ -3,6 +3,38 @@ import { AllowMissing } from '@causa/workspace/validation';
 import { IsObject, IsString } from 'class-validator';
 
 /**
+ * A single field of a `multipart/form-data` request body. Such a body is sent by setting {@link HttpMakeRequest.body}
+ * to an object keyed by field name and the `Content-Type` header to `multipart/form-data`.
+ */
+export type HttpFormField =
+  | string
+  | ({
+      /**
+       * The filename to advertise for the part, which sends the field as a file rather than a text field. For a `path`
+       * part, defaults to the basename of the path.
+       */
+      readonly filename?: string;
+
+      /**
+       * The content type of the part.
+       */
+      readonly contentType?: string;
+    } & (
+      | {
+          /**
+           * The inline content of the part.
+           */
+          readonly value: string;
+        }
+      | {
+          /**
+           * The path to a local file, resolved from the workspace root, whose content is sent as the part.
+           */
+          readonly path: string;
+        }
+    ));
+
+/**
  * The result of a {@link HttpMakeRequest} call.
  */
 export type HttpResponse = {
@@ -64,7 +96,11 @@ export abstract class HttpMakeRequest extends WorkspaceFunction<
   readonly headers?: Record<string, string>;
 
   /**
-   * The request body. Objects and arrays are JSON-serialized, strings are sent as-is.
+   * The request body.
+   * - When the `Content-Type` header is `multipart/form-data`, an object is sent as a form (keyed by field name, with
+   *   {@link HttpFormField} values) and the header's boundary is set automatically.
+   * - When the `Content-Type` header is `application/json`, the body is JSON-serialized.
+   * - Otherwise, strings are sent as-is, and objects and arrays are JSON-serialized.
    */
   @AllowMissing()
   readonly body?: any;

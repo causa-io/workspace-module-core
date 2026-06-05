@@ -1,18 +1,27 @@
 import { WorkspaceContext } from '@causa/workspace';
 import { createContext } from '@causa/workspace/testing';
+import { mkdtemp, rm, writeFile } from 'fs/promises';
 import 'jest-extended';
 import nock from 'nock';
+import { tmpdir } from 'os';
+import { join } from 'path';
 import { HttpMakeRequest } from '../../definitions/index.js';
 import { HttpMakeRequestForAll } from './make-request.js';
 
 describe('HttpMakeRequestForAll', () => {
+  let tmpDir: string;
   let context: WorkspaceContext;
 
-  beforeEach(() => {
-    ({ context } = createContext({ functions: [HttpMakeRequestForAll] }));
+  beforeEach(async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), 'causa-http-'));
+    ({ context } = createContext({
+      rootPath: tmpDir,
+      functions: [HttpMakeRequestForAll],
+    }));
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    await rm(tmpDir, { recursive: true, force: true });
     nock.cleanAll();
   });
 
@@ -55,6 +64,29 @@ describe('HttpMakeRequestForAll', () => {
       statusCode: 201,
       headers: { 'content-type': 'application/json' },
       body: { id: '🆔' },
+    });
+    scope.done();
+  });
+
+  it('should JSON-serialize a string body when the content type is application/json', async () => {
+    const scope = nock('https://api.example.com', {
+      reqheaders: { 'content-type': 'application/json' },
+    })
+      .post('/items', '"already-a-string"')
+      .reply(201, { ok: true }, { 'content-type': 'application/json' });
+
+    const actual = await context.call(HttpMakeRequest, {
+      baseUrl: 'https://api.example.com',
+      method: 'POST',
+      path: '/items',
+      headers: { 'content-type': 'application/json' },
+      body: 'already-a-string',
+    });
+
+    expect(actual).toEqual({
+      statusCode: 201,
+      headers: { 'content-type': 'application/json' },
+      body: { ok: true },
     });
     scope.done();
   });
@@ -119,6 +151,90 @@ describe('HttpMakeRequestForAll', () => {
       body: { ok: true },
     });
     scope.done();
+  });
+
+  it('should send the body as multipart/form-data when the content type requests it', async () => {
+    const scope = nock('https://api.example.com')
+      .matchHeader('content-type', (value) =>
+        value.startsWith('multipart/form-data; boundary='),
+      )
+      .post(
+        '/upload',
+        (body) =>
+          body.includes('name="field"') &&
+          body.includes('hello') &&
+          body.includes('name="file"') &&
+          body.includes('filename="data.txt"') &&
+          body.includes('file-content'),
+      )
+      .reply(200, { ok: true }, { 'content-type': 'application/json' });
+
+    const actual = await context.call(HttpMakeRequest, {
+      baseUrl: 'https://api.example.com',
+      method: 'POST',
+      path: '/upload',
+      headers: { 'content-type': 'multipart/form-data' },
+      body: {
+        field: 'hello',
+        file: {
+          value: 'file-content',
+          filename: 'data.txt',
+          contentType: 'text/plain',
+        },
+      },
+    });
+
+    expect(actual).toEqual({
+      statusCode: 200,
+      headers: { 'content-type': 'application/json' },
+      body: { ok: true },
+    });
+    scope.done();
+  });
+
+  it('should send a multipart/form-data file part sourced from a local file path', async () => {
+    await writeFile(join(tmpDir, 'upload.txt'), 'file-from-disk');
+    const scope = nock('https://api.example.com')
+      .matchHeader('content-type', (value) =>
+        value.startsWith('multipart/form-data; boundary='),
+      )
+      .post(
+        '/upload',
+        (body) =>
+          typeof body === 'string' &&
+          body.includes('name="file"') &&
+          body.includes('filename="upload.txt"') &&
+          body.includes('file-from-disk'),
+      )
+      .reply(200, { ok: true }, { 'content-type': 'application/json' });
+
+    const actual = await context.call(HttpMakeRequest, {
+      baseUrl: 'https://api.example.com',
+      method: 'POST',
+      path: '/upload',
+      headers: { 'content-type': 'multipart/form-data' },
+      body: { file: { path: 'upload.txt' } },
+    });
+
+    expect(actual).toEqual({
+      statusCode: 200,
+      headers: { 'content-type': 'application/json' },
+      body: { ok: true },
+    });
+    scope.done();
+  });
+
+  it('should throw when a multipart/form-data body is not an object', async () => {
+    const actualPromise = context.call(HttpMakeRequest, {
+      baseUrl: 'https://api.example.com',
+      method: 'POST',
+      headers: { 'content-type': 'multipart/form-data' },
+      body: 'not-an-object',
+    });
+
+    await expect(actualPromise).rejects.toThrow(
+      "A 'multipart/form-data' request body must be an object",
+    );
   });
 
   it('should expose error responses without throwing', async () => {

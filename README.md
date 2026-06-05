@@ -109,3 +109,4 @@ Step `args` and `expectations` are rendered with [json-e](https://json-e.js.org/
 - `${ output('<stepId>') }` — resolves another step's output (and is also used to detect cross-step dependencies).
 - `${ configuration('<path>') }` — resolves a value from the workspace configuration.
 - `${ str(<value>) }` — overrides the json-e builtin to also format `Date` values as ISO strings.
+- `${ rand('uuid') }`, `${ rand('int', <min>, <max>) }`, `${ rand('float', <min>, <max>) }` — generates a random UUID, integer, or floating-point number (the bounded variants in `[min, max)`).

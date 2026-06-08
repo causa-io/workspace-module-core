@@ -384,12 +384,25 @@ function applyExtensions(
   }
 
   const value = Object.fromEntries(
-    entries.map(([key, val]) => [
-      key,
-      REF_BEARING_CAUSA_EXTENSIONS.includes(key) && typeof val === 'string'
-        ? toRelativeRef(val, filePath)
-        : val,
-    ]),
+    entries.map(([key, val]) => {
+      if (!REF_BEARING_CAUSA_EXTENSIONS.includes(key)) {
+        return [key, val];
+      }
+
+      if (Array.isArray(val)) {
+        return [
+          key,
+          val.map((item) =>
+            typeof item === 'string' ? toRelativeRef(item, filePath) : item,
+          ),
+        ];
+      }
+
+      return [
+        key,
+        typeof val === 'string' ? toRelativeRef(val, filePath) : val,
+      ];
+    }),
   );
 
   applyMinimalChange(node, { causa: value });

@@ -246,7 +246,10 @@ describe('apply', () => {
       path: filePath,
       properties: [],
       additionalProperties: false,
-      extensions: { constraintFor: '/abs/other.yaml#/$defs/Foo' },
+      extensions: {
+        constraintFor: '/abs/other.yaml#/$defs/Foo',
+        entityMutationFrom: ['/abs/other.yaml#/$defs/Bar', null],
+      },
       databases: [],
     };
 
@@ -255,6 +258,7 @@ describe('apply', () => {
     const parsed = yaml.parse(out);
     expect(parsed.causa).toEqual({
       constraintFor: 'other.yaml#/$defs/Foo',
+      entityMutationFrom: ['other.yaml#/$defs/Bar', null],
     });
   });
 

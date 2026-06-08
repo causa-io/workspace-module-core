@@ -38,6 +38,11 @@ export type CausaExtensions = {
    */
   entityMutationFrom?: (string | null)[];
 
+  /**
+   * Names of the entity properties changed by this mutation (event constraint).
+   */
+  entityPropertyChanges?: string[];
+
   [key: string]: unknown;
 };
 

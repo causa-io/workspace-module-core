@@ -1,5 +1,11 @@
 # 🔖 Changelog
 
+## Unreleased
+
+Fixes:
+
+- Close the backfill event source iterator once publishing is done even when the publisher fails before consuming it, never iterates it, or stops part-way.
+
 ## v0.35.0-beta.7 (2026-06-08)
 
 Features:

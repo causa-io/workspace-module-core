@@ -195,6 +195,9 @@ export class EventTopicBackfillForAll extends EventTopicBackfill {
 
     let hasTempResources = false;
     let publishFailed = false;
+    // The source iterable is created eagerly and may hold an open resource.
+    // This guarantees cleanup even if the publisher throws before consuming it, never iterates it, or stops part-way.
+    let closeSource: (() => Promise<unknown>) | undefined;
     try {
       await this.createTriggers(backfillId, topicId, temporaryData);
 
@@ -206,11 +209,13 @@ export class EventTopicBackfillForAll extends EventTopicBackfill {
           filter: this.filter,
         },
       );
+      const sourceIterator = eventsSource[Symbol.asyncIterator]();
+      closeSource = sourceIterator.return?.bind(sourceIterator);
 
       await this._context.call(EventTopicBrokerPublishEvents, {
         topicId,
         eventTopic: this.eventTopic,
-        source: () => eventsSource,
+        source: () => ({ [Symbol.asyncIterator]: () => sourceIterator }),
       });
 
       this._context.logger.info('✅ Successfully published all events.');
@@ -218,6 +223,14 @@ export class EventTopicBackfillForAll extends EventTopicBackfill {
       publishFailed = true;
       throw error;
     } finally {
+      try {
+        await closeSource?.();
+      } catch (error) {
+        this._context.logger.warn(
+          `⚠️ Failed to close the backfill event source: ${error}.`,
+        );
+      }
+
       hasTempResources =
         !!temporaryData.temporaryTopicId ||
         temporaryData.temporaryTriggerResourceIds.length > 0;

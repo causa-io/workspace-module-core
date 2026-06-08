@@ -9,6 +9,7 @@ import { jest } from '@jest/globals';
 import { access, mkdtemp, readFile, rm } from 'fs/promises';
 import 'jest-extended';
 import { join, resolve } from 'path';
+import { Readable } from 'stream';
 import {
   type BackfillEvent,
   EventTopicBackfill,
@@ -35,6 +36,9 @@ describe('EventTopicBackfillForAll', () => {
   let waitForProcessingMock: WorkspaceFunctionCallMock<EventTopicBrokerWaitForProcessing>;
   let cleanBackfillMock: WorkspaceFunctionCallMock<EventTopicCleanBackfill>;
   let backfillSource: AsyncIterable<BackfillEvent>;
+  let sourceReturnMock: jest.Mock<
+    NonNullable<AsyncIterator<BackfillEvent>['return']>
+  >;
 
   async function fileExists(path: string): Promise<boolean> {
     try {
@@ -79,7 +83,12 @@ describe('EventTopicBackfillForAll', () => {
       EventTopicBrokerPublishEvents,
       () => Promise.resolve(),
     );
-    backfillSource = (async function* () {})();
+    sourceReturnMock = jest.fn(async () => ({ done: true, value: undefined }));
+    const sourceIterator: AsyncIterator<BackfillEvent> = {
+      next: async () => ({ done: true, value: undefined }),
+      return: sourceReturnMock,
+    };
+    backfillSource = { [Symbol.asyncIterator]: () => sourceIterator };
     createBackfillSourceMock = registerMockFunction(
       functionRegistry,
       EventTopicCreateBackfillSource,
@@ -125,10 +134,21 @@ describe('EventTopicBackfillForAll', () => {
     });
     expect(waitForProcessingMock).not.toHaveBeenCalled();
     expect(cleanBackfillMock).not.toHaveBeenCalled();
+    expect(sourceReturnMock).toHaveBeenCalledOnce();
   });
 
   it('should use an existing topic, create triggers, and publish events', async () => {
     const expectedFile = resolve(tmpDir, 'backfill.json');
+    const event: BackfillEvent = { data: Buffer.from('🌊') };
+    createBackfillSourceMock.mockImplementation(async () =>
+      Readable.from([event]),
+    );
+    const publishedEvents: BackfillEvent[] = [];
+    publishEventsMock.mockImplementation(async (_, { source }) => {
+      for await (const published of source()) {
+        publishedEvents.push(published);
+      }
+    });
 
     const actualFile = await context.call(EventTopicBackfill, {
       eventTopic: 'test-topic',
@@ -163,7 +183,7 @@ describe('EventTopicBackfillForAll', () => {
       eventTopic: 'test-topic',
       source: expect.any(Function),
     });
-    expect(publishEventsMock.mock.calls[0][1].source()).toBe(backfillSource);
+    expect(publishedEvents).toEqual([event]);
     const actualBackfillId = createTriggerMock.mock.calls[0][1].backfillId;
     const actualFileContent = await readFile(actualFile);
     expect(JSON.parse(actualFileContent.toString())).toEqual({
@@ -296,6 +316,7 @@ describe('EventTopicBackfillForAll', () => {
       source: expect.any(Function),
     });
     expect(await fileExists(expectedFile)).toBe(false);
+    expect(sourceReturnMock).toHaveBeenCalledOnce();
   });
 
   it('should write the backfill file when publishing fails with temporary resources', async () => {
@@ -319,6 +340,18 @@ describe('EventTopicBackfillForAll', () => {
         `backfill/${actualBackfillId}/broker/test-topic/trigger/trigger1`,
       ],
     });
+  });
+
+  it('should not fail the backfill when closing the source iterator throws', async () => {
+    sourceReturnMock.mockRejectedValue(new Error('💥 close'));
+
+    const actualFile = await context.call(EventTopicBackfill, {
+      eventTopic: 'test-topic',
+    });
+
+    expect(actualFile).toBe('');
+    expect(publishEventsMock).toHaveBeenCalledOnce();
+    expect(sourceReturnMock).toHaveBeenCalledOnce();
   });
 
   it('should clone the context and forward a structured trigger for project-scoped triggers', async () => {

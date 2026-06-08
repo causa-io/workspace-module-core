@@ -1,6 +1,6 @@
 # 🔖 Changelog
 
-## Unreleased
+## v0.35.0-beta.7 (2026-06-08)
 
 Features:
 

@@ -7,6 +7,7 @@ Features:
 - Add the `rand` function to scenario templates, generating a random UUID (`rand('uuid')`), integer (`rand('int', min, max)`), or floating-point number (`rand('float', min, max)`).
 - Support `multipart/form-data` bodies in `HttpMakeRequest`: when the `Content-Type` header is `multipart/form-data`, the `body` object is sent as a form.
 - JSON-serialize the `HttpMakeRequest` body (even when it is a string) when the `Content-Type` header is set to `application/json`.
+- Recognize the `entityMutationFrom` (a list of schema references, possibly containing `null` entries) and `entityPropertyChanges` (a list of property names) Causa extensions during JSONSchema parsing. References in `entityMutationFrom` are normalized to absolute paths like other ref-bearing extensions.
 
 Fixes:
 

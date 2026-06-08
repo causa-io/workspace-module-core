@@ -66,8 +66,10 @@ properties:
 title: Root
 type: object
 causa:
-  constraintFor: "./other.yaml"`,
+  constraintFor: "./other.yaml"
+  entityMutationFrom: ["./mutation.yaml", null]`,
       '/abs/other.yaml': 'title: Other\ntype: object',
+      '/abs/mutation.yaml': 'title: Mutation\ntype: object',
     };
 
     const { schemas } = await loadSchemas(['/abs/root.yaml'], {
@@ -75,6 +77,7 @@ causa:
     });
 
     expect(schemas['/abs/other.yaml']).toMatchObject({ name: 'Other' });
+    expect(schemas['/abs/mutation.yaml']).toMatchObject({ name: 'Mutation' });
   });
 
   it('should record per-file errors instead of aborting', async () => {

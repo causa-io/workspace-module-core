@@ -143,6 +143,12 @@ function* refsFromExtensions(extensions: CausaExtensions): Generator<string> {
     const value = extensions[key];
     if (typeof value === 'string') {
       yield value;
+    } else if (Array.isArray(value)) {
+      for (const item of value) {
+        if (typeof item === 'string') {
+          yield item;
+        }
+      }
     }
   }
 }

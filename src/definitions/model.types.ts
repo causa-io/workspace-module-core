@@ -32,6 +32,17 @@ export type CausaExtensions = {
    */
   enumHint?: string;
 
+  /**
+   * Absolute paths of the schemas that define the constraints an entity must satisfy for this event constraint to
+   * apply. A `null` entry denotes an absent prior state (e.g. a creation mutation).
+   */
+  entityMutationFrom?: (string | null)[];
+
+  /**
+   * Names of the entity properties changed by this mutation (event constraint).
+   */
+  entityPropertyChanges?: string[];
+
   [key: string]: unknown;
 };
 
@@ -44,6 +55,7 @@ export type CausaExtensions = {
 export const REF_BEARING_CAUSA_EXTENSIONS: readonly string[] = [
   'constraintFor',
   'enumHint',
+  'entityMutationFrom',
 ];
 
 /**

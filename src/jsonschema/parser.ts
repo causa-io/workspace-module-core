@@ -757,12 +757,18 @@ function buildExtensions(raw: unknown, path: string): CausaExtensions {
 
   return Object.fromEntries(
     Object.entries(raw).map(([key, value]) => {
-      return [
-        key,
-        REF_BEARING_CAUSA_EXTENSIONS.includes(key) && typeof value === 'string'
-          ? resolveRef(value, path)
-          : value,
-      ];
+      if (!REF_BEARING_CAUSA_EXTENSIONS.includes(key)) {
+        return [key, value];
+      }
+
+      if (Array.isArray(value)) {
+        return [
+          key,
+          value.map((i) => (typeof i === 'string' ? resolveRef(i, path) : i)),
+        ];
+      }
+
+      return [key, typeof value === 'string' ? resolveRef(value, path) : value];
     }),
   );
 }

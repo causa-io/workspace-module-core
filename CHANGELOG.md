@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## v1.0.0 (2026-06-09)
+
+This release includes all the changes from the `v0.35.0-beta.*` version.
+
 Fixes:
 
 - Close the backfill event source iterator once publishing is done even when the publisher fails before consuming it, never iterates it, or stops part-way.

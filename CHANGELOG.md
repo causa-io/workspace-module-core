@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v1.0.1 (2026-06-09)
+
 Fixes:
 
 - Allow the `entityPropertyChanges` Causa extension to be `*`, denoting that all entity properties may be changed by the mutation.

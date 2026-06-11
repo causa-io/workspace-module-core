@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+Features:
+
+- Add the optional `dto` (a schema reference relative to the project's root) and `enabled` (a boolean defaulting to `true`, disabling deployment of the trigger when `false`) properties to generic service container triggers.
+
 ## v1.0.1 (2026-06-09)
 
 Fixes:

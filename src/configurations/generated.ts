@@ -6,6 +6,7 @@ import {
   Allow,
   Equals,
   IsArray,
+  IsBoolean,
   IsDefined,
   IsIn,
   IsNumber,
@@ -860,6 +861,22 @@ export class ServiceContainerGenericTrigger {
    */
   @IsString()
   readonly type!: string;
+
+  /**
+   * Whether the trigger is active. Defaults to `true`.
+   * If `false`, the trigger shouldn't be deployed.
+   */
+  @AllowMissing()
+  @IsBoolean()
+  readonly enabled?: boolean;
+
+  /**
+   * A reference to a schema, relative to the project's root, that the trigger / endpoint accepts.
+   * Unsupported for `event` triggers, which use the referenced topic's schema.
+   */
+  @AllowMissing()
+  @IsString()
+  readonly dto?: string;
 
   /**
    * The endpoint called by the trigger.

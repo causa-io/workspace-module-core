@@ -119,6 +119,18 @@ properties:
                   type: string
                   description: The type of trigger.
 
+                enabled:
+                  type: boolean
+                  description: |-
+                    Whether the trigger is active. Defaults to `true`.
+                    If `false`, the trigger shouldn't be deployed.
+
+                dto:
+                  type: string
+                  description: |-
+                    A reference to a schema, relative to the project's root, that the trigger / endpoint accepts.
+                    Unsupported for `event` triggers, which use the referenced topic's schema.
+
                 endpoint:
                   title: ServiceContainerTriggerEndpoint
                   type: object

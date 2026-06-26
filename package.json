@@ -36,6 +36,7 @@
     "generateConfigurationSchemas": "cs model genCode && perl -pi -e 's|\\@causa/runtime|\\@causa/workspace/validation|g' src/configurations/generated.ts src/scenarios/generated.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sandbox-runtime": "0.0.59",
     "@causa/cli": "^1.0.0",
     "@causa/workspace": "^1.0.0",
     "@scalar/json-magic": "^0.12.15",

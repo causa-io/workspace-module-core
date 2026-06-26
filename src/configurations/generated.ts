@@ -15,44 +15,6 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-/**
- * Additional causa properties used by workspace functions in this package.
- */
-export class Causa {
-  constructor(init: Causa) {
-    Object.assign(this, init);
-  }
-
-  /**
-   * The directory where project configurations are written by the ProjectWriteConfigurations processor.
-   */
-  @AllowMissing()
-  @IsString()
-  readonly projectConfigurationsDirectory?: string;
-
-  [key: string]: any;
-}
-
-/**
- * A configuration with additional `causa` properties used by workspace functions in this package.
- */
-export class CausaConfiguration {
-  constructor(init: CausaConfiguration) {
-    Object.assign(this, init);
-  }
-
-  /**
-   * Additional causa properties used by workspace functions in this package.
-   */
-  @AllowMissing()
-  @IsObject()
-  @Type(() => Causa)
-  @ValidateNested()
-  readonly causa?: Causa;
-
-  [key: string]: any;
-}
-
 export class CodeGenerator {
   constructor(init: CodeGenerator) {
     Object.assign(this, init);
@@ -412,6 +374,254 @@ export class ProjectWriteConfigurationsProcessor {
 export type InfrastructureProcessor =
   | ProcessorInstruction
   | ProjectWriteConfigurationsProcessor;
+
+/**
+ * A masked environment variable, injected by the host into requests to the declared hosts.
+ */
+export class SandboxCredentialEnvironmentVariable {
+  constructor(init: SandboxCredentialEnvironmentVariable) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * The hosts the real value may be injected into. Wildcards such as `*.example.com` are supported.
+   * The credential is never sent to any other host.
+   */
+  @IsArray()
+  @IsString({ each: true })
+  readonly hosts!: string[];
+
+  [key: string]: any;
+}
+
+/**
+ * The credentials the sandboxed process is allowed to use, masked from it and injected by the host.
+ */
+export class SandboxCredentials {
+  constructor(init: SandboxCredentials) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * A map of environment variables to mask, keyed by name. The sandboxed process sees an opaque sentinel
+   * value instead of the real one; the host injects the real value into requests to the declared hosts.
+   * The real value is read from the process spawning the command (its environment or `process.env`), so it
+   * is never stored in the configuration.
+   */
+  @AllowMissing()
+  @IsObject()
+  readonly environment?: Record<string, SandboxCredentialEnvironmentVariable>;
+
+  [key: string]: any;
+}
+
+/**
+ * The filesystem restrictions for the profile. Reads follow a deny-then-allow model (everything readable
+ * unless denied, then re-allowed within denied regions); writes follow an allow-only model. The workspace
+ * root is always readable and writable, and the home directory is always denied for reads, so a profile
+ * that needs to read a toolchain installed under the home directory must re-allow the relevant paths.
+ */
+export class SandboxFilesystem {
+  constructor(init: SandboxFilesystem) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * Additional paths whose reads are denied, on top of the always-denied home directory.
+   */
+  @AllowMissing()
+  @IsArray()
+  @IsString({ each: true })
+  readonly denyRead?: string[];
+
+  /**
+   * Paths to re-allow reads for within denied regions, on top of the always-allowed workspace root.
+   * Re-allowed paths take precedence over denied ones.
+   */
+  @AllowMissing()
+  @IsArray()
+  @IsString({ each: true })
+  readonly allowRead?: string[];
+
+  /**
+   * Additional paths to allow writes to, on top of the always-allowed workspace root and the runtime's
+   * default write paths (e.g. temporary directories).
+   */
+  @AllowMissing()
+  @IsArray()
+  @IsString({ each: true })
+  readonly allowWrite?: string[];
+
+  /**
+   * Paths to deny writes to within allowed regions. Denied paths take precedence over allowed ones.
+   */
+  @AllowMissing()
+  @IsArray()
+  @IsString({ each: true })
+  readonly denyWrite?: string[];
+
+  /**
+   * Bypasses all filesystem restrictions when `true`.
+   */
+  @AllowMissing()
+  @IsBoolean()
+  readonly disabled?: boolean;
+
+  [key: string]: any;
+}
+
+/**
+ * The network restrictions for the profile. When omitted, all network access is blocked.
+ */
+export class SandboxNetwork {
+  constructor(init: SandboxNetwork) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * The list of domains the sandboxed process is allowed to reach. This is an allowlist: an empty list (or
+   * an omitted network section) blocks all network access. Wildcards such as `*.example.com` are supported.
+   */
+  @AllowMissing()
+  @IsArray()
+  @IsString({ each: true })
+  readonly allowedDomains?: string[];
+
+  /**
+   * The list of domains the sandboxed process is explicitly denied access to. Denied domains take
+   * precedence over allowed ones.
+   */
+  @AllowMissing()
+  @IsArray()
+  @IsString({ each: true })
+  readonly deniedDomains?: string[];
+
+  /**
+   * Whether the sandboxed process may bind to or connect to the loopback interface. Defaults to `false`.
+   */
+  @AllowMissing()
+  @IsBoolean()
+  readonly allowLocalBinding?: boolean;
+
+  /**
+   * The list of Unix socket paths the sandboxed process is allowed to use (macOS only).
+   */
+  @AllowMissing()
+  @IsArray()
+  @IsString({ each: true })
+  readonly allowUnixSockets?: string[];
+
+  /**
+   * Whether the sandboxed process is allowed to use any Unix socket.
+   */
+  @AllowMissing()
+  @IsBoolean()
+  readonly allowAllUnixSockets?: boolean;
+
+  [key: string]: any;
+}
+
+/**
+ * A sandbox profile describing how a process is restricted when run inside the OS-level sandbox.
+ */
+export class SandboxProfile {
+  constructor(init: SandboxProfile) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * The network restrictions for the profile. When omitted, all network access is blocked.
+   */
+  @AllowMissing()
+  @IsObject()
+  @Type(() => SandboxNetwork)
+  @ValidateNested()
+  readonly network?: SandboxNetwork;
+
+  /**
+   * The filesystem restrictions for the profile. Reads follow a deny-then-allow model (everything readable
+   * unless denied, then re-allowed within denied regions); writes follow an allow-only model. The workspace
+   * root is always readable and writable, and the home directory is always denied for reads, so a profile
+   * that needs to read a toolchain installed under the home directory must re-allow the relevant paths.
+   */
+  @AllowMissing()
+  @IsObject()
+  @Type(() => SandboxFilesystem)
+  @ValidateNested()
+  readonly filesystem?: SandboxFilesystem;
+
+  /**
+   * The credentials the sandboxed process is allowed to use, masked from it and injected by the host.
+   */
+  @AllowMissing()
+  @IsObject()
+  @Type(() => SandboxCredentials)
+  @ValidateNested()
+  readonly credentials?: SandboxCredentials;
+
+  /**
+   * Weakens the Linux sandbox so it can run nested within an unprivileged container (e.g. in CI). This
+   * reduces the security guarantees and should only be enabled when necessary.
+   */
+  @AllowMissing()
+  @IsBoolean()
+  readonly enableWeakerNestedSandbox?: boolean;
+
+  /**
+   * Weakens network isolation on macOS, required by some statically-linked binaries (e.g. Go) for TLS. This
+   * reduces the security guarantees and should only be enabled when necessary.
+   */
+  @AllowMissing()
+  @IsBoolean()
+  readonly enableWeakerNetworkIsolation?: boolean;
+
+  [key: string]: any;
+}
+
+/**
+ * Additional causa properties used by workspace functions in this package.
+ */
+export class Causa {
+  constructor(init: Causa) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * The directory where project configurations are written by the ProjectWriteConfigurations processor.
+   */
+  @AllowMissing()
+  @IsString()
+  readonly projectConfigurationsDirectory?: string;
+
+  /**
+   * A map of sandbox profiles, keyed by an arbitrary name that can be referenced when running a sandboxed process.
+   */
+  @AllowMissing()
+  @IsObject()
+  readonly sandboxes?: Record<string, SandboxProfile>;
+
+  [key: string]: any;
+}
+
+/**
+ * A configuration with additional `causa` properties used by workspace functions in this package.
+ */
+export class CausaConfiguration {
+  constructor(init: CausaConfiguration) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * Additional causa properties used by workspace functions in this package.
+   */
+  @AllowMissing()
+  @IsObject()
+  @Type(() => Causa)
+  @ValidateNested()
+  readonly causa?: Causa;
+
+  [key: string]: any;
+}
 
 /**
  * Configuration for scenarios.

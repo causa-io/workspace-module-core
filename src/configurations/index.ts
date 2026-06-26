@@ -5,6 +5,11 @@ export {
   InfrastructureConfiguration,
   ModelConfiguration,
   OpenApiConfiguration,
+  SandboxCredentialEnvironmentVariable,
+  SandboxCredentials,
+  SandboxFilesystem,
+  SandboxNetwork,
+  SandboxProfile,
   ServerlessFunctionsConfiguration,
   ServiceContainerConfiguration,
 } from './generated.js';

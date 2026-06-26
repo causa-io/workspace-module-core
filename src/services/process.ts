@@ -2,6 +2,7 @@ import { WorkspaceContext } from '@causa/workspace';
 import { ChildProcess, spawn } from 'child_process';
 import type { Level, Logger } from 'pino';
 import { Readable } from 'stream';
+import { resolveSandboxProfile, sandboxCoordinator } from '../sandbox/index.js';
 
 /**
  * Options specifying how outputs of a spawned process should be forwarded to the logger.
@@ -63,6 +64,17 @@ export type SpawnOptions = {
    * By default, nothing is captured.
    */
   capture?: SpawnCaptureOption;
+};
+
+/**
+ * {@link SpawnOptions} extended with the optional sandbox profile key.
+ */
+export type SandboxedSpawnOptions = SpawnOptions & {
+  /**
+   * The key of the sandbox profile, defined under the `causa.sandboxes` configuration, in which the process should run.
+   * When set, {@link ProcessService.spawn} runs the process inside the sandbox and returns a promise.
+   */
+  sandbox?: string;
 };
 
 /**
@@ -135,11 +147,31 @@ export class ProcessService {
    */
   private readonly defaultWorkingDirectory: string;
 
+  /**
+   * The {@link WorkspaceContext}.
+   */
+  private readonly context: WorkspaceContext;
+
   constructor(context: WorkspaceContext) {
     this.logger = context.logger;
     this.defaultWorkingDirectory = context.workingDirectory;
+    this.context = context;
   }
 
+  /**
+   * Spawns a new child process inside the OS-level sandbox referenced by the `sandbox` option.
+   * The sandbox requires asynchronous preparation, so a promise resolving to the {@link SpawnedProcess} is returned.
+   *
+   * @param command The command to run.
+   * @param args The arguments to pass to the command.
+   * @param options Options when running the command, including the sandbox profile key.
+   * @returns A promise resolving to a {@link SpawnedProcess} once the sandbox is prepared and the process has started.
+   */
+  spawn(
+    command: string,
+    args: string[],
+    options: SandboxedSpawnOptions & { sandbox: string },
+  ): Promise<SpawnedProcess>;
   /**
    * Spawns a new child process using {@link spawn}.
    *
@@ -149,6 +181,85 @@ export class ProcessService {
    * @returns A {@link SpawnedProcess}. {@link SpawnedProcess.result} can be awaited until the process exits.
    */
   spawn(
+    command: string,
+    args: string[],
+    options?: SpawnOptions,
+  ): SpawnedProcess;
+  spawn(
+    command: string,
+    args: string[],
+    options: SandboxedSpawnOptions = {},
+  ): SpawnedProcess | Promise<SpawnedProcess> {
+    if (!options.sandbox) {
+      return this.spawnChild(command, args, options);
+    }
+
+    return this.spawnSandboxed(command, args, options, options.sandbox);
+  }
+
+  /**
+   * Spawns a child process inside the OS-level sandbox referenced by the given profile key.
+   *
+   * The profile is resolved, then the sandbox runtime's asynchronous preparation runs: the {@link sandboxCoordinator}
+   * applies the configuration and wraps the command, returning the argv and environment to spawn.
+   *
+   * @param command The command to run.
+   * @param args The arguments to pass to the command.
+   * @param options Options when running the command.
+   * @param sandbox The key of the sandbox profile, under the `causa.sandboxes` configuration, to run the process in.
+   * @returns A promise resolving to a {@link SpawnedProcess}.
+   */
+  private async spawnSandboxed(
+    command: string,
+    args: string[],
+    options: SpawnOptions,
+    sandbox: string,
+  ): Promise<SpawnedProcess> {
+    const config = resolveSandboxProfile(this.context, sandbox);
+    const { argv, environment, release } = await sandboxCoordinator.acquire(
+      config,
+      command,
+      args,
+      options.environment,
+    );
+
+    let childProcess: ChildProcess;
+    let innerResult: Promise<SpawnedProcessResult>;
+    try {
+      ({ childProcess, result: innerResult } = this.spawnChild(
+        argv[0],
+        argv.slice(1),
+        { ...options, environment },
+      ));
+    } catch (error) {
+      release();
+      throw error;
+    }
+
+    const result = innerResult
+      .catch((error) => {
+        // Report failures against the original command/arguments rather than the shell wrapper used to run them.
+        if (error instanceof ProcessServiceExitCodeError) {
+          throw new ProcessServiceExitCodeError(command, args, error.result);
+        }
+
+        throw error;
+      })
+      .finally(release);
+
+    return { childProcess, result };
+  }
+
+  /**
+   * Spawns a child process using {@link spawn} and wires up its standard streams for logging and/or capture.
+   * This is the low-level primitive shared by the regular and sandboxed spawn paths.
+   *
+   * @param command The command to run.
+   * @param args The arguments to pass to the command.
+   * @param options Options when running the command.
+   * @returns A {@link SpawnedProcess}.
+   */
+  private spawnChild(
     command: string,
     args: string[],
     options: SpawnOptions = {},

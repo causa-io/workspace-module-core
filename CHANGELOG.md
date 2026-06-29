@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v1.2.1 (2026-06-29)
+
 Fixes:
 
 - Reset the OS-level sandbox after every command, fixing a hang on Linux where the CLI would never exit once a sandboxed command completed (the sandbox runtime's network bridges kept the process alive).

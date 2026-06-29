@@ -7,12 +7,8 @@ import 'jest-extended';
 import { SandboxCoordinator, SandboxNotSupportedError } from './coordinator.js';
 
 describe('SandboxCoordinator', () => {
-  const configA: SandboxRuntimeConfig = {
+  const config: SandboxRuntimeConfig = {
     network: { allowedDomains: ['a.example.com'], deniedDomains: [] },
-    filesystem: { denyRead: [], allowWrite: [], denyWrite: [] },
-  };
-  const configB: SandboxRuntimeConfig = {
-    network: { allowedDomains: ['b.example.com'], deniedDomains: [] },
     filesystem: { denyRead: [], allowWrite: [], denyWrite: [] },
   };
   const configCredentials: SandboxRuntimeConfig = {
@@ -37,11 +33,7 @@ describe('SandboxCoordinator', () => {
       .spyOn(SandboxManager, 'checkDependencies')
       .mockReturnValue({ errors: [], warnings: [] });
     jest.spyOn(SandboxManager, 'initialize').mockResolvedValue(undefined);
-    jest.spyOn(SandboxManager, 'updateConfig').mockReturnValue(undefined);
     jest.spyOn(SandboxManager, 'reset').mockResolvedValue(undefined);
-    jest
-      .spyOn(SandboxManager, 'cleanupAfterCommand')
-      .mockReturnValue(undefined);
     jest
       .spyOn(SandboxManager, 'wrapWithSandboxArgv')
       .mockResolvedValue({ argv: ['/bin/bash', '-c', ':'], env: {} });
@@ -51,17 +43,17 @@ describe('SandboxCoordinator', () => {
 
   afterEach(() => SandboxManager.getSentinelRegistry().clear());
 
-  it('should lazily initialize the manager on the first acquisition', async () => {
+  it('should initialize the manager with the configuration on acquisition', async () => {
     expect(SandboxManager.initialize).not.toHaveBeenCalled();
 
-    await coordinator.acquire(configA, 'node', [], undefined);
+    await coordinator.acquire(config, 'node', [], undefined);
 
-    expect(SandboxManager.initialize).toHaveBeenCalledExactlyOnceWith(configA);
+    expect(SandboxManager.initialize).toHaveBeenCalledExactlyOnceWith(config);
   });
 
   it('should run sandboxed commands one at a time', async () => {
     const { release } = await coordinator.acquire(
-      configA,
+      config,
       'node',
       [],
       undefined,
@@ -69,14 +61,14 @@ describe('SandboxCoordinator', () => {
 
     let secondAcquired = false;
     const second = coordinator
-      .acquire(configA, 'node', [], undefined)
+      .acquire(config, 'node', [], undefined)
       .then(() => {
         secondAcquired = true;
       });
 
     expect(secondAcquired).toBeFalse();
 
-    release();
+    await release();
     await second;
 
     expect(secondAcquired).toBeTrue();
@@ -84,7 +76,7 @@ describe('SandboxCoordinator', () => {
 
   it('should wrap the quoted command and return the spawn-ready argv and merged environment', async () => {
     const { argv, environment, release } = await coordinator.acquire(
-      configA,
+      config,
       'npm',
       ['ci', "a'b"],
       { CALLER: 'x' },
@@ -93,76 +85,37 @@ describe('SandboxCoordinator', () => {
     expect(SandboxManager.wrapWithSandboxArgv).toHaveBeenCalledExactlyOnceWith(
       "'npm' 'ci' 'a'\\''b'",
       undefined,
-      { ...configA, credentials: {} },
+      { ...config, credentials: {} },
     );
     expect(argv).toEqual(['/bin/bash', '-c', ':']);
     expect(environment).toEqual({ CALLER: 'x' });
     expect(release).toBeFunction();
   });
 
-  it('should clean up the per-command artifacts on release', async () => {
+  it('should tear the manager down on release so the process can exit', async () => {
     const { release } = await coordinator.acquire(
-      configA,
-      'node',
-      [],
-      undefined,
-    );
-    release();
-
-    expect(SandboxManager.cleanupAfterCommand).toHaveBeenCalledOnce();
-  });
-
-  it('should reuse the configuration when the next command requests an identical one', async () => {
-    const { release } = await coordinator.acquire(
-      configA,
-      'node',
-      [],
-      undefined,
-    );
-    release();
-
-    await coordinator.acquire(
-      JSON.parse(JSON.stringify(configA)),
+      config,
       'node',
       [],
       undefined,
     );
 
-    expect(SandboxManager.initialize).toHaveBeenCalledOnce();
-    expect(SandboxManager.updateConfig).not.toHaveBeenCalled();
-  });
+    expect(SandboxManager.reset).not.toHaveBeenCalled();
 
-  it('should re-apply the configuration when the next command requests a different one', async () => {
-    const { release } = await coordinator.acquire(
-      configA,
-      'node',
-      [],
-      undefined,
-    );
-    release();
-
-    await coordinator.acquire(configB, 'node', [], undefined);
-
-    expect(SandboxManager.initialize).toHaveBeenCalledOnce();
-    expect(SandboxManager.updateConfig).toHaveBeenCalledExactlyOnceWith(
-      configB,
-    );
-  });
-
-  it('should reinitialize the manager when an initialization-fixed field changes', async () => {
-    const { release } = await coordinator.acquire(
-      configA,
-      'node',
-      [],
-      undefined,
-    );
-    release();
-
-    await coordinator.acquire(configCredentials, 'node', [], undefined);
+    await release();
 
     expect(SandboxManager.reset).toHaveBeenCalledOnce();
+  });
+
+  it('should initialize and tear down the manager for each command', async () => {
+    const first = await coordinator.acquire(config, 'node', [], undefined);
+    await first.release();
+
+    const second = await coordinator.acquire(config, 'node', [], undefined);
+    await second.release();
+
     expect(SandboxManager.initialize).toHaveBeenCalledTimes(2);
-    expect(SandboxManager.updateConfig).not.toHaveBeenCalled();
+    expect(SandboxManager.reset).toHaveBeenCalledTimes(2);
   });
 
   it('should mask declared credentials from the caller environment and strip them from the wrap config', async () => {
@@ -216,7 +169,7 @@ describe('SandboxCoordinator', () => {
     );
     expect(registry.size).toBeGreaterThan(0);
 
-    release();
+    await release();
 
     expect(registry.size).toEqual(0);
   });
@@ -224,7 +177,7 @@ describe('SandboxCoordinator', () => {
   it('should reject when the platform is not supported', async () => {
     jest.spyOn(SandboxManager, 'isSupportedPlatform').mockReturnValue(false);
 
-    const actualPromise = coordinator.acquire(configA, 'node', [], undefined);
+    const actualPromise = coordinator.acquire(config, 'node', [], undefined);
 
     await expect(actualPromise).rejects.toThrow(SandboxNotSupportedError);
     expect(SandboxManager.initialize).not.toHaveBeenCalled();
@@ -235,61 +188,22 @@ describe('SandboxCoordinator', () => {
       .spyOn(SandboxManager, 'checkDependencies')
       .mockReturnValue({ errors: ['ripgrep (rg) not found'], warnings: [] });
 
-    const actualPromise = coordinator.acquire(configA, 'node', [], undefined);
+    const actualPromise = coordinator.acquire(config, 'node', [], undefined);
 
     await expect(actualPromise).rejects.toThrow(SandboxNotSupportedError);
     expect(SandboxManager.initialize).not.toHaveBeenCalled();
   });
 
-  it('should release the hold so the next command can run when applying the configuration fails', async () => {
+  it('should release the hold so the next command can run when initialization fails', async () => {
     jest
       .spyOn(SandboxManager, 'initialize')
       .mockRejectedValueOnce(new Error('💥'));
 
     await expect(
-      coordinator.acquire(configA, 'node', [], undefined),
+      coordinator.acquire(config, 'node', [], undefined),
     ).rejects.toThrow('💥');
 
-    await coordinator.acquire(configA, 'node', [], undefined);
-    expect(SandboxManager.initialize).toHaveBeenCalledTimes(2);
-  });
-
-  it('should wait for the running command to release before resetting', async () => {
-    const { release } = await coordinator.acquire(
-      configA,
-      'node',
-      [],
-      undefined,
-    );
-
-    let didReset = false;
-    const resetPromise = coordinator.reset().then(() => {
-      didReset = true;
-    });
-
-    expect(didReset).toBeFalse();
-    expect(SandboxManager.reset).not.toHaveBeenCalled();
-
-    release();
-    await resetPromise;
-
-    expect(didReset).toBeTrue();
-    expect(SandboxManager.reset).toHaveBeenCalledOnce();
-  });
-
-  it('should tear down the manager and allow re-initialization on reset', async () => {
-    const { release } = await coordinator.acquire(
-      configA,
-      'node',
-      [],
-      undefined,
-    );
-    release();
-    await coordinator.reset();
-
-    expect(SandboxManager.reset).toHaveBeenCalledOnce();
-
-    await coordinator.acquire(configA, 'node', [], undefined);
+    await coordinator.acquire(config, 'node', [], undefined);
     expect(SandboxManager.initialize).toHaveBeenCalledTimes(2);
   });
 });

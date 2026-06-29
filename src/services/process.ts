@@ -232,7 +232,7 @@ export class ProcessService {
         { ...options, environment },
       ));
     } catch (error) {
-      release();
+      await release();
       throw error;
     }
 

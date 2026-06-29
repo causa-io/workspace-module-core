@@ -2,7 +2,6 @@ import {
   SandboxManager,
   type SandboxRuntimeConfig,
 } from '@anthropic-ai/sandbox-runtime';
-import { isDeepStrictEqual } from 'util';
 import { mergeSandboxEnvironment } from './environment.js';
 
 /**
@@ -26,33 +25,19 @@ export type AcquiredSandboxCommand = {
   readonly environment: Record<string, string | undefined>;
 
   /**
-   * Cleans up the command's per-command artifacts and releases the serialization lock so the next command can run.
-   * Must be called once the command has finished (or failed to start). Idempotent.
+   * Tears the sandbox down and releases the serialization lock so the next command can run.
+   * Must be called (and awaited) once the command has finished (or failed to start). Idempotent.
    */
-  readonly release: () => void;
+  readonly release: () => Promise<void>;
 };
 
 /**
  * Coordinates access to the process-wide `SandboxManager` singleton.
  *
- * The sandbox runtime exposes a single manager per process.
- * Sandboxed commands are therefore run strictly one at a time. As the only optimization, the global configuration is
- * reused as-is (not re-applied) when a command requests the exact same one as the previous command.
- *
- * Teardown is handled by the sandbox runtime itself: `SandboxManager.initialize()` registers `exit`/`SIGINT`/`SIGTERM`
- * handlers that call its own `reset()`.
+ * The sandbox runtime exposes a single manager per process, so sandboxed commands are run strictly one at a time: each
+ * command initializes the manager with its own configuration, runs, then tears it down on release.
  */
 export class SandboxCoordinator {
-  /**
-   * The configuration currently applied to the manager, or `undefined` if none has been applied yet.
-   */
-  private activeConfig: SandboxRuntimeConfig | undefined;
-
-  /**
-   * Whether `SandboxManager.initialize()` has been called (and the proxies started) in this process.
-   */
-  private initialized = false;
-
   /**
    * Whether the platform/dependency support check has already passed.
    */
@@ -66,11 +51,11 @@ export class SandboxCoordinator {
 
   /**
    * Acquires the exclusive right to run a sandboxed command and prepares it: waits for the previous command to release,
-   * applies the configuration, and wraps the command for execution inside the sandbox. The returned argv and
-   * environment are ready to be spawned.
+   * initializes the manager with the configuration, and wraps the command for execution inside the sandbox. The
+   * returned argv and environment are ready to be spawned.
    *
-   * Each successful call returns a `release` function that must be called once the command has finished (or failed to
-   * start) to clean up its per-command artifacts and let the next command run.
+   * Each successful call returns a `release` function that must be called and awaited once the command has finished
+   * (or failed to start) to tear the sandbox down and let the next command run.
    *
    * @param config The configuration the command requires.
    * @param command The command to run.
@@ -86,10 +71,10 @@ export class SandboxCoordinator {
   ): Promise<AcquiredSandboxCommand> {
     this.ensureSupported();
 
-    const releaseLock = await this.lock();
+    const release = await this.lock();
 
     try {
-      await this.applyConfig(config);
+      await SandboxManager.initialize(config);
 
       const commandString = [command, ...args]
         .map((token) => `'${token.replaceAll("'", `'\\''`)}'`)
@@ -104,10 +89,9 @@ export class SandboxCoordinator {
       const env = mergeSandboxEnvironment(environment, sbxEnv);
       this.applyCredentials(config, environment, env);
 
-      const release = this.makeRelease(releaseLock);
       return { argv, environment: env, release };
     } catch (error) {
-      releaseLock();
+      await release();
       throw error;
     }
   }
@@ -146,80 +130,31 @@ export class SandboxCoordinator {
   }
 
   /**
-   * Builds the `release` function returned by {@link SandboxCoordinator.acquire}. It cleans up the per-command sandbox
-   * artifacts (e.g. Linux bwrap mount points) and frees the serialization lock. It is idempotent.
+   * Takes the serialization lock, resolving once the previously-acquired command has released.
    *
-   * @param releaseLock The function freeing the serialization lock.
-   * @returns The `release` function.
+   * @returns An idempotent `release` function that tears the manager down and frees the lock so the next holder can
+   *   proceed.
    */
-  private makeRelease(releaseLock: () => void): () => void {
+  private async lock(): Promise<() => Promise<void>> {
+    const previous = this.tail;
+    let releaseLock!: () => void;
+    this.tail = new Promise<void>((resolve) => (releaseLock = resolve));
+    await previous;
+
     let released = false;
-    return () => {
+    return async () => {
       if (released) {
         return;
       }
       released = true;
 
-      SandboxManager.cleanupAfterCommand();
-      SandboxManager.getSentinelRegistry().clear();
-      releaseLock();
+      try {
+        SandboxManager.getSentinelRegistry().clear();
+        await SandboxManager.reset();
+      } finally {
+        releaseLock();
+      }
     };
-  }
-
-  /**
-   * Takes the serialization lock, resolving once the previous holder (a command or a {@link SandboxCoordinator.reset})
-   * has released. The returned function must be called to release the lock and let the next holder proceed.
-   *
-   * @returns The function releasing the lock.
-   */
-  private async lock(): Promise<() => void> {
-    const previous = this.tail;
-    let release!: () => void;
-    this.tail = new Promise<void>((resolve) => (release = resolve));
-    await previous;
-    return release;
-  }
-
-  /**
-   * Applies a configuration to the manager.
-   *
-   * - Identical to the active one: reused as-is.
-   * - Differing only in the live-updatable network allow/deny lists: applied with `updateConfig`.
-   * - Differing in an initialization-fixed field (e.g. TLS termination): the manager is torn down and re-initialized.
-   *
-   * @param config The configuration to apply.
-   */
-  private async applyConfig(config: SandboxRuntimeConfig): Promise<void> {
-    const active = this.activeConfig;
-    if (this.initialized && active) {
-      if (isDeepStrictEqual(config, active)) {
-        return;
-      }
-
-      // Only the network allow/deny lists are live-updatable. `tlsTerminate` (the mitm CA) and the presence of
-      // `credentials` (which wires the credential injector) are fixed at initialization, so a change in either requires
-      // tearing the manager down.
-      const requiresReinitialization =
-        (config.credentials === undefined) !==
-          (active.credentials === undefined) ||
-        !isDeepStrictEqual(
-          config.network.tlsTerminate,
-          active.network.tlsTerminate,
-        );
-
-      if (!requiresReinitialization) {
-        SandboxManager.updateConfig(config);
-        this.activeConfig = config;
-        return;
-      }
-
-      await SandboxManager.reset();
-      this.initialized = false;
-    }
-
-    await SandboxManager.initialize(config);
-    this.initialized = true;
-    this.activeConfig = config;
   }
 
   /**
@@ -246,25 +181,6 @@ export class SandboxCoordinator {
     }
 
     this.supportChecked = true;
-  }
-
-  /**
-   * Tears down the manager and resets the coordinator's state.
-   * Mostly useful for tests and explicit shutdowns. In normal CLI usage the sandbox runtime resets itself on process
-   * exit.
-   */
-  async reset(): Promise<void> {
-    const release = await this.lock();
-
-    try {
-      this.activeConfig = undefined;
-      this.initialized = false;
-      this.supportChecked = false;
-
-      await SandboxManager.reset();
-    } finally {
-      release();
-    }
   }
 }
 

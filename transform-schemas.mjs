@@ -48,7 +48,11 @@ async function processSchema(relativePath) {
 }
 
 const files = await globby(
-  ['src/configurations/schemas/**/*.yaml', 'src/scenarios/schemas/**/*.yaml'],
+  [
+    'src/configurations/schemas/**/*.yaml',
+    'src/scenarios/schemas/**/*.yaml',
+    'src/timeline/schemas/**/*.yaml',
+  ],
   { cwd: ROOT_DIR },
 );
 

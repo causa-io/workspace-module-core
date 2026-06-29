@@ -88,6 +88,21 @@ export class ScenarioInput {
 }
 
 /**
+ * A reference to a timeline definition associated with a scenario.
+ */
+export class ScenarioTimeline {
+  constructor(init: ScenarioTimeline) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * The path to the timeline definition file, relative to the scenario file.
+   */
+  @IsString()
+  readonly path!: string;
+}
+
+/**
  * The function call performed by a step.
  */
 export class StepCall {
@@ -252,4 +267,13 @@ export class Scenario {
    */
   @IsObject()
   readonly steps!: Record<string, ScenarioStep>;
+
+  /**
+   * An optional timeline displayed while the scenario runs, and after it completes, to inspect its results.
+   */
+  @AllowMissing()
+  @IsObject()
+  @Type(() => ScenarioTimeline)
+  @ValidateNested()
+  readonly timeline?: ScenarioTimeline;
 }

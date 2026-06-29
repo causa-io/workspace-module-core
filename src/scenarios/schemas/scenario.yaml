@@ -40,7 +40,24 @@ properties:
     additionalProperties:
       $ref: '#/$defs/ScenarioStep'
 
+  timeline:
+    oneOf:
+      - $ref: '#/$defs/ScenarioTimeline'
+    description: An optional timeline displayed while the scenario runs, and after it completes, to inspect its results.
+
 $defs:
+  ScenarioTimeline:
+    title: ScenarioTimeline
+    type: object
+    description: A reference to a timeline definition associated with a scenario.
+    additionalProperties: false
+    required:
+      - path
+    properties:
+      path:
+        type: string
+        description: The path to the timeline definition file, relative to the scenario file.
+
   ScenarioInput:
     title: ScenarioInput
     type: object

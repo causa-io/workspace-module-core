@@ -137,3 +137,7 @@ Step `args` and `expectations` are rendered with [json-e](https://json-e.js.org/
 - `${ configuration('<path>') }` — resolves a value from the workspace configuration.
 - `${ str(<value>) }` — overrides the json-e builtin to also format `Date` values as ISO strings.
 - `${ rand('uuid') }`, `${ rand('int', <min>, <max>) }`, `${ rand('float', <min>, <max>) }` — generates a random UUID, integer, or floating-point number (the bounded variants in `[min, max)`).
+
+## 📈 Timelines
+
+A timeline describes a view of one or several time-ordered sources (service logs and event topics) queried over a shared time window. This module only models timelines: there is no corresponding CLI command or workspace function. The `Timeline` type (and its children) is exported from the package root, and its schema is shipped at [`./src/timeline/schemas/timeline.yaml`](./src/timeline/schemas/timeline.yaml) and embedded under `dist/timeline/schemas/` when published.

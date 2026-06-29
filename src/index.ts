@@ -7,4 +7,5 @@ const registerModule: ModuleRegistrationFunction = async (context) => {
 
 export * from './configurations/index.js';
 export * from './definitions/index.js';
+export * from './timeline/index.js';
 export default registerModule;

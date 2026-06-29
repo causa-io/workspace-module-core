@@ -1,0 +1,128 @@
+# yaml-language-server: $schema=https://json-schema.org/draft-07/schema
+
+title: Timeline
+type: object
+description: A Timeline view definition.
+additionalProperties: false
+required:
+  - name
+  - sources
+properties:
+  name:
+    type: string
+    description: The display name of the timeline.
+
+  description:
+    type: string
+    description: A Markdown description.
+
+  inputs:
+    type: object
+    description: |-
+      Inputs accepted by the timeline, keyed by input name.
+      Referenced as `${ input('<name>') }` in source filters.
+    additionalProperties:
+      $ref: '#/$defs/TimelineInput'
+
+  sources:
+    type: array
+    description: The sources to display in the timeline.
+    items:
+      $ref: '#/$defs/TimelineSource'
+
+$defs:
+  TimelineTemplate:
+    title: TimelineTemplate
+    description: |-
+      A `json-e` template, expressed either as a string or an object.
+      Rendered against the relevant context and expected to evaluate to a string.
+    oneOf:
+      - type: string
+      - type: object
+
+  TimelineInput:
+    title: TimelineInput
+    type: object
+    description: |-
+      Declaration of a single input accepted by a timeline.
+      Inputs can be referenced as `${ input('<name>') }` in source filters.
+    additionalProperties: false
+    required:
+      - type
+    properties:
+      description:
+        type: string
+        description: A human-readable description of the input.
+
+      type:
+        title: TimelineInputType
+        type: string
+        enum:
+          - string
+        description: The type of the input value.
+
+      default:
+        type: string
+        description: The default value to use when the input is not provided.
+
+  TimelineSource:
+    title: TimelineSource
+    type: object
+    description: A single source in a timeline view.
+    additionalProperties: false
+    required:
+      - id
+      - type
+      - target
+      - title
+      - body
+    properties:
+      id:
+        type: string
+        description: An ID for the source.
+
+      type:
+        title: TimelineSourceType
+        type: string
+        enum:
+          - serviceLogs
+          - eventTopic
+        description: The type of source.
+
+      target:
+        type: string
+        description: |-
+          What the backing function queries:
+          - `serviceLogs`: the service container ID.
+          - `eventTopic`: the event topic ID.
+
+      name:
+        type: string
+        description: A human-readable label.
+
+      color:
+        oneOf:
+          - $ref: '#/$defs/TimelineTemplate'
+        description: |-
+          The source's color, used to tint its lane and records.
+          Either a CSS hex string (`#rrggbb`), or a `json-e` template rendered against each record.
+          A hex result is used as-is, any other value is hashed to a stable color, so equal values share a color.
+
+      filter:
+        oneOf:
+          - $ref: '#/$defs/TimelineTemplate'
+        description: |-
+          Implementation-specific filter expression forwarded to the backing query function.
+          A `json-e` template rendered against the timeline's inputs (`${ input('<name>') }`) and expected to evaluate to a string.
+
+      title:
+        oneOf:
+          - $ref: '#/$defs/TimelineTemplate'
+        description: |-
+          A `json-e` template rendered against each raw record to produce the entry's one-line title.
+          Expected to evaluate to a string.
+
+      body:
+        oneOf:
+          - $ref: '#/$defs/TimelineTemplate'
+        description: A `json-e` template rendered against each raw record to produce the entry's body.

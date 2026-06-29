@@ -12,3 +12,116 @@ properties:
       projectConfigurationsDirectory:
         type: string
         description: The directory where project configurations are written by the ProjectWriteConfigurations processor.
+
+      sandboxes:
+        type: object
+        description: A map of sandbox profiles, keyed by an arbitrary name that can be referenced when running a sandboxed process.
+        additionalProperties:
+          title: SandboxProfile
+          type: object
+          description: A sandbox profile describing how a process is restricted when run inside the OS-level sandbox.
+          properties:
+            network:
+              title: SandboxNetwork
+              type: object
+              description: The network restrictions for the profile. When omitted, all network access is blocked.
+              properties:
+                allowedDomains:
+                  type: array
+                  items:
+                    type: string
+                  description: |-
+                    The list of domains the sandboxed process is allowed to reach. This is an allowlist: an empty list (or
+                    an omitted network section) blocks all network access. Wildcards such as `*.example.com` are supported.
+                deniedDomains:
+                  type: array
+                  items:
+                    type: string
+                  description: |-
+                    The list of domains the sandboxed process is explicitly denied access to. Denied domains take
+                    precedence over allowed ones.
+                allowLocalBinding:
+                  type: boolean
+                  description: |-
+                    Whether the sandboxed process may bind to or connect to the loopback interface. Defaults to `false`.
+                allowUnixSockets:
+                  type: array
+                  items:
+                    type: string
+                  description: The list of Unix socket paths the sandboxed process is allowed to use (macOS only).
+                allowAllUnixSockets:
+                  type: boolean
+                  description: Whether the sandboxed process is allowed to use any Unix socket.
+            filesystem:
+              title: SandboxFilesystem
+              type: object
+              description: |-
+                The filesystem restrictions for the profile. Reads follow a deny-then-allow model (everything readable
+                unless denied, then re-allowed within denied regions); writes follow an allow-only model. The workspace
+                root is always readable and writable, and the home directory is always denied for reads, so a profile
+                that needs to read a toolchain installed under the home directory must re-allow the relevant paths.
+              properties:
+                denyRead:
+                  type: array
+                  items:
+                    type: string
+                  description: Additional paths whose reads are denied, on top of the always-denied home directory.
+                allowRead:
+                  type: array
+                  items:
+                    type: string
+                  description: |-
+                    Paths to re-allow reads for within denied regions, on top of the always-allowed workspace root.
+                    Re-allowed paths take precedence over denied ones.
+                allowWrite:
+                  type: array
+                  items:
+                    type: string
+                  description: |-
+                    Additional paths to allow writes to, on top of the always-allowed workspace root and the runtime's
+                    default write paths (e.g. temporary directories).
+                denyWrite:
+                  type: array
+                  items:
+                    type: string
+                  description: |-
+                    Paths to deny writes to within allowed regions. Denied paths take precedence over allowed ones.
+                disabled:
+                  type: boolean
+                  description: Bypasses all filesystem restrictions when `true`.
+            credentials:
+              title: SandboxCredentials
+              type: object
+              description: The credentials the sandboxed process is allowed to use, masked from it and injected by the host.
+              properties:
+                environment:
+                  type: object
+                  description: |-
+                    A map of environment variables to mask, keyed by name. The sandboxed process sees an opaque sentinel
+                    value instead of the real one; the host injects the real value into requests to the declared hosts.
+                    The real value is read from the process spawning the command (its environment or `process.env`), so it
+                    is never stored in the configuration.
+                  additionalProperties:
+                    title: SandboxCredentialEnvironmentVariable
+                    type: object
+                    description: A masked environment variable, injected by the host into requests to the declared hosts.
+                    properties:
+                      hosts:
+                        type: array
+                        items:
+                          type: string
+                        description: |-
+                          The hosts the real value may be injected into. Wildcards such as `*.example.com` are supported.
+                          The credential is never sent to any other host.
+                    required:
+                      - hosts
+            enableWeakerNestedSandbox:
+              type: boolean
+              description: |-
+                Weakens the Linux sandbox so it can run nested within an unprivileged container (e.g. in CI). This
+                reduces the security guarantees and should only be enabled when necessary.
+            enableWeakerNetworkIsolation:
+              type: boolean
+              description: |-
+                Weakens network isolation on macOS, required by some statically-linked binaries (e.g. Go) for TLS. This
+                reduces the security guarantees and should only be enabled when necessary.

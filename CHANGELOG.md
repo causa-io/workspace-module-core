@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+Features:
+
+- Add OS-level sandboxing for spawned processes, backed by `@anthropic-ai/sandbox-runtime`. Sandbox profiles are defined under `causa.sandboxes` and selected through the new `sandbox` option of `ProcessService.spawn` (also exposed by `GitService.git` and `DockerService.docker`).
+
 ## v1.1.0 (2026-06-11)
 
 Features:

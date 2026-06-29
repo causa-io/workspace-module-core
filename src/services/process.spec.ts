@@ -1,3 +1,4 @@
+import { SandboxManager } from '@anthropic-ai/sandbox-runtime';
 import { WorkspaceContext } from '@causa/workspace';
 import { createContext } from '@causa/workspace/testing';
 import { jest } from '@jest/globals';
@@ -5,6 +6,8 @@ import 'jest-extended';
 import { dirname } from 'path';
 import type { Logger } from 'pino';
 import { fileURLToPath } from 'url';
+import { sandboxCoordinator } from '../sandbox/coordinator.js';
+import { SandboxProfileNotFoundError } from '../sandbox/profile.js';
 import { ProcessService, ProcessServiceExitCodeError } from './process.js';
 
 describe('ProcessService', () => {
@@ -115,6 +118,110 @@ describe('ProcessService', () => {
       const actualPromise = actualProcess.result;
       await expect(actualPromise).rejects.toThrow(ProcessServiceExitCodeError);
       await expect(actualPromise).rejects.toMatchObject({
+        command: 'node',
+        args: ['-e', 'process.exit(5)'],
+        result: { code: 5 },
+      });
+    });
+  });
+
+  describe('spawnSandboxed', () => {
+    const dir = dirname(fileURLToPath(import.meta.url));
+
+    beforeEach(() => {
+      jest.spyOn(SandboxManager, 'isSupportedPlatform').mockReturnValue(true);
+      jest
+        .spyOn(SandboxManager, 'checkDependencies')
+        .mockReturnValue({ errors: [], warnings: [] });
+      jest.spyOn(SandboxManager, 'initialize').mockResolvedValue(undefined);
+      jest.spyOn(SandboxManager, 'updateConfig').mockReturnValue(undefined);
+      jest.spyOn(SandboxManager, 'reset').mockResolvedValue(undefined);
+      jest
+        .spyOn(SandboxManager, 'cleanupAfterCommand')
+        .mockReturnValue(undefined);
+    });
+
+    afterEach(() => sandboxCoordinator.reset());
+
+    function mockPassthroughWrapping() {
+      jest
+        .spyOn(SandboxManager, 'wrapWithSandboxArgv')
+        .mockImplementation(async (command) => ({
+          argv: ['/bin/bash', '-c', command],
+          env: process.env,
+        }));
+    }
+
+    function createSandboxedService(): ProcessService {
+      ({ context } = createContext({
+        workingDirectory: dir,
+        rootPath: dir,
+        configuration: {
+          causa: { sandboxes: { test: { network: { allowedDomains: [] } } } },
+        },
+      }));
+      return context.service(ProcessService);
+    }
+
+    it('should wrap the command when a configured sandbox key is used', async () => {
+      mockPassthroughWrapping();
+      service = createSandboxedService();
+
+      const actualProcess = await service.spawn(
+        'node',
+        ['-e', 'console.log("🎉")'],
+        { capture: { stdout: true }, sandbox: 'test' },
+      );
+      const actualResult = await actualProcess.result;
+
+      expect(actualResult.code).toEqual(0);
+      expect(actualResult.stdout).toEqual('🎉\n');
+      expect(SandboxManager.initialize).toHaveBeenCalledOnce();
+      expect(
+        SandboxManager.wrapWithSandboxArgv,
+      ).toHaveBeenCalledExactlyOnceWith(
+        "'node' '-e' 'console.log(\"🎉\")'",
+        undefined,
+        {
+          network: { allowedDomains: [], deniedDomains: [] },
+          filesystem: {
+            denyRead: ['~'],
+            allowRead: [dir],
+            allowWrite: [dir],
+            denyWrite: [],
+          },
+          credentials: {},
+        },
+      );
+      expect(SandboxManager.cleanupAfterCommand).toHaveBeenCalledOnce();
+    });
+
+    it('should reject rather than run unsandboxed when the sandbox key is not configured', async () => {
+      jest.spyOn(SandboxManager, 'wrapWithSandboxArgv');
+      service = createSandboxedService();
+
+      const actualPromise = service.spawn(
+        'node',
+        ['-e', 'console.log("plain")'],
+        { capture: { stdout: true }, sandbox: 'missing' },
+      );
+
+      await expect(actualPromise).rejects.toThrow(SandboxProfileNotFoundError);
+      expect(SandboxManager.wrapWithSandboxArgv).not.toHaveBeenCalled();
+      expect(SandboxManager.initialize).not.toHaveBeenCalled();
+    });
+
+    it('should report exit code failures against the original command', async () => {
+      mockPassthroughWrapping();
+      service = createSandboxedService();
+
+      const actualProcess = await service.spawn(
+        'node',
+        ['-e', 'process.exit(5)'],
+        { sandbox: 'test' },
+      );
+
+      await expect(actualProcess.result).rejects.toMatchObject({
         command: 'node',
         args: ['-e', 'process.exit(5)'],
         result: { code: 5 },

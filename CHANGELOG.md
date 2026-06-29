@@ -5,6 +5,8 @@
 Features:
 
 - Add OS-level sandboxing for spawned processes, backed by `@anthropic-ai/sandbox-runtime`. Sandbox profiles are defined under `causa.sandboxes` and selected through the new `sandbox` option of `ProcessService.spawn` (also exposed by `GitService.git` and `DockerService.docker`).
+- Add the `Timeline` type (along with its children), modelling a timeline view of one or several time-ordered sources. It is generated from a JSONSchema bundled in the package.
+- Add the optional `timeline` reference to the scenario schema, pointing at a timeline definition to display while the scenario runs and after it completes.
 
 ## v1.1.0 (2026-06-11)
 

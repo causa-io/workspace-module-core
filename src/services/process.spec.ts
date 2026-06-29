@@ -6,7 +6,6 @@ import 'jest-extended';
 import { dirname } from 'path';
 import type { Logger } from 'pino';
 import { fileURLToPath } from 'url';
-import { sandboxCoordinator } from '../sandbox/coordinator.js';
 import { SandboxProfileNotFoundError } from '../sandbox/profile.js';
 import { ProcessService, ProcessServiceExitCodeError } from './process.js';
 
@@ -134,14 +133,8 @@ describe('ProcessService', () => {
         .spyOn(SandboxManager, 'checkDependencies')
         .mockReturnValue({ errors: [], warnings: [] });
       jest.spyOn(SandboxManager, 'initialize').mockResolvedValue(undefined);
-      jest.spyOn(SandboxManager, 'updateConfig').mockReturnValue(undefined);
       jest.spyOn(SandboxManager, 'reset').mockResolvedValue(undefined);
-      jest
-        .spyOn(SandboxManager, 'cleanupAfterCommand')
-        .mockReturnValue(undefined);
     });
-
-    afterEach(() => sandboxCoordinator.reset());
 
     function mockPassthroughWrapping() {
       jest
@@ -193,7 +186,7 @@ describe('ProcessService', () => {
           credentials: {},
         },
       );
-      expect(SandboxManager.cleanupAfterCommand).toHaveBeenCalledOnce();
+      expect(SandboxManager.reset).toHaveBeenCalledOnce();
     });
 
     it('should reject rather than run unsandboxed when the sandbox key is not configured', async () => {

@@ -77,11 +77,38 @@ This section provides pointers for Causa module developers. Workspace function d
 
 This module implements some [services](./src/services/) used by itself, but which might also come handy in other modules, namely:
 
-- `ProcessService`: Provides a normalized way to spawn child processes.
+- `ProcessService`: Provides a normalized way to spawn child processes, optionally inside an OS-level sandbox (see [Sandboxing](#-sandboxing) below).
 - `GitService`: Runs `git` commands using the `ProcessService`.
 - `DockerService`: Runs `docker` commands using the `ProcessService`.
 - `DockerEmulatorService`: Provides a normalized way to starting and stopping containerized emulators. Also provides a way to wait for an emulator exposing an HTTP endpoint.
 - `ServiceContainerBuilderService`: Provides the base logic to build service container images (using the `DockerService`). Language-specific modules can use this service and customize build parameters.
+
+## 🔒 Sandboxing
+
+The `ProcessService` can run a spawned process inside an OS-level sandbox (macOS Seatbelt or Linux Bubblewrap), powered by [`@anthropic-ai/sandbox-runtime`](https://github.com/anthropics/sandbox-runtime). Sandboxing is opt-in and fails closed: a process runs unsandboxed unless it references a profile, and referencing a missing or invalid profile throws rather than running the process unrestricted.
+
+Sandbox profiles are defined under `causa.sandboxes`, keyed by an arbitrary name:
+
+```yaml
+causa:
+  sandboxes:
+    install:
+      network:
+        allowedDomains: [registry.npmjs.org, '*.npmjs.org']
+      filesystem:
+        allowRead: ['~/.npm']
+        allowWrite: ['~/.npm']
+      credentials:
+        environment:
+          NPM_TOKEN:
+            hosts: [registry.npmjs.org]
+```
+
+A profile controls:
+
+- **Network** (`network`): `allowedDomains` is an allowlist (an empty or omitted list blocks all network access); `deniedDomains` takes precedence over it. Wildcards such as `*.example.com` are supported. Additional flags (`allowLocalBinding`, `allowUnixSockets`, `allowAllUnixSockets`) relax specific restrictions.
+- **Filesystem** (`filesystem`): the workspace root is always readable and writable, and the home directory is always denied for reads. `denyRead`, `allowRead`, `allowWrite`, and `denyWrite` extend those defaults (re-allowed paths take precedence over denied ones).
+- **Credentials** (`credentials.environment`): a map of environment variables, keyed by name, that must not be exposed in clear to the process. Each variable is replaced by an opaque sentinel inside the sandbox. The real value is injected by the host only into requests to the declared `hosts`. An empty `hosts` list denies the variable entirely (it is unset inside the sandbox).
 
 ## 🧱 Infrastructure processors
 

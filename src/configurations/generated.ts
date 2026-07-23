@@ -372,8 +372,7 @@ export class ProjectWriteConfigurationsProcessor {
 }
 
 export type InfrastructureProcessor =
-  | ProcessorInstruction
-  | ProjectWriteConfigurationsProcessor;
+  ProcessorInstruction | ProjectWriteConfigurationsProcessor;
 
 /**
  * A masked environment variable, injected by the host into requests to the declared hosts.
@@ -739,8 +738,7 @@ export class ServerlessFunctionsBuild {
  * The event that triggers the function.
  */
 export type ServerlessFunctionTrigger =
-  | ServerlessFunctionGenericTrigger
-  | ServerlessFunctionEventTrigger;
+  ServerlessFunctionGenericTrigger | ServerlessFunctionEventTrigger;
 
 export class ServerlessFunction {
   constructor(init: ServerlessFunction) {

@@ -29,11 +29,7 @@ export {
  * - `skipped`: the step was not run, because the scenario was aborted before it could be reached.
  */
 export type ScenarioStepStatus =
-  | 'pending'
-  | 'running'
-  | 'succeeded'
-  | 'failed'
-  | 'skipped';
+  'pending' | 'running' | 'succeeded' | 'failed' | 'skipped';
 
 /**
  * The outcome of a single step within a scenario run.

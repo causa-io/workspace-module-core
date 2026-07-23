@@ -567,6 +567,12 @@ export abstract class EventTopicBrokerDeleteTopic extends WorkspaceFunction<
  */
 export type QueriedEvent = {
   /**
+   * A unique ID for the event, stable across queries.
+   * This may not be provided by all implementations.
+   */
+  readonly id?: string;
+
+  /**
    * The time at which the event was published to the topic.
    */
   readonly timestamp: Date;

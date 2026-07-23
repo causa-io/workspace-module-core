@@ -44,13 +44,11 @@ function extractInterpolations(template: string): string[] {
 
   for (let i = 0; i < template.length; i++) {
     // An interpolation starts at `${`, unless it is an escaped `$${`.
-    if (
-      !(
-        template[i] === '$' &&
-        template[i + 1] === '{' &&
-        template[i - 1] !== '$'
-      )
-    ) {
+    if (!(
+      template[i] === '$' &&
+      template[i + 1] === '{' &&
+      template[i - 1] !== '$'
+    )) {
       continue;
     }
 

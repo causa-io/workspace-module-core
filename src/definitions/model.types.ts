@@ -2,12 +2,7 @@
  * The primitive scalar types the model supports.
  */
 export type PrimitiveType =
-  | 'string'
-  | 'integer'
-  | 'number'
-  | 'boolean'
-  | 'uuid'
-  | 'datetime';
+  'string' | 'integer' | 'number' | 'boolean' | 'uuid' | 'datetime';
 
 /**
  * The underlying type of an {@link EnumSchema}.

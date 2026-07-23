@@ -8,6 +8,12 @@ import { IsDate, IsInt, IsPositive, IsString } from 'class-validator';
  */
 export type QueriedLogEntry = {
   /**
+   * A unique ID for the log entry, stable across queries.
+   * This may not be provided by all implementations.
+   */
+  readonly id?: string;
+
+  /**
    * The time at which the log entry was emitted.
    */
   readonly timestamp: Date;

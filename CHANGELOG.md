@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v1.3.0 (2026-07-24)
+
 Features:
 
 - Add the optional `id` property to `QueriedLogEntry` and `QueriedEvent`, a unique ID that is stable across queries when provided by the implementation.

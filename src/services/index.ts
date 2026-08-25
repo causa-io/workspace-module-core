@@ -1,6 +1,8 @@
 export {
   DockerEmulatorAvailabilityCheckTimeoutError,
+  DockerEmulatorPortConflictError,
   DockerEmulatorService,
+  DockerEmulatorStartError,
 } from './docker-emulator.js';
 export { DockerService } from './docker.js';
 export type { DockerContainerMount, DockerContainerPublish } from './docker.js';

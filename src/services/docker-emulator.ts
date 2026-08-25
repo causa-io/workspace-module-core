@@ -1,6 +1,14 @@
 import { WorkspaceContext } from '@causa/workspace';
 import type { Logger } from 'pino';
 import { type DockerContainerPublish, DockerService } from './docker.js';
+import { ProcessServiceExitCodeError } from './process.js';
+
+/**
+ * The regular expression matching a single host port binding in the `Ports` column of `docker ps`, e.g.
+ * `127.0.0.1:8185->8085/tcp` or `[::]:8085->8085/tcp`. The captured group is the host port.
+ * Ports that are only exposed by the container, and not bound to a host port, do not match.
+ */
+const PORT_BINDING_REGEXP = /(?:\[[^\]]+\]|[^\s:,]+):(\d+)->\d+\/\w+/g;
 
 /**
  * A service that can be used to start and stop containerized emulators.
@@ -47,15 +55,93 @@ export class DockerEmulatorService {
     const network = await this.dockerService.createNetworkIfNeeded();
 
     this.logger.debug(`🐳 Starting container '${containerName}'.`);
-    await this.dockerService.run(dockerImage, {
-      detach: true,
-      logging: { stdout: null, stderr: 'debug' },
-      pull: 'always',
-      ...options,
-      name: containerName,
-      network,
-      publish,
+    try {
+      await this.dockerService.run(dockerImage, {
+        detach: true,
+        logging: { stdout: null, stderr: 'debug' },
+        capture: { stderr: true },
+        pull: 'always',
+        ...options,
+        name: containerName,
+        network,
+        publish,
+      });
+    } catch (error) {
+      if (!(error instanceof ProcessServiceExitCodeError)) {
+        throw error;
+      }
+
+      throw (
+        (await this.findPortConflictError(containerName, publish)) ??
+        new DockerEmulatorStartError(containerName, error)
+      );
+    }
+  }
+
+  /**
+   * Looks for a host port required by the container that is already in use, in order to explain why the container could
+   * not be started.
+   *
+   * @param containerName The name of the container that could not be started.
+   * @param publish The list of ports the container tried to publish.
+   * @returns The corresponding error, or `null` if no running container publishes any of the host ports.
+   */
+  private async findPortConflictError(
+    containerName: string,
+    publish: DockerContainerPublish[],
+  ): Promise<DockerEmulatorPortConflictError | null> {
+    const containerNamesByPort = await this.getContainerNamesByPublishedPort();
+
+    for (const { local } of publish) {
+      const publishingContainerName = containerNamesByPort.get(local);
+      if (publishingContainerName !== undefined) {
+        return new DockerEmulatorPortConflictError(
+          containerName,
+          local,
+          publishingContainerName,
+        );
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Lists the host ports published by the running Docker containers, along with the container publishing them.
+   * If the Docker CLI call fails, an empty map is returned.
+   *
+   * @returns A map where keys are host ports, and values are the names of the containers publishing them.
+   */
+  private async getContainerNamesByPublishedPort(): Promise<
+    Map<number, string>
+  > {
+    const containerNamesByPort = new Map<number, string>();
+
+    let stdout: string | undefined;
+    try {
+      ({ stdout } = await this.dockerService.ps({
+        format: '{{.Names}}\t{{.Ports}}',
+        logging: null,
+      }));
+    } catch (error: any) {
+      this.logger.debug(
+        `🐳 Failed to list the running Docker containers: '${error.message}'.`,
+      );
+      return containerNamesByPort;
+    }
+
+    (stdout ?? '').split('\n').forEach((line) => {
+      const [name, ports] = line.split('\t');
+      if (!name || !ports) {
+        return;
+      }
+
+      for (const [, hostPort] of ports.matchAll(PORT_BINDING_REGEXP)) {
+        containerNamesByPort.set(parseInt(hostPort), name);
+      }
     });
+
+    return containerNamesByPort;
   }
 
   /**
@@ -134,6 +220,37 @@ export class DockerEmulatorService {
     throw new DockerEmulatorAvailabilityCheckTimeoutError(
       emulatorName,
       maxNumTries,
+    );
+  }
+}
+
+/**
+ * An error thrown when a host port required by an emulator is already published by another Docker container, which
+ * prevented the emulator's container from starting.
+ */
+export class DockerEmulatorPortConflictError extends Error {
+  constructor(
+    readonly containerName: string,
+    readonly port: number,
+    readonly conflictingContainerName: string,
+  ) {
+    super(
+      `Failed to start the Docker container '${containerName}': host port ${port} is already published by the Docker container '${conflictingContainerName}'. Stop that container, or configure a different port for this emulator.`,
+    );
+  }
+}
+
+/**
+ * An error thrown when the Docker container running an emulator could not be started.
+ */
+export class DockerEmulatorStartError extends Error {
+  constructor(
+    readonly containerName: string,
+    readonly processError: ProcessServiceExitCodeError,
+  ) {
+    const stderr = processError.result.stderr?.trim();
+    super(
+      `Failed to start the Docker container '${containerName}'.${stderr ? `\n${stderr}` : ''}`,
     );
   }
 }

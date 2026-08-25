@@ -436,6 +436,51 @@ export class DockerService {
   }
 
   /**
+   * Lists the Docker containers.
+   *
+   * @param options Options when listing the containers.
+   * @returns The result of the spawned process.
+   */
+  async ps(
+    options: {
+      /**
+       * When `true`, containers that are not running are also returned.
+       */
+      all?: boolean;
+
+      /**
+       * A filter to apply to the results before returning them.
+       */
+      filter?: string;
+
+      /**
+       * The Go template used to format each returned container.
+       */
+      format?: string;
+    } & SpawnOptions = {},
+  ): Promise<SpawnedProcessResult> {
+    const { all, filter, format, ...spawnOptions } = options;
+    const args: string[] = [];
+
+    if (all) {
+      args.push('--all');
+    }
+
+    if (filter) {
+      args.push('--filter', filter);
+    }
+
+    if (format) {
+      args.push('--format', format);
+    }
+
+    return await this.docker('ps', args, {
+      capture: { stdout: true, stderr: true },
+      ...spawnOptions,
+    });
+  }
+
+  /**
    * Creates a new Docker network.
    *
    * @param network The name of the network to create.

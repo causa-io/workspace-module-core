@@ -250,6 +250,33 @@ describe('DockerService', () => {
     });
   });
 
+  describe('ps', () => {
+    it('should run the ps command', async () => {
+      const expectedResult = { code: 0, stdout: 'my-container\n' };
+      const dockerSpy = jest
+        .spyOn(service, 'docker')
+        .mockResolvedValueOnce(expectedResult);
+
+      const actualResult = await service.ps({
+        all: true,
+        filter: 'publish=8080',
+        format: '{{.Names}}',
+      });
+
+      expect(actualResult).toEqual(expectedResult);
+      expect(service.docker).toHaveBeenCalledOnce();
+      const [actualCommand, args, actualOptions] = dockerSpy.mock.calls[0];
+      const actualArgs = args.join(' ');
+      expect(actualCommand).toEqual('ps');
+      expect(actualArgs).toContain('--all');
+      expect(actualArgs).toContain('--filter publish=8080');
+      expect(actualArgs).toContain('--format {{.Names}}');
+      expect(actualOptions).toEqual(
+        expect.objectContaining({ capture: { stdout: true, stderr: true } }),
+      );
+    });
+  });
+
   describe('networkCreate', () => {
     it('should run the network create command', async () => {
       const dockerSpy = jest

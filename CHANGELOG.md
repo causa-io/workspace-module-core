@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v1.4.0 (2026-08-26)
+
 Features:
 
 - Write the configuration returned by the emulators to an environment file (`.causa/emulators.env` by default) when running `cs emulators start`, such that it can be loaded by tests and local runs.

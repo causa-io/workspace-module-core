@@ -13,6 +13,20 @@ properties:
         type: string
         description: The directory where project configurations are written by the ProjectWriteConfigurations processor.
 
+      emulators:
+        title: CausaEmulators
+        type: object
+        description: Configuration for the local emulators managed by `cs emulators`.
+        properties:
+          environmentFile:
+            description: |-
+              The file, relative to the workspace root, where the configuration returned by the emulators is written when running `cs emulators start`.
+              The file contains one `KEY="value"` line per configuration entry, and is meant to be loaded by tests and local runs (e.g. using `dotenv`).
+              Defaults to `.causa/emulators.env`. Set to `null` to disable writing the file entirely.
+            oneOf:
+              - type: 'null'
+              - type: string
+
       sandboxes:
         type: object
         description: A map of sandbox profiles, keyed by an arbitrary name that can be referenced when running a sandboxed process.

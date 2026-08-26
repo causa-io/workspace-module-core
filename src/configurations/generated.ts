@@ -15,6 +15,27 @@ import {
   ValidateNested,
 } from 'class-validator';
 
+/**
+ * Configuration for the local emulators managed by `cs emulators`.
+ */
+export class CausaEmulators {
+  constructor(init: CausaEmulators) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * The file, relative to the workspace root, where the configuration returned by the emulators is written when running `cs emulators start`.
+   * The file contains one `KEY="value"` line per configuration entry, and is meant to be loaded by tests and local runs (e.g. using `dotenv`).
+   * Defaults to `.causa/emulators.env`. Set to `null` to disable writing the file entirely.
+   */
+  @AllowMissing()
+  @IsNullable()
+  @IsString()
+  readonly environmentFile?: string | null;
+
+  [key: string]: any;
+}
+
 export class CodeGenerator {
   constructor(init: CodeGenerator) {
     Object.assign(this, init);
@@ -591,6 +612,15 @@ export class Causa {
   @AllowMissing()
   @IsString()
   readonly projectConfigurationsDirectory?: string;
+
+  /**
+   * Configuration for the local emulators managed by `cs emulators`.
+   */
+  @AllowMissing()
+  @IsObject()
+  @Type(() => CausaEmulators)
+  @ValidateNested()
+  readonly emulators?: CausaEmulators;
 
   /**
    * A map of sandbox profiles, keyed by an arbitrary name that can be referenced when running a sandboxed process.

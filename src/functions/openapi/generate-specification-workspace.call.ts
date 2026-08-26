@@ -5,9 +5,9 @@ import { readFiles } from '@scalar/json-magic/bundle/plugins/node';
 import { join as joinSpecs } from '@scalar/openapi-parser';
 import type { OpenAPIV3_1 } from '@scalar/openapi-types';
 import { writeFile } from 'fs/promises';
-import { parse, stringify } from 'yaml';
 import { join, resolve } from 'path';
 import { isDeepStrictEqual } from 'util';
+import { parse, stringify } from 'yaml';
 import type { OpenApiConfiguration } from '../../configurations/index.js';
 import { OpenApiGenerateSpecification } from '../../definitions/index.js';
 import type { OpenApiGenerateSpecificationForWorkspace } from './generate-specification-workspace.js';
@@ -109,7 +109,7 @@ async function mergeSpecifications(
     );
   }
 
-  return result.document;
+  return result.document as OpenAPIV3_1.Document;
 }
 
 /**

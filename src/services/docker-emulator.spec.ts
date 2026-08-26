@@ -7,9 +7,12 @@ import { pino } from 'pino';
 import { setTimeout } from 'timers/promises';
 import {
   DockerEmulatorAvailabilityCheckTimeoutError,
+  DockerEmulatorPortConflictError,
   DockerEmulatorService,
+  DockerEmulatorStartError,
 } from './docker-emulator.js';
 import { DockerService } from './docker.js';
+import { ProcessServiceExitCodeError } from './process.js';
 
 describe('DockerEmulatorService', () => {
   let context: WorkspaceContext;
@@ -25,9 +28,30 @@ describe('DockerEmulatorService', () => {
     jest
       .spyOn(dockerService, 'createNetworkIfNeeded')
       .mockResolvedValue('my-network');
+    jest
+      .spyOn(dockerService, 'ps')
+      .mockResolvedValue({ code: 0, stdout: '', stderr: '' });
   });
 
   describe('start', () => {
+    function mockFailingRun(stderr = '💥') {
+      jest.spyOn(dockerService, 'run').mockRejectedValue(
+        new ProcessServiceExitCodeError('docker', ['run'], {
+          code: 125,
+          stderr,
+        }),
+      );
+    }
+
+    function mockRunningContainers(containers: Record<string, string>) {
+      const stdout = Object.entries(containers)
+        .map(([name, ports]) => `${name}\t${ports}\n`)
+        .join('');
+      jest
+        .spyOn(dockerService, 'ps')
+        .mockResolvedValue({ code: 0, stdout, stderr: '' });
+    }
+
     it('should stop and start the container attached to the correct network', async () => {
       await service.start(
         'my-image',
@@ -51,6 +75,82 @@ describe('DockerEmulatorService', () => {
           publish: [{ local: 8080, container: 1234 }],
         }),
       );
+      expect(dockerService.ps).not.toHaveBeenCalled();
+    });
+
+    it('should throw an error containing the standard error when the container fails to start', async () => {
+      mockFailingRun('💥 Error response from daemon: something went wrong.\n');
+
+      const actualPromise = service.start('my-image', 'my-container', [
+        { host: '127.0.0.1', local: 8080, container: 1234 },
+      ]);
+
+      await expect(actualPromise).rejects.toThrow(DockerEmulatorStartError);
+      await expect(actualPromise).rejects.toMatchObject({
+        containerName: 'my-container',
+        message: expect.stringContaining('something went wrong'),
+      });
+      expect(dockerService.run).toHaveBeenCalledExactlyOnceWith(
+        'my-image',
+        expect.objectContaining({ capture: { stderr: true } }),
+      );
+    });
+
+    it('should throw a port conflict error when the port is published by another container', async () => {
+      mockFailingRun();
+      mockRunningContainers({
+        'other-workspace-pubsub': '127.0.0.1:8085->8080/tcp',
+      });
+
+      const actualPromise = service.start('my-image', 'my-container', [
+        { host: '127.0.0.1', local: 8085, container: 8085 },
+      ]);
+
+      await expect(actualPromise).rejects.toThrow(
+        DockerEmulatorPortConflictError,
+      );
+      await expect(actualPromise).rejects.toMatchObject({
+        containerName: 'my-container',
+        port: 8085,
+        conflictingContainerName: 'other-workspace-pubsub',
+      });
+    });
+
+    it('should ignore container ports that are not bound to a host port', async () => {
+      mockFailingRun();
+      mockRunningContainers({ 'other-container': '8080/tcp' });
+
+      const actualPromise = service.start('my-image', 'my-container', [
+        { host: '127.0.0.1', local: 8080, container: 1234 },
+      ]);
+
+      await expect(actualPromise).rejects.toThrow(DockerEmulatorStartError);
+    });
+
+    it('should report the start error when the running containers cannot be listed', async () => {
+      mockFailingRun();
+      jest
+        .spyOn(dockerService, 'ps')
+        .mockRejectedValue(new Error('💥 Docker daemon is not running.'));
+
+      const actualPromise = service.start('my-image', 'my-container', [
+        { host: '127.0.0.1', local: 8080, container: 1234 },
+      ]);
+
+      await expect(actualPromise).rejects.toThrow(DockerEmulatorStartError);
+    });
+
+    it('should rethrow errors that are not process failures', async () => {
+      jest
+        .spyOn(dockerService, 'run')
+        .mockRejectedValue(new Error('💥 Something unexpected.'));
+
+      const actualPromise = service.start('my-image', 'my-container', [
+        { local: 8080, container: 1234 },
+      ]);
+
+      await expect(actualPromise).rejects.toThrow('💥 Something unexpected.');
+      expect(dockerService.ps).not.toHaveBeenCalled();
     });
   });
 

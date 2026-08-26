@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+Features:
+
+- Write the configuration returned by the emulators to an environment file (`.causa/emulators.env` by default) when running `cs emulators start`, such that it can be loaded by tests and local runs.
+- Report the standard error of `docker run` when the Docker container of an emulator fails to start. When the failure is caused by a host port that is already published by another Docker container, a `DockerEmulatorPortConflictError` naming that container is thrown instead.
+- Add `DockerService.ps`, exposing the `docker ps` command.
+
 ## v1.3.0 (2026-07-24)
 
 Features:

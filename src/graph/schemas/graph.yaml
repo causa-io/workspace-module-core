@@ -1,0 +1,31 @@
+# yaml-language-server: $schema=https://json-schema.org/draft/2020-12/schema
+
+title: Graph
+type: object
+description: |-
+  An architecture graph derived from a Causa workspace.
+
+  A graph document may be a fragment: several documents can be merged (nodes
+  with nodes, edges with edges) to form the complete graph. This allows
+  splitting a large workspace by domain or by concern.
+additionalProperties: false
+properties:
+  name:
+    type: string
+    description: |-
+      A human-readable name for this document, when it is a fragment of a larger
+      graph.
+
+  description:
+    type: string
+    description: A Markdown description of this document.
+
+  nodes:
+    oneOf:
+      - $ref: ./nodes.yaml
+    description: The nodes, keyed by type and then by locator.
+
+  edges:
+    oneOf:
+      - $ref: ./edges.yaml
+    description: The edges, keyed by type and then listed.

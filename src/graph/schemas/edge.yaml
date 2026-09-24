@@ -1,0 +1,49 @@
+# yaml-language-server: $schema=https://json-schema.org/draft/2020-12/schema
+
+title: GraphEdge
+type: object
+description: |-
+  A directed relation between two nodes, oriented in the direction data or
+  control flows.
+additionalProperties: false
+required:
+  - from
+  - to
+  - origin
+properties:
+  from:
+    oneOf:
+      - type: string
+      - type: 'null'
+    description: |-
+      The id of the source node, or `null` when the edge has no source.
+
+  to:
+    oneOf:
+      - type: string
+      - type: 'null'
+    description: |-
+      The id of the destination node, or `null` when the edge has no
+      destination.
+
+  label:
+    type: string
+    description: |-
+      A short label rendered on the edge, e.g. the name of the event driving a
+      transition.
+
+  description:
+    type: string
+    description: A Markdown description.
+
+  origin:
+    oneOf:
+      - $ref: ./origin.yaml
+    description: |-
+      The workspace sources the edge was extracted from, how it was extracted,
+      and how much to trust it.
+
+  data:
+    type: object
+    description: The type-specific payload of the edge.
+    additionalProperties: true

@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=https://json-schema.org/draft/2020-12/schema
+
+title: ProjectGraphNodeData
+type: object
+description: The payload of a `project` node.
+additionalProperties: false
+properties:
+  type:
+    type: string
+    description: The `project.type` value, e.g. `serviceContainer`.
+  language:
+    type: string
+    description: The `project.language` value.

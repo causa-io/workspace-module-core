@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://json-schema.org/draft/2020-12/schema
+
+title: TriggerGraphNodeData
+type: object
+description: The payload of a `trigger` node.
+additionalProperties: false
+properties:
+  type:
+    type: string
+    description: The `type` of the trigger, e.g. `event`, `cron`, `task`, etc.
+  enabled:
+    type: boolean
+    description: Whether the trigger is deployed. Defaults to `true`.
+  path:
+    type: string
+    description: The HTTP path the trigger calls on the service.
+  schedule:
+    type: string
+    description: The cron expression, for `cron` triggers.
+  timezone:
+    type: string
+    description: The timezone of the cron schedule. Defaults to UTC.

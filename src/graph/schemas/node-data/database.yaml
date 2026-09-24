@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=https://json-schema.org/draft/2020-12/schema
+
+title: DatabaseGraphNodeData
+type: object
+description: The payload of a `database` node.
+additionalProperties: true
+required:
+  - engine
+properties:
+  engine:
+    type: string
+    description: The database engine, as Causa names it in database bindings.

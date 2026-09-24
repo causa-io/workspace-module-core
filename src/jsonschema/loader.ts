@@ -7,6 +7,7 @@ import {
   type SchemaFileReader,
 } from '../definitions/index.js';
 import { parseJsonSchema } from './parser.js';
+import { splitSchemaPath } from './pointer.js';
 
 /**
  * Options for {@link loadSchemas}.
@@ -47,7 +48,7 @@ export async function loadSchemas(
     const fileSchemas = parseJsonSchema(text, filePath);
     for (const schema of fileSchemas) {
       for (const ref of collectRefs(schema)) {
-        scheduleFile(ref.split('#')[0]);
+        scheduleFile(splitSchemaPath(ref).file);
       }
     }
     return fileSchemas;

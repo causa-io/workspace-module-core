@@ -338,6 +338,26 @@ $defs:
     });
   });
 
+  it('should unescape the keys of the pointer', () => {
+    const contents = `
+title: Root
+type: object
+$defs:
+  Foo/Bar:
+    title: FooBar
+    type: object
+  Foo:
+    title: Foo
+    type: object`;
+
+    const out = remove(contents, `${filePath}#/$defs/Foo~1Bar`);
+
+    const parsed = yaml.parse(out);
+    expect(parsed.$defs).toEqual({
+      Foo: { title: 'Foo', type: 'object' },
+    });
+  });
+
   it('should be a no-op for top-level paths', () => {
     const contents = 'title: Root\ntype: object\n';
 

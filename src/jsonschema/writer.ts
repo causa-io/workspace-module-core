@@ -12,6 +12,7 @@ import {
   type Schema,
   type UnionSchema,
 } from '../definitions/index.js';
+import { fromPointer, splitSchemaPath, toPointer } from './pointer.js';
 
 /**
  * JSON Schema type keywords: YAML keys that determine the kind / structure of a schema or property. Any of these that
@@ -63,9 +64,9 @@ export function apply(contents: string, schema: Schema): string {
     doc.contents = new yaml.YAMLMap();
   }
 
-  const [filePath, fragment = ''] = schema.path.split('#');
-  const node = ensureNode(doc.contents as yaml.YAMLMap, fragment);
-  applySchemaBody(node, schema, filePath);
+  const { file, pointer } = splitSchemaPath(schema.path);
+  const node = ensureNode(doc.contents as yaml.YAMLMap, fromPointer(pointer));
+  applySchemaBody(node, schema, file);
 
   return doc.toString({ lineWidth: 0, flowCollectionPadding: false });
 }
@@ -86,11 +87,7 @@ export function remove(contents: string, path: string): string {
     return contents;
   }
 
-  const [, fragment] = path.split('#');
-  if (fragment === undefined) {
-    return contents;
-  }
-  const segments = fragment.split('/').filter(Boolean);
+  const segments = fromPointer(splitSchemaPath(path).pointer);
   if (segments.length === 0) {
     return contents;
   }
@@ -116,8 +113,8 @@ export function remove(contents: string, path: string): string {
  * fragment so local `$ref`s follow.
  *
  * @param contents Current text of the file.
- * @param oldFragment The old JSON Pointer fragment, e.g. `#/$defs/Foo`.
- * @param newFragment The new JSON Pointer fragment, e.g. `#/$defs/Bar`.
+ * @param oldFragment The old JSON Pointer of the schema, e.g. `/$defs/Foo`.
+ * @param newFragment The new JSON Pointer of the schema, e.g. `/$defs/Bar`.
  * @returns The new file text.
  */
 export function rename(
@@ -130,8 +127,8 @@ export function rename(
     return contents;
   }
 
-  const oldSegments = oldFragment.split('/').filter(Boolean);
-  const newSegments = newFragment.split('/').filter(Boolean);
+  const oldSegments = fromPointer(oldFragment);
+  const newSegments = fromPointer(newFragment);
   if (oldSegments.length === 0 || newSegments.length === 0) {
     return contents;
   }
@@ -152,7 +149,7 @@ export function rename(
   const movedNode = items[oldIndex].value;
   items.splice(oldIndex, 1);
 
-  const newParent = ensureNode(doc.contents, newParentSegments.join('/'));
+  const newParent = ensureNode(doc.contents, newParentSegments);
   const newPair = new yaml.Pair(newLeaf, movedNode);
   if (newParent === oldParent) {
     newParent.items.splice(oldIndex, 0, newPair);
@@ -166,8 +163,8 @@ export function rename(
     movedNode.set('title', newLeaf);
   }
 
-  const normalizedOld = `#/${oldSegments.join('/')}`;
-  const normalizedNew = `#/${newSegments.join('/')}`;
+  const normalizedOld = `#${toPointer(oldSegments)}`;
+  const normalizedNew = `#${toPointer(newSegments)}`;
   yaml.visit(doc, {
     Scalar(_key, node) {
       if (
@@ -183,14 +180,13 @@ export function rename(
 }
 
 /**
- * Navigate to the node identified by the fragment, creating intermediate map containers along the way.
+ * Navigate to the node identified by a sequence of map keys, creating intermediate map containers along the way.
  *
  * @param root The root document map.
- * @param fragment The JSON Pointer fragment to navigate, without the leading `#`.
+ * @param segments Map keys to walk in order.
  * @returns The target map node.
  */
-function ensureNode(root: yaml.YAMLMap, fragment: string): yaml.YAMLMap {
-  const segments = fragment.split('/').filter(Boolean);
+function ensureNode(root: yaml.YAMLMap, segments: string[]): yaml.YAMLMap {
   let cursor: yaml.YAMLMap = root;
   for (const segment of segments) {
     const next = cursor.get(segment);
@@ -602,8 +598,8 @@ function toJsonSchemaType(type: PrimitiveType): {
  * @returns The relative `$ref` string.
  */
 function toRelativeRef(targetPath: string, currentFsPath: string): string {
-  const [targetBase, rawFragment] = targetPath.split('#');
-  const fragment = rawFragment === undefined ? '' : `#${rawFragment}`;
+  const { file: targetBase, pointer } = splitSchemaPath(targetPath);
+  const fragment = pointer ? `#${pointer}` : '';
 
   if (!currentFsPath || targetBase === currentFsPath) {
     return fragment || '#';

@@ -4,5 +4,6 @@ export * from './ids.js';
 export * from './locate.js';
 export * from './merge.js';
 export * from './projects.js';
+export * from './resource.js';
 export * from './rule.js';
 export * from './rules/index.js';

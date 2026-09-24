@@ -15,6 +15,7 @@
   "types": "dist/index.d.ts",
   "exports": {
     ".": "./dist/index.js",
+    "./graph": "./dist/graph/index.js",
     "./jsonschema": "./dist/jsonschema/index.js",
     "./services": "./dist/services/index.js"
   },

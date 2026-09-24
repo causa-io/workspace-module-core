@@ -39,6 +39,12 @@ export type CausaExtensions = {
    */
   entityPropertyChanges?: string[] | '*';
 
+  /**
+   * Absolute path of the schema (entity) this schema is a projection of, e.g. a database-specific representation of
+   * the entity.
+   */
+  projectionOf?: string;
+
   [key: string]: unknown;
 };
 
@@ -52,6 +58,7 @@ export const REF_BEARING_CAUSA_EXTENSIONS: readonly string[] = [
   'constraintFor',
   'enumHint',
   'entityMutationFrom',
+  'projectionOf',
 ];
 
 /**

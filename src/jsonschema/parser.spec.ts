@@ -1293,6 +1293,7 @@ type: object
 causa:
   constraintFor: "./other.yaml#/$defs/Foo"
   entityMutationFrom: ["./other.yaml#/$defs/Bar", null]
+  projectionOf: "../entities/entity.yaml"
   custom: untouched`,
         path,
       );
@@ -1300,6 +1301,7 @@ causa:
       expect(schema.extensions).toEqual({
         constraintFor: '/abs/other.yaml#/$defs/Foo',
         entityMutationFrom: ['/abs/other.yaml#/$defs/Bar', null],
+        projectionOf: '/entities/entity.yaml',
         custom: 'untouched',
       });
     });

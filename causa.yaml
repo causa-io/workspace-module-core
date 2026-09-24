@@ -49,3 +49,7 @@ model:
       globs: [./src/timeline/schemas/*.yaml]
       nestedSchemas: []
       output: src/timeline/generated.ts
+    - generator: typescriptModelClass
+      globs: [./src/graph/schemas/**/*.yaml]
+      nestedSchemas: []
+      output: src/graph/generated.ts

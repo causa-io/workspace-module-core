@@ -20,7 +20,7 @@ import {
   EventTopicListReferencedInProjectForServerlessFunctions,
   EventTopicListReferencedInProjectForServiceContainer,
 } from './event-topic/index.js';
-import { GraphListRulesForCore } from './graph/index.js';
+import { GraphExtractForAll, GraphListRulesForCore } from './graph/index.js';
 import { HttpMakeRequestForAll } from './http/index.js';
 import {
   InfrastructureProcessAndDeployForAll,
@@ -63,6 +63,7 @@ export function registerFunctions(context: ModuleRegistrationContext) {
     EventTopicListReferencedInProjectForServiceContainer,
     EventTopicListForAll,
     GraphListRulesForCore,
+    GraphExtractForAll,
     InfrastructureProcessAndDeployForAll,
     InfrastructureProcessAndPrepareForAll,
     HttpMakeRequestForAll,

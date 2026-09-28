@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+Features:
+
+- Support the `causa.projectionOf` schema extension, referencing the entity a schema is a projection of.
+- Export `splitSchemaPath`, `appendToSchemaPath`, `toPointer`, and `fromPointer` from `@causa/workspace-core/jsonschema`, to handle schema paths and the JSON pointers they contain.
+
+Fixes:
+
+- Escape `~` and `/` in the JSON pointers of the schema paths returned by `ModelSchemaParse`, and unescape them when writing schemas with `ModelSchemaWrite`.
+
 ## v1.4.0 (2026-08-26)
 
 Features:

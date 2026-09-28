@@ -6,6 +6,7 @@ import { entityFromSchema } from './entity-from-schema.js';
 import { eventTopicFromSchemaPath } from './event-topic-from-schema-path.js';
 import { projectFromConfiguration } from './project-from-configuration.js';
 import { serviceContainerFromConfiguration } from './service-container-from-configuration.js';
+import { stateFromConstraintSchema } from './state-from-constraint-schema.js';
 
 /**
  * The rules extracting core Causa concepts: domains, projects, the model, and the relations declared by service
@@ -19,4 +20,5 @@ export const CORE_GRAPH_RULES: readonly GraphRule[] = [
   enqueuesAssumedFromOwningProject,
   eventTopicFromSchemaPath,
   entityFromSchema,
+  stateFromConstraintSchema,
 ];

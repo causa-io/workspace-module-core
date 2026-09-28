@@ -6,6 +6,7 @@ Features:
 
 - Support the `causa.projectionOf` schema extension, referencing the entity a schema is a projection of.
 - Export `splitSchemaPath`, `appendToSchemaPath`, `toPointer`, and `fromPointer` from `@causa/workspace-core/jsonschema`, to handle schema paths and the JSON pointers they contain.
+- Implement the `cs graph extract` command, which extracts the architecture graph of the workspace.
 
 Fixes:
 

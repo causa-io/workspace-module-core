@@ -2,6 +2,7 @@ import type { GraphRule } from '../../definitions/index.js';
 import { apiOperationFromOpenApi } from './api-operation-from-openapi.js';
 import { domainFromConfiguration } from './domain-from-configuration.js';
 import { enqueuesAssumedFromOwningProject } from './enqueues-assumed-from-owning-project.js';
+import { entityFromSchema } from './entity-from-schema.js';
 import { eventTopicFromSchemaPath } from './event-topic-from-schema-path.js';
 import { projectFromConfiguration } from './project-from-configuration.js';
 import { serviceContainerFromConfiguration } from './service-container-from-configuration.js';
@@ -17,4 +18,5 @@ export const CORE_GRAPH_RULES: readonly GraphRule[] = [
   serviceContainerFromConfiguration,
   enqueuesAssumedFromOwningProject,
   eventTopicFromSchemaPath,
+  entityFromSchema,
 ];

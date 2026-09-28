@@ -1,6 +1,7 @@
 import type { GraphRule } from '../../definitions/index.js';
 import { domainFromConfiguration } from './domain-from-configuration.js';
 import { enqueuesAssumedFromOwningProject } from './enqueues-assumed-from-owning-project.js';
+import { eventTopicFromSchemaPath } from './event-topic-from-schema-path.js';
 import { projectFromConfiguration } from './project-from-configuration.js';
 
 /**
@@ -11,4 +12,5 @@ export const CORE_GRAPH_RULES: readonly GraphRule[] = [
   domainFromConfiguration,
   projectFromConfiguration,
   enqueuesAssumedFromOwningProject,
+  eventTopicFromSchemaPath,
 ];

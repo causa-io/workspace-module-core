@@ -228,12 +228,12 @@ export type SchemaWriteAction =
       type: 'rename';
 
       /**
-       * The old JSON Pointer fragment of the schema, e.g. `#/$defs/Foo`.
+       * The old JSON Pointer of the schema, e.g. `/$defs/Foo`.
        */
       oldFragment: string;
 
       /**
-       * The new JSON Pointer fragment of the schema, e.g. `#/$defs/Bar`.
+       * The new JSON Pointer of the schema, e.g. `/$defs/Bar`.
        */
       newFragment: string;
     };

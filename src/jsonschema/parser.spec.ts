@@ -1241,6 +1241,32 @@ $defs:
       expect(address).toMatchObject({ name: 'Address' });
     });
 
+    it('should escape $defs keys in paths, such that refs to them match', () => {
+      const [root, ...defs] = parseJsonSchema(
+        `
+title: Root
+type: object
+properties:
+  address:
+    $ref: "#/$defs/Postal~1Address"
+$defs:
+  Postal/Address:
+    type: object`,
+        path,
+      );
+
+      expect((root as any).properties[0].type).toEqual({
+        kind: 'ref',
+        ref: `${path}#/$defs/Postal~1Address`,
+      });
+      expect(defs).toEqual([
+        expect.objectContaining({
+          name: 'Postal/Address',
+          path: `${path}#/$defs/Postal~1Address`,
+        }),
+      ]);
+    });
+
     it('should fall back to the property name for inline object schemas', () => {
       const schemas = parseJsonSchema(
         `
@@ -1293,6 +1319,7 @@ type: object
 causa:
   constraintFor: "./other.yaml#/$defs/Foo"
   entityMutationFrom: ["./other.yaml#/$defs/Bar", null]
+  projectionOf: "../entities/entity.yaml"
   custom: untouched`,
         path,
       );
@@ -1300,6 +1327,7 @@ causa:
       expect(schema.extensions).toEqual({
         constraintFor: '/abs/other.yaml#/$defs/Foo',
         entityMutationFrom: ['/abs/other.yaml#/$defs/Bar', null],
+        projectionOf: '/entities/entity.yaml',
         custom: 'untouched',
       });
     });

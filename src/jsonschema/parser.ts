@@ -13,6 +13,7 @@ import {
   type Schema,
   type UnionSchema,
 } from '../definitions/index.js';
+import { appendToSchemaPath, fromPointer, splitSchemaPath } from './pointer.js';
 
 /**
  * Internal alias used while walking the source JSON Schema.
@@ -111,7 +112,7 @@ export function parseJsonSchema(source: string, path: string): Schema[] {
         Object.entries(defs ?? {}).map(([k, v]) => ({ c, k, v })),
       )
       .filter(({ v }) => typeof v === 'object')
-      .flatMap(({ c, k, v }) => parseSchema(v, `${path}#/${c}/${k}`)),
+      .flatMap(({ c, k, v }) => parseSchema(v, appendToSchemaPath(path, c, k))),
   );
   return result;
 }
@@ -149,11 +150,11 @@ function parseSchema(rawSchema: unknown, path: string): Schema[] {
  * @returns The fallback name, or an empty string when nothing usable can be derived.
  */
 function defaultSchemaName(path: string): string {
-  const [filePath, fragment] = path.split('#', 2);
-  if (fragment !== undefined) {
-    return fragment.split('/').filter(Boolean).pop() ?? '';
+  const { file, pointer } = splitSchemaPath(path);
+  if (pointer) {
+    return fromPointer(pointer).pop() ?? '';
   }
-  const base = basename(filePath);
+  const base = basename(file);
   const ext = extname(base);
   return ext ? base.slice(0, -ext.length) : base;
 }
@@ -197,13 +198,12 @@ function parseSchemaBody(
   const combiner = readCombiner(schema, path);
   if (combiner) {
     const { key, variants } = combiner;
-    const selfPointer = path.includes('#') ? path : `${path}#`;
     const nested: Schema[] = [];
     const types = variants.flatMap((t, i) =>
       typeof t === 'object'
         ? resolveInnerType(t as CausaSchema, path, {
             schemas: nested,
-            pointer: `${selfPointer}/${key}/${i}`,
+            pointer: appendToSchemaPath(path, key, i),
             fallbackName: `${name}Variant${i}`,
           })
         : [],
@@ -230,17 +230,15 @@ function parseSchemaBody(
     );
   }
 
-  const selfPointer = path.includes('#') ? path : `${path}#`;
-  const propertiesPointer = `${selfPointer}/properties`;
   const { properties, nested } = parseProperties(
     schema,
     path,
-    propertiesPointer,
+    appendToSchemaPath(path, 'properties'),
   );
 
   const additionalProperties = resolveAdditionalProperties(schema, path, {
     schemas: nested,
-    pointer: selfPointer,
+    pointer: path,
     fallbackName: name,
   });
 
@@ -292,7 +290,7 @@ function parseProperties(
     const { description } = prop;
     const { inner, nullable, pointer } = unwrapNullableOneOf(
       prop,
-      `${pointerPrefix}/${name}`,
+      appendToSchemaPath(pointerPrefix, name),
       path,
     );
 
@@ -393,7 +391,7 @@ function unwrapNullableOneOf(
     return {
       inner: combiner.variants[idx],
       nullable,
-      pointer: `${pointer}/${combiner.key}/${idx}`,
+      pointer: appendToSchemaPath(pointer, combiner.key, idx),
     };
   }
 
@@ -582,7 +580,9 @@ function resolveArrayType(
     throw new InvalidSchemaError(path, 'array must declare an items schema');
   }
 
-  const itemsPointer = inline ? `${inline.pointer}/items` : '';
+  const itemsPointer = inline
+    ? appendToSchemaPath(inline.pointer, 'items')
+    : '';
   const {
     inner,
     nullable: itemNullable,
@@ -675,7 +675,7 @@ function resolveAdditionalProperties(
   const valueInline = inline
     ? {
         schemas: inline.schemas,
-        pointer: `${inline.pointer}/additionalProperties`,
+        pointer: appendToSchemaPath(inline.pointer, 'additionalProperties'),
         fallbackName: `${inline.fallbackName}Value`,
       }
     : undefined;
@@ -787,7 +787,7 @@ function buildExtensions(raw: unknown, path: string): CausaExtensions {
  * @returns The absolute, normalized schema path the ref points to.
  */
 function resolveRef(rawRef: string, currentPath: string): string {
-  const filePath = currentPath.split('#')[0];
+  const { file: filePath } = splitSchemaPath(currentPath);
   if (rawRef === '#') {
     return filePath;
   }

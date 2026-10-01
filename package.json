@@ -15,6 +15,7 @@
   "types": "dist/index.d.ts",
   "exports": {
     ".": "./dist/index.js",
+    "./graph": "./dist/graph/index.js",
     "./jsonschema": "./dist/jsonschema/index.js",
     "./services": "./dist/services/index.js"
   },
@@ -33,7 +34,7 @@
     "test": "NODE_OPTIONS=\"--experimental-vm-modules --no-warnings=ExperimentalWarning\" jest",
     "test:cov": "npm run test -- --coverage",
     "typecheck": "tsc --noEmit",
-    "generateConfigurationSchemas": "cs model genCode && perl -pi -e 's|\\@causa/runtime|\\@causa/workspace/validation|g' src/configurations/generated.ts src/scenarios/generated.ts src/timeline/generated.ts"
+    "generateConfigurationSchemas": "cs model genCode && perl -pi -e 's|\\@causa/runtime|\\@causa/workspace/validation|g' src/configurations/generated.ts src/graph/generated.ts src/scenarios/generated.ts src/timeline/generated.ts"
   },
   "dependencies": {
     "@anthropic-ai/sandbox-runtime": "0.0.77",

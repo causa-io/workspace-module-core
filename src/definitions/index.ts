@@ -3,6 +3,7 @@ export * from './database.js';
 export * from './emulator.js';
 export * from './environment.js';
 export * from './event-topic.js';
+export * from './graph.js';
 export * from './http.js';
 export * from './infrastructure.js';
 export * from './model.js';

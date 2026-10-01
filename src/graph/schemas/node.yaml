@@ -1,0 +1,54 @@
+# yaml-language-server: $schema=https://json-schema.org/draft/2020-12/schema
+
+title: GraphNode
+type: object
+description: |-
+  A single node of the architecture graph.
+
+  A node is anything that can be pointed at, navigated to, or measured: a
+  project, a service, an event topic, an entity, a state of that entity, etc.
+
+  A node carries neither its type nor its id: both are given by its position in
+  `Nodes`. Its id is `<type>:<locator>`.
+additionalProperties: false
+required:
+  - name
+  - origin
+properties:
+  parent:
+    type: string
+    description: |-
+      The id of the containing node. Absent on a root node.
+
+      The parent of a node must be in the same layer.
+
+  name:
+    type: string
+    description: The display name of the node.
+
+  description:
+    type: string
+    description: |-
+      A Markdown description, usually copied from the underlying declaration.
+
+  origin:
+    oneOf:
+      - $ref: ./origin.yaml
+    description: |-
+      The workspace sources the node was extracted from, how it was extracted,
+      and how much to trust it.
+
+  tags:
+    type: array
+    description: |-
+      Free-form labels for concerns that cut across node types. For example:
+      - `pii`: the node holds or carries personal data.
+      - `deprecated`: a `v1` topic superseded by a `v2`, so its remaining
+        consumers stand out.
+    items:
+      type: string
+
+  data:
+    type: object
+    description: The type-specific payload of the node.
+    additionalProperties: true

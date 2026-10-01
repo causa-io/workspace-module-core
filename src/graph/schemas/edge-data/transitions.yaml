@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=https://json-schema.org/draft/2020-12/schema
+
+title: TransitionsGraphEdgeData
+type: object
+description: The payload of a `transitions` edge.
+additionalProperties: false
+properties:
+  eventName:
+    type: string
+    description: The name of the event that performs the transition.
+  propertyChanges:
+    oneOf:
+      - type: array
+        items:
+          type: string
+      - const: '*'
+    description: |-
+      The entity properties this transition may change, from
+      `causa.entityPropertyChanges`.
+  topic:
+    type: string
+    description: |-
+      The id of the `topic` node whose event performs this transition.

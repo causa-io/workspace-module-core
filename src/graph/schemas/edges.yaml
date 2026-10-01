@@ -1,0 +1,123 @@
+# yaml-language-server: $schema=https://json-schema.org/draft/2020-12/schema
+
+title: GraphEdges
+type: object
+description: The edges of a graph, keyed by type and then listed.
+additionalProperties:
+  type: array
+  description: A module-contributed edge type.
+  items:
+    $ref: ./edge.yaml
+properties:
+  publishes:
+    type: array
+    description: |-
+      In the architecture layer, a project publishes to a `topic`, from
+      `serviceContainer.outputs.eventTopics`. In the infrastructure layer, a
+      `service` is granted publishing on a `brokerTopic`.
+    items:
+      $ref: ./edge.yaml
+
+  delivers:
+    type: array
+    description: |-
+      A topic delivers messages to what consumes it. In the architecture layer,
+      a `topic` to a `trigger` whose `type` is `event`. In the infrastructure
+      layer, a `brokerTopic` to a `brokerSubscription`.
+    items:
+      $ref: ./edge.yaml
+
+  routes:
+    type: array
+    description: An API router forwarding requests to services.
+    items:
+      $ref: ./edge.yaml
+      properties:
+        data:
+          oneOf:
+            - $ref: ./edge-data/routes.yaml
+
+  calls:
+    type: array
+    description: |-
+      A party makes a request to another party. Requesters and responders can be
+      projects, services, third-party systems, clients, etc.
+    items:
+      $ref: ./edge.yaml
+
+  accesses:
+    type: array
+    description: |-
+      In the architecture layer, a project accesses an `entity`: the entities
+      whose tables live in a datastore the project owns
+      (`serviceContainer.outputs`). In the infrastructure layer, a `service` is
+      granted access to a `database` or `table`.
+    items:
+      $ref: ./edge.yaml
+      properties:
+        data:
+          oneOf:
+            - $ref: ./edge-data/accesses.yaml
+
+  enqueues:
+    type: array
+    description: |-
+      In the architecture layer, a project enqueues work for one of its own
+      `task` triggers. In the infrastructure layer, a `service` is granted
+      enqueuing on the `queue` realizing that trigger.
+    items:
+      $ref: ./edge.yaml
+
+  realizes:
+    type: array
+    description: |-
+      A resource one layer down is the concrete form of a concept one layer up:
+      a `service` realizes a `project`, a `brokerTopic` a `topic`, etc.
+    items:
+      $ref: ./edge.yaml
+
+  targets:
+    type: array
+    description: |-
+      A `brokerSubscription`, `queue`, or `scheduledJob` targets what receives
+      it, e.g. a `service`.
+    items:
+      $ref: ./edge.yaml
+
+  carries:
+    type: array
+    description: |-
+      A topic carries an entity: the `data` property of the topic's event
+      schema references it.
+    items:
+      $ref: ./edge.yaml
+
+  transitions:
+    type: array
+    description: |-
+      An entity moves from one state to another. Derived from an event
+      constraint's `entityMutationFrom` and the state its `data` property
+      references.
+    items:
+      $ref: ./edge.yaml
+      properties:
+        data:
+          oneOf:
+            - $ref: ./edge-data/transitions.yaml
+
+  deploys:
+    type: array
+    description: |-
+      An infrastructure project manages a resource, e.g. the Terraform project
+      that creates a service.
+    items:
+      $ref: ./edge.yaml
+
+  projects:
+    type: array
+    description: |-
+      An entity is projected into another entity: the destination is a local
+      view of the source, maintained from the source's event stream, usually
+      across a domain boundary.
+    items:
+      $ref: ./edge.yaml

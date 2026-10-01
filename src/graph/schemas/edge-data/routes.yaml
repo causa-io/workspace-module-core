@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=https://json-schema.org/draft/2020-12/schema
+
+title: RoutesGraphEdgeData
+type: object
+description: The payload of a `routes` edge.
+additionalProperties: false
+properties:
+  paths:
+    type: array
+    items:
+      type: string
+    description: The path prefixes matched by the router.

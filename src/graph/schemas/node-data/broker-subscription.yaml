@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=https://json-schema.org/draft/2020-12/schema
+
+title: BrokerSubscriptionGraphNodeData
+type: object
+description: The payload of a `brokerSubscription` node.
+additionalProperties: true
+properties:
+  filter:
+    type: string
+    description: |-
+      The broker-side filter narrowing which messages the subscription receives,
+      in the broker's own expression syntax.

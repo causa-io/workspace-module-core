@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://json-schema.org/draft/2020-12/schema
+
+title: ApiOperationGraphNodeData
+type: object
+description: The payload of an `apiOperation` node.
+additionalProperties: false
+properties:
+  method:
+    title: HttpMethod
+    type: string
+    enum:
+      - get
+      - put
+      - post
+      - delete
+      - options
+      - head
+      - patch
+      - trace
+    description: The HTTP method.
+  path:
+    type: string
+    description: The OpenAPI path template, e.g. `/myEntities/{id}`.
+  public:
+    type: boolean
+    description: Whether the operation is accessible without authentication.

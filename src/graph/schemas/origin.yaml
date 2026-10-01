@@ -1,0 +1,133 @@
+# yaml-language-server: $schema=https://json-schema.org/draft/2020-12/schema
+
+title: GraphOrigin
+type: object
+description: |-
+  The workspace files a node or edge was extracted from, how it was extracted,
+  and how much the result should be trusted.
+
+  Every element of the graph is defined somewhere in the workspace: a
+  `causa.yaml` entry, a schema file, a Terraform module, a class in a service.
+  The origin records that definition, so the element can be traced back to it
+  and its reliability judged.
+additionalProperties: false
+required:
+  - kind
+  - sources
+  - rule
+properties:
+  kind:
+    oneOf:
+      - $ref: '#/$defs/OriginKind'
+    description: How the element was extracted from its sources.
+
+  sources:
+    type: array
+    minItems: 1
+    description: |-
+      The locations in the workspace that define the element, most relevant
+      first. Used to navigate from the graph back to its definition.
+    items:
+      $ref: '#/$defs/OriginSource'
+
+  rule:
+    type: string
+    description: |-
+      The name of the extraction rule that produced the element from its
+      sources.
+
+$defs:
+  OriginSource:
+    title: GraphOriginSource
+    type: object
+    description: |-
+      A single location in the workspace an element was extracted from: a file
+      or directory, and optionally a position within a file.
+    additionalProperties: false
+    required:
+      - path
+    properties:
+      path:
+        type: string
+        description: |-
+          The path of the file, or of the directory when the element is defined
+          by a directory as a whole (a domain by its folder, a database by its
+          folder of migrations), relative to the workspace root.
+
+      pointer:
+        type: string
+        description: |-
+          The construct within the file. Its syntax is decided by the file's
+          extension:
+
+          - `.json`, `.yaml`, `.yml`: a JSON pointer.
+          - `.tf`: a Terraform address, e.g. `module.my_module`.
+          - Source files (`.ts`, `.js`, `.py`, …): a dotted symbol path, e.g.
+            `MyClass.method`.
+        examples:
+          - /$defs/MySchema
+          - /serviceContainer/triggers/myHandler
+          - module.my_module
+          - MyClass.method
+
+      location:
+        oneOf:
+          - $ref: '#/$defs/SourceLocation'
+        description: |-
+          The position of the construct in the file, as lines and columns.
+
+  SourceLocation:
+    title: GraphSourceLocation
+    type: object
+    description: |-
+      A position in a file, as a point or a range. Lines and columns are
+      1-based, as editors display them.
+    additionalProperties: false
+    required:
+      - start
+    properties:
+      start:
+        oneOf:
+          - $ref: '#/$defs/SourcePosition'
+        description: Where the construct starts, or the point itself.
+
+      end:
+        oneOf:
+          - $ref: '#/$defs/SourcePosition'
+        description: |-
+          Where the construct ends, inclusive. Omitted for a point rather than a
+          range.
+
+  SourcePosition:
+    title: GraphSourcePosition
+    type: object
+    description: A line and column in a file, both 1-based.
+    additionalProperties: false
+    required:
+      - line
+    properties:
+      line:
+        type: integer
+        minimum: 1
+        description: The line number.
+
+      column:
+        type: integer
+        minimum: 1
+        description: The column number. Omitted to designate the whole line.
+
+  OriginKind:
+    title: GraphOriginKind
+    type: string
+    enum:
+      - declared
+      - inferred
+      - authored
+    description: |-
+      How an element was extracted from its sources.
+      - `declared`: the workspace defines it, either verbatim (e.g. in
+        configuration) or through deterministic, documented logic that other
+        tools share.
+      - `inferred`: produced by a heuristic that may be wrong, or a language
+        model enhancing the graph from a skill.
+      - `authored`: asserted by a person.

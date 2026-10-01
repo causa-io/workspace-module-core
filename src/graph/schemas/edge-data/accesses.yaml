@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=https://json-schema.org/draft/2020-12/schema
+
+title: AccessesGraphEdgeData
+type: object
+description: The payload of an `accesses` edge.
+additionalProperties: false
+properties:
+  read:
+    type: boolean
+    description: Whether the access includes reading. Absent means `true`.
+
+  write:
+    type: boolean
+    description: Whether the access includes writing. Absent means `true`.

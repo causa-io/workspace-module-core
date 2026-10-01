@@ -1,0 +1,294 @@
+# yaml-language-server: $schema=https://json-schema.org/draft/2020-12/schema
+
+title: GraphNodes
+type: object
+description: |-
+  The nodes of a graph, keyed by layer, then by type, then by locator.
+
+  Layers are:
+
+  - `architecture`: what the workspace declares: domains, projects, what they
+    handle, the topics and entities they act on.
+  - `infrastructure`: the resources that realize the architecture: services,
+    broker topics and subscriptions, queues, databases and tables.
+  - `model`: the schema documents behind the architecture. Empty today.
+  - `code`: the modules, classes, and methods that implement the architecture,
+    parsed from source. Empty today.
+
+  A node's id is `<type>:<locator>`, without the layer: types are unique across
+  layers.
+
+  `parent` never crosses a layer. The relation between a resource and the
+  concept it stands for is the `realizes` edge.
+additionalProperties: false
+properties:
+  architecture:
+    title: ArchitectureGraphNodes
+    type: object
+    description: The architecture layer, keyed by type and then by locator.
+    additionalProperties:
+      type: object
+      description: A module-contributed architecture type.
+      additionalProperties:
+        $ref: ./node.yaml
+    properties:
+      domain:
+        type: object
+        description: |-
+          A business domain grouping projects and schemas.
+
+          Parent: none.
+
+          Locator: the domain directory, relative to the workspace root, e.g.
+          `domains/my-domain`.
+        additionalProperties:
+          $ref: ./node.yaml
+          description: One `domain` node, keyed by its locator.
+
+      project:
+        type: object
+        description: |-
+          A Causa project, i.e. a directory with a `causa.yaml` defining
+          `project.name`.
+
+          Parent: `domain` or none.
+
+          Locator: the project directory, relative to the workspace root, e.g.
+          `domains/my-domain/service`.
+        additionalProperties:
+          description: One `project` node, keyed by its locator.
+          $ref: ./node.yaml
+          properties:
+            data:
+              oneOf:
+                - $ref: ./node-data/project.yaml
+
+      apiOperation:
+        type: object
+        description: |-
+          A single operation of a project's API (e.g. from an OpenAPI document).
+
+          Parent: `project`.
+
+          Locator: For OpenAPI operations, the `operationId`.
+        additionalProperties:
+          description: One `apiOperation` node, keyed by its locator.
+          $ref: ./node.yaml
+          properties:
+            data:
+              oneOf:
+                - $ref: ./node-data/api-operation.yaml
+
+      trigger:
+        type: object
+        description: |-
+          An entry point of a service other than its API: an event subscription,
+          a schedule, a task queue, as declared in `serviceContainer.triggers`.
+
+          Parent: `project`.
+
+          Locator: `<project locator>#<trigger name>`, e.g.
+          `domains/my-domain/service#handleMyEntity`.
+        additionalProperties:
+          description: One `trigger` node, keyed by its locator.
+          $ref: ./node.yaml
+          properties:
+            data:
+              oneOf:
+                - $ref: ./node-data/trigger.yaml
+
+      topic:
+        type: object
+        description: |-
+          An event topic.
+
+          Parent: `domain` or none.
+
+          Locator: the topic id as formatted by `events.topics.format`, e.g.
+          `my-domain.my-entity.v1`.
+        additionalProperties:
+          $ref: ./node.yaml
+          description: One `topic` node, keyed by its locator.
+
+      entity:
+        type: object
+        description: |-
+          An object schema the system holds state for. This can be a business
+          concept published as events to a topic, or something persisted in a
+          database for a service to use.
+
+          Parent: `domain` or none.
+
+          Locator: the schema file path, with `#<JSON pointer>` appended for a
+          nested definition.
+        additionalProperties:
+          $ref: ./node.yaml
+          description: One `entity` node, keyed by its locator.
+
+      state:
+        type: object
+        description: |-
+          A state an entity can be in, defined by a constraint schema
+          (`causa.constraintFor`). States are children of the entity they
+          constrain.
+
+          Parent: `entity`.
+
+          Locator: the constraint schema's own address: its file path, with
+          `#<JSON pointer>` appended when it is a nested definition.
+        additionalProperties:
+          $ref: ./node.yaml
+          description: One `state` node, keyed by its locator.
+
+  infrastructure:
+    title: InfrastructureGraphNodes
+    type: object
+    description: The infrastructure layer, keyed by type and then by locator.
+    additionalProperties:
+      type: object
+      description: A module-contributed infrastructure type.
+      additionalProperties:
+        $ref: ./node.yaml
+    properties:
+      service:
+        type: object
+        description: |-
+          A deployed instance of a project. A single `serviceContainer` project
+          may be deployed several times, for example as a public API and as an
+          internal event handler.
+
+          Parent: none or a module-provided node. A service `realizes` its
+          project.
+
+          Locator: `<project locator>#<service name>`.
+        additionalProperties:
+          description: One `service` node, keyed by its locator.
+          $ref: ./node.yaml
+          properties:
+            data:
+              oneOf:
+                - $ref: ./node-data/service.yaml
+
+      apiRouter:
+        type: object
+        description: |-
+          The router exposing several services behind a load balancer.
+
+          Parent: none or a module-provided node.
+
+          Locator: the router's name.
+        additionalProperties:
+          $ref: ./node.yaml
+
+      brokerTopic:
+        type: object
+        description: |-
+          A message broker topic. Realizes a `topic`.
+
+          Parent: none or a module-provided node.
+
+          Locator: the topic id, the same as the architecture `topic` it
+          realizes.
+        additionalProperties:
+          $ref: ./node.yaml
+          description: One `brokerTopic` node, keyed by its locator.
+
+      brokerSubscription:
+        type: object
+        description: |-
+          A broker subscription: a topic `delivers` to it, and it `targets` to a
+          destination (e.g. a `service`). A subscription may realize a
+          `trigger`.
+
+          Parent: none or a module-provided node.
+
+          Locator: for a subscription realizing a trigger, `<project
+          locator>#<trigger name>`, the same as the trigger. Subscriptions can
+          be defined in other ways, and each such way brings its own locator
+          format, named after the feature that creates it.
+        additionalProperties:
+          description: One `brokerSubscription` node, keyed by its locator.
+          $ref: ./node.yaml
+          properties:
+            data:
+              oneOf:
+                - $ref: ./node-data/broker-subscription.yaml
+
+      queue:
+        type: object
+        description: |-
+          A task queue. Realizes a `trigger` of type `task` and `targets` to the
+          `service` that receives it.
+
+          Parent: none or a module-provided node.
+
+          Locator: the queue name, as declared on the trigger.
+        additionalProperties:
+          $ref: ./node.yaml
+          description: One `queue` node, keyed by its locator.
+
+      scheduledJob:
+        type: object
+        description: |-
+          A scheduled job calling a service on a cron schedule. Realizes a
+          `trigger` of type `cron` and `targets` to the `service` that receives
+          it.
+
+          Parent: none or a module-provided node.
+
+          Locator: `<project locator>#<trigger name>`, the same as the trigger
+          it realizes.
+        additionalProperties:
+          $ref: ./node.yaml
+          description: One `scheduledJob` node, keyed by its locator.
+
+      database:
+        type: object
+        description: |-
+          A database composed of tables.
+
+          Parent: none or a module-provided grouping.
+
+          Locator: `<engine>/<name>`.
+        additionalProperties:
+          description: One `database` node, keyed by its locator.
+          $ref: ./node.yaml
+          properties:
+            data:
+              oneOf:
+                - $ref: ./node-data/database.yaml
+
+      table:
+        type: object
+        description: |-
+          A table within a database. Realizes the `entity` whose schema defines
+          it, when there is one.
+
+          Parent: `database`.
+
+          Locator: `<database locator>#<table>`.
+        additionalProperties:
+          $ref: ./node.yaml
+          description: One `table` node, keyed by its locator.
+
+  model:
+    type: object
+    description: |-
+      The model layer: the schema documents that realize architecture concepts.
+      Empty today.
+    additionalProperties:
+      type: object
+      description: A module-contributed model type.
+      additionalProperties:
+        $ref: ./node.yaml
+
+  code:
+    type: object
+    description: |-
+      The code layer: modules, classes, and methods that implement the
+      architecture, parsed from source. Empty today.
+    additionalProperties:
+      type: object
+      description: A module-contributed code type.
+      additionalProperties:
+        $ref: ./node.yaml

@@ -43,6 +43,7 @@ The core module defines and implements many base `cs` commands. As a Causa user,
 - `cs diff`: Lists changed projects based on the output of `git diff`. This can be useful for CI workflows. This module entirely implements the logic, and no other module is expected to provide an implementation.
 - `cs model generateCode`: Runs the code generators defined in the `model.codeGenerators` configuration.
 - `cs scenario run <path>`: Loads a scenario YAML file and runs its steps, calling workspace functions in dependency order.
+- `cs graph extract`: Extracts the architecture graph of the workspace, and writes it as YAML to the standard output, or to the file passed with `-o`. `--report` writes the rules that ran, along with the warnings they raised and the references to missing nodes held by what they emitted, the facts that were computed, along with their warnings, and the extractions that failed. See [Architecture graph](#️-architecture-graph).
 
 ### Secrets backend
 
@@ -69,6 +70,7 @@ This section provides pointers for Causa module developers. Workspace function d
 - [Project](./src/definitions/project.ts): Many of the definitions in this file should be implemented by modules providing support for a language and/or project type, e.g. `ProjectBuildArtefact`, `ProjectReadVersion`, `ProjectPushArtefact`, `ProjectGetArtefactDestination`.
 - [OpenAPI](./src/definitions/openapi.ts): Functions related to OpenAPI specifications. `OpenApiGenerateSpecification` should be implemented by Causa modules providing support for a language / project type (if relevant).
 - [Scenario](./src/definitions/scenario.ts): The `ScenarioRun` definition powering `cs scenario run`. The implementation is generic and shipped by this module — it dispatches to other workspace functions, so other modules only need to expose the functions referenced from scenario steps.
+- [Graph](./src/definitions/graph.ts): The `GraphExtract` definition powering `cs graph extract`, which is implemented by this module. Modules can contribute to the graph by implementing `GraphListRules`, which returns the rules the module provides.
 - [HTTP](./src/definitions/http.ts): The `HttpMakeRequest` function, useful as a scenario step (e.g. for end-to-end checks against a deployed service).
 - [Database](./src/definitions/database.ts): The `DatabaseQueryRecords` function. Modules providing support for a database engine should register an implementation against their `engine` value.
 - [Service container](./src/definitions/service-container.ts): The `ServiceContainerQueryLogs` function. Modules providing support for a deployment platform should register an implementation that fetches logs for a deployed service container.
@@ -137,6 +139,10 @@ Step `args` and `expectations` are rendered with [json-e](https://json-e.js.org/
 - `${ configuration('<path>') }` — resolves a value from the workspace configuration.
 - `${ str(<value>) }` — overrides the json-e builtin to also format `Date` values as ISO strings.
 - `${ rand('uuid') }`, `${ rand('int', <min>, <max>) }`, `${ rand('float', <min>, <max>) }` — generates a random UUID, integer, or floating-point number (the bounded variants in `[min, max)`).
+
+## 🕸️ Architecture graph
+
+The architecture graph describes the workspace as nodes (domains, projects, API operations, triggers, topics, entities and their states, and the infrastructure resources realizing them) and typed edges between them. Its schema is [`./src/graph/schemas/graph.yaml`](./src/graph/schemas/graph.yaml), embedded under `dist/graph/schemas/` when published. `cs graph extract` runs the rules of all the `GraphListRules` implementations and merges their results. Each node and edge records in its `origin` the rule that emitted it, the locations it was read from, and its kind: `declared` when the workspace defines it, `inferred` when a heuristic that may be wrong produced it, or `authored` when a person asserted it. Warnings are reported per rule or fact that raised them, references to missing nodes per rule, and implementations or facts that fail are reported as failures. This module provides the rules for the core Causa concepts, and exports what other modules need to write their own rules and facts from `@causa/workspace-core/graph`.
 
 ## 📈 Timelines
 

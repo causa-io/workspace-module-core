@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v1.5.0-beta.1 (2026-10-01)
+
 Features:
 
 - Support the `causa.projectionOf` schema extension, referencing the entity a schema is a projection of.

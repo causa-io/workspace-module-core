@@ -6,11 +6,14 @@ import {
 } from '@causa/workspace/validation';
 import { Type as _ClassTransformerType } from 'class-transformer';
 import {
+  Allow as _ClassValidatorAllow,
   IsArray as _ClassValidatorIsArray,
   IsBoolean as _ClassValidatorIsBoolean,
+  IsDate as _ClassValidatorIsDate,
   IsDefined as _ClassValidatorIsDefined,
   IsIn as _ClassValidatorIsIn,
   IsInt as _ClassValidatorIsInt,
+  IsNumber as _ClassValidatorIsNumber,
   IsObject as _ClassValidatorIsObject,
   IsString as _ClassValidatorIsString,
   ValidateNested as _ClassValidatorValidateNested,
@@ -71,6 +74,358 @@ export class DatabaseGraphNodeData {
    */
   @_ClassValidatorIsString()
   readonly engine!: string;
+
+  [key: string]: any;
+}
+
+/**
+ * The severity of the alert, when the provider sets one. From most to least
+ * severe:
+ * - `critical`: the resource is down or losing data, and needs immediate
+ *   action.
+ * - `error`: part of the traffic or processing is failing, and needs action
+ *   soon.
+ * - `warning`: the resource is degraded or at risk, and should be looked
+ *   into.
+ * - `info`: notable, but no action is needed.
+ */
+export enum GraphAlertSeverity {
+  Critical = 'critical',
+  Error = 'error',
+  Warning = 'warning',
+  Info = 'info',
+}
+
+/**
+ * An alert raised by the provider's monitoring, open at the end of the
+ * environment's evaluation window.
+ */
+export class GraphAlert {
+  constructor(init: GraphAlert) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * What the alert is about, e.g. the display name of the alerting policy that
+   * raised it, or the error of a group of errors.
+   */
+  @_ClassValidatorIsString()
+  readonly title!: string;
+
+  /**
+   * The severity of the alert, when the provider sets one. From most to least
+   * severe:
+   * - `critical`: the resource is down or losing data, and needs immediate
+   *   action.
+   * - `error`: part of the traffic or processing is failing, and needs action
+   *   soon.
+   * - `warning`: the resource is degraded or at risk, and should be looked
+   *   into.
+   * - `info`: notable, but no action is needed.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsIn(['critical', 'error', 'warning', 'info'])
+  readonly severity?: GraphAlertSeverity;
+
+  /**
+   * When the alert was opened.
+   */
+  @_ClassTransformerType(() => Date)
+  @_ClassValidatorIsDate()
+  readonly openedAt!: Date;
+
+  /**
+   * The page of the alert in the provider's console.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsString()
+  readonly url?: string;
+}
+
+/**
+ * The bucket layouts of distributions, keyed by name.
+ *
+ * A layout is a list of ascending bounds, in the unit of the metric. N bounds
+ * define N + 1 buckets: bucket 0 holds values below the first bound, bucket i
+ * holds values at or above bound i - 1 and below bound i, and bucket N holds
+ * values at or above the last bound. Only distributions with the same layout
+ * can be merged.
+ */
+export class GraphBucketLayouts {
+  constructor(init: GraphBucketLayouts) {
+    Object.assign(this, init);
+  }
+
+  [key: string]: number[] | any;
+}
+
+/**
+ * A histogram of the values measured during the evaluation window.
+ *
+ * Distributions using the same bucket layout can be merged by summing
+ * their counts.
+ */
+export class GraphDistribution {
+  constructor(init: GraphDistribution) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * The name of the bucket layout, in the graph's `bucketLayouts`.
+   */
+  @_ClassValidatorIsString()
+  readonly layout!: string;
+
+  /**
+   * The number of measured values.
+   */
+  @_ClassValidatorIsInt()
+  readonly count!: number;
+
+  /**
+   * The mean of the measured values.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsNumber()
+  readonly mean?: number;
+
+  /**
+   * The counts of non-empty buckets, keyed by bucket index.
+   */
+  @_ClassValidatorIsObject()
+  readonly buckets!: Record<string, number>;
+}
+
+/**
+ * The environment from which data and metrics were added to the graph.
+ *
+ * Data, e.g. alerts, describes the environment at `at`. Metrics are
+ * point-in-time values, computed over the window ending at `at`.
+ */
+export class GraphEnvironment {
+  constructor(init: GraphEnvironment) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * The ID of the Causa environment.
+   */
+  @_ClassValidatorIsString()
+  readonly name!: string;
+
+  /**
+   * The end of the evaluation window.
+   */
+  @_ClassTransformerType(() => Date)
+  @_ClassValidatorIsDate()
+  readonly at!: Date;
+
+  /**
+   * The length of the evaluation window, in seconds.
+   */
+  @_ClassValidatorIsInt()
+  readonly window!: number;
+
+  /**
+   * The alerts open at `at` that could not be attached to a node of the graph,
+   * e.g. because their resource is not part of it.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassTransformerType(() => GraphAlert)
+  @_ClassValidatorIsArray()
+  @_ClassValidatorIsObject({ each: true })
+  @_ClassValidatorValidateNested()
+  readonly alerts?: GraphAlert[];
+}
+
+/**
+ * A link to a web page about a node.
+ */
+export class GraphLink {
+  constructor(init: GraphLink) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * The text of the link.
+   */
+  @_ClassValidatorIsString()
+  readonly label!: string;
+
+  /**
+   * The URL of the page.
+   */
+  @_ClassValidatorIsString()
+  readonly url!: string;
+}
+
+/**
+ * The definitions of metrics, keyed by node type and then by metric name.
+ */
+export class GraphMetricDefinitions {
+  constructor(init: GraphMetricDefinitions) {
+    Object.assign(this, init);
+  }
+
+  [key: string]: Record<string, GraphMetricDefinition> | any;
+}
+
+/**
+ * How a metric value is computed over the evaluation window.
+ * - `rate`: a count per second, averaged over the window.
+ * - `gauge`: the latest value before the end of the window.
+ * - `distribution`: a histogram of the values measured during the
+ *   window.
+ */
+export enum GraphMetricKind {
+  Rate = 'rate',
+  Gauge = 'gauge',
+  Distribution = 'distribution',
+}
+
+/**
+ * The definition of a metric of a node type.
+ *
+ * Metrics are defined per node type, as the same name can differ in kind,
+ * unit, and keys from one type to another.
+ */
+export class GraphMetricDefinition {
+  constructor(init: GraphMetricDefinition) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * The display name of the metric.
+   */
+  @_ClassValidatorIsString()
+  readonly name!: string;
+
+  /**
+   * A Markdown description of the metric.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsString()
+  readonly description?: string;
+
+  /**
+   * How a metric value is computed over the evaluation window.
+   * - `rate`: a count per second, averaged over the window.
+   * - `gauge`: the latest value before the end of the window.
+   * - `distribution`: a histogram of the values measured during the
+   *   window.
+   */
+  @_ClassValidatorIsIn(['rate', 'gauge', 'distribution'])
+  readonly kind!: GraphMetricKind;
+
+  /**
+   * The unit of the values, as a case-sensitive UCUM code, e.g. `ms`,
+   * `By`, or `{request}/s`.
+   */
+  @_ClassValidatorIsString()
+  readonly unit!: string;
+
+  /**
+   * The keys by which values of the metric may be grouped, with their
+   * descriptions. Providers may group values by only some of them, or
+   * none.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsObject()
+  readonly groupBy?: Record<string, string>;
+}
+
+/**
+ * A value of a metric: a number for rates and gauges, and a distribution for
+ * distributions.
+ */
+export type GraphMetricMeasure = number | GraphDistribution;
+
+/**
+ * The value of a metric for a group.
+ */
+export class GraphMetricGroup {
+  constructor(init: GraphMetricGroup) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * The values of the keys defining the group, shown as they are.
+   */
+  @_ClassValidatorIsObject()
+  readonly key!: Record<string, string>;
+
+  /**
+   * The value for the group.
+   */
+  @_ClassValidatorAllow()
+  readonly value!: GraphMetricMeasure;
+}
+
+/**
+ * The point-in-time value of a metric of a node, computed over the evaluation
+ * window.
+ */
+export class GraphMetricValue {
+  constructor(init: GraphMetricValue) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * The total value.
+   */
+  @_ClassValidatorAllow()
+  readonly value!: GraphMetricMeasure;
+
+  /**
+   * The keys by which `groups` are grouped.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsArray()
+  @_ClassValidatorIsString({ each: true })
+  readonly groupBy?: string[];
+
+  /**
+   * The value for each group.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassTransformerType(() => GraphMetricGroup)
+  @_ClassValidatorIsArray()
+  @_ClassValidatorIsObject({ each: true })
+  @_ClassValidatorValidateNested()
+  readonly groups?: GraphMetricGroup[];
+}
+
+/**
+ * The type-specific payload of the node.
+ */
+export class GraphNodeData {
+  constructor(init: GraphNodeData) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * Links to web pages about the node, e.g. its resource in the provider's
+   * console. Added when the graph is enriched with environment data.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassTransformerType(() => GraphLink)
+  @_ClassValidatorIsArray()
+  @_ClassValidatorIsObject({ each: true })
+  @_ClassValidatorValidateNested()
+  readonly links?: GraphLink[];
+
+  /**
+   * The alerts raised by the provider's monitoring for the node's
+   * resource, open at the end of the evaluation window. Added when the
+   * graph is enriched with environment data, and absent when no alert is
+   * open.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassTransformerType(() => GraphAlert)
+  @_ClassValidatorIsArray()
+  @_ClassValidatorIsObject({ each: true })
+  @_ClassValidatorValidateNested()
+  readonly alerts?: GraphAlert[];
 
   [key: string]: any;
 }
@@ -487,8 +842,18 @@ export class GraphNode {
    * The type-specific payload of the node.
    */
   @_CausaRuntimeAllowMissing()
+  @_ClassTransformerType(() => GraphNodeData)
   @_ClassValidatorIsObject()
-  readonly data?: Record<string, any>;
+  @_ClassValidatorValidateNested()
+  readonly data?: GraphNodeData;
+
+  /**
+   * The point-in-time values of the node's metrics, keyed by metric name.
+   * Added when the graph is enriched with environment data.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsObject()
+  readonly metrics?: Record<string, GraphMetricValue>;
 }
 
 /**
@@ -860,6 +1225,36 @@ export class Graph {
   @_ClassValidatorIsObject()
   @_ClassValidatorValidateNested()
   readonly edges?: GraphEdges;
+
+  /**
+   * The environment from which data and metrics were added to the graph.
+   * Absent from a graph that was not enriched with environment data.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassTransformerType(() => GraphEnvironment)
+  @_ClassValidatorIsObject()
+  @_ClassValidatorValidateNested()
+  readonly environment?: GraphEnvironment;
+
+  /**
+   * The definitions of the metrics of the graph's nodes, keyed by node type
+   * and then by metric name.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassTransformerType(() => GraphMetricDefinitions)
+  @_ClassValidatorIsObject()
+  @_ClassValidatorValidateNested()
+  readonly metrics?: GraphMetricDefinitions;
+
+  /**
+   * The bucket layouts referenced by the distributions of the graph's metrics,
+   * keyed by name.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassTransformerType(() => GraphBucketLayouts)
+  @_ClassValidatorIsObject()
+  @_ClassValidatorValidateNested()
+  readonly bucketLayouts?: GraphBucketLayouts;
 }
 
 /**
@@ -909,6 +1304,135 @@ export class RoutesGraphEdgeData {
 }
 
 /**
+ * The outcome of the attempt.
+ * - `succeeded`: the target processed the call successfully.
+ * - `failed`: the call failed, or the target returned an error.
+ */
+export enum ScheduledJobAttemptStatus {
+  Succeeded = 'succeeded',
+  Failed = 'failed',
+}
+
+/**
+ * The last attempt of the job, added from the environment when the graph
+ * is enriched.
+ */
+export class ScheduledJobLastAttempt {
+  constructor(init: ScheduledJobLastAttempt) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * When the attempt started.
+   */
+  @_ClassTransformerType(() => Date)
+  @_ClassValidatorIsDate()
+  readonly time!: Date;
+
+  /**
+   * The outcome of the attempt.
+   * - `succeeded`: the target processed the call successfully.
+   * - `failed`: the call failed, or the target returned an error.
+   */
+  @_ClassValidatorIsIn(['succeeded', 'failed'])
+  readonly status!: ScheduledJobAttemptStatus;
+
+  /**
+   * The detail of the outcome, as given by the provider, e.g. why the
+   * attempt failed.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsString()
+  readonly message?: string;
+}
+
+/**
+ * The payload of a `scheduledJob` node.
+ */
+export class ScheduledJobGraphNodeData {
+  constructor(init: ScheduledJobGraphNodeData) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * The last attempt of the job, added from the environment when the graph
+   * is enriched.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassTransformerType(() => ScheduledJobLastAttempt)
+  @_ClassValidatorIsObject()
+  @_ClassValidatorValidateNested()
+  readonly lastAttempt?: ScheduledJobLastAttempt;
+
+  /**
+   * The next scheduled execution, added from the environment when the graph
+   * is enriched.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassTransformerType(() => Date)
+  @_ClassValidatorIsDate()
+  readonly nextRun?: Date;
+
+  [key: string]: any;
+}
+
+/**
+ * The status of the latest deployment of the service.
+ * - `deployed`: the latest deployment was applied, and is served.
+ * - `deploying`: a deployment is in progress.
+ * - `failed`: the latest deployment failed. The service may still serve
+ *   a previous deployment.
+ */
+export enum ServiceDeploymentStatus {
+  Deployed = 'deployed',
+  Deploying = 'deploying',
+  Failed = 'failed',
+}
+
+/**
+ * What is deployed, added from the environment when the graph is enriched.
+ */
+export class ServiceDeployment {
+  constructor(init: ServiceDeployment) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * The deployed container image, including its tag.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsString()
+  readonly image?: string;
+
+  /**
+   * When the service was last updated.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassTransformerType(() => Date)
+  @_ClassValidatorIsDate()
+  readonly updatedAt?: Date;
+
+  /**
+   * The status of the latest deployment of the service.
+   * - `deployed`: the latest deployment was applied, and is served.
+   * - `deploying`: a deployment is in progress.
+   * - `failed`: the latest deployment failed. The service may still serve
+   *   a previous deployment.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsIn(['deployed', 'deploying', 'failed'])
+  readonly status?: ServiceDeploymentStatus;
+
+  /**
+   * The reason for the status, as given by the provider, e.g. why the
+   * latest deployment failed.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsString()
+  readonly message?: string;
+}
+
+/**
  * The payload of a `service` node.
  */
 export class ServiceGraphNodeData {
@@ -922,6 +1446,15 @@ export class ServiceGraphNodeData {
   @_CausaRuntimeAllowMissing()
   @_ClassValidatorIsString()
   readonly platform?: string;
+
+  /**
+   * What is deployed, added from the environment when the graph is enriched.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassTransformerType(() => ServiceDeployment)
+  @_ClassValidatorIsObject()
+  @_ClassValidatorValidateNested()
+  readonly deployment?: ServiceDeployment;
 
   [key: string]: any;
 }

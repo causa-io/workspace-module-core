@@ -8,3 +8,39 @@ properties:
   platform:
     type: string
     description: The `serviceContainer.platform` value, e.g. `google.cloudRun`.
+
+  deployment:
+    title: ServiceDeployment
+    type: object
+    description: |-
+      What is deployed, added from the environment when the graph is enriched.
+    additionalProperties: false
+    properties:
+      image:
+        type: string
+        description: The deployed container image, including its tag.
+
+      updatedAt:
+        type: string
+        format: date-time
+        description: When the service was last updated.
+
+      status:
+        title: ServiceDeploymentStatus
+        type: string
+        description: |-
+          The status of the latest deployment of the service.
+          - `deployed`: the latest deployment was applied, and is served.
+          - `deploying`: a deployment is in progress.
+          - `failed`: the latest deployment failed. The service may still serve
+            a previous deployment.
+        enum:
+          - deployed
+          - deploying
+          - failed
+
+      message:
+        type: string
+        description: |-
+          The reason for the status, as given by the provider, e.g. why the
+          latest deployment failed.

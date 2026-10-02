@@ -49,6 +49,51 @@ properties:
       type: string
 
   data:
+    title: GraphNodeData
     type: object
     description: The type-specific payload of the node.
     additionalProperties: true
+    properties:
+      links:
+        type: array
+        description: |-
+          Links to web pages about the node, e.g. its resource in the provider's
+          console. Added when the graph is enriched with environment data.
+        items:
+          $ref: '#/$defs/GraphLink'
+
+      alerts:
+        type: array
+        description: |-
+          The alerts raised by the provider's monitoring for the node's
+          resource, open at the end of the evaluation window. Added when the
+          graph is enriched with environment data, and absent when no alert is
+          open.
+        items:
+          $ref: ./alert.yaml
+
+  metrics:
+    type: object
+    description: |-
+      The point-in-time values of the node's metrics, keyed by metric name.
+      Added when the graph is enriched with environment data.
+    additionalProperties:
+      $ref: ./metric-value.yaml
+
+$defs:
+  GraphLink:
+    title: GraphLink
+    type: object
+    description: A link to a web page about a node.
+    additionalProperties: false
+    required:
+      - label
+      - url
+    properties:
+      label:
+        type: string
+        description: The text of the link.
+
+      url:
+        type: string
+        description: The URL of the page.

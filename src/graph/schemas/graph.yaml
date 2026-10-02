@@ -29,3 +29,24 @@ properties:
     oneOf:
       - $ref: ./edges.yaml
     description: The edges, keyed by type and then listed.
+
+  environment:
+    oneOf:
+      - $ref: ./environment.yaml
+    description: |-
+      The environment from which data and metrics were added to the graph.
+      Absent from a graph that was not enriched with environment data.
+
+  metrics:
+    oneOf:
+      - $ref: ./metric-definitions.yaml
+    description: |-
+      The definitions of the metrics of the graph's nodes, keyed by node type
+      and then by metric name.
+
+  bucketLayouts:
+    oneOf:
+      - $ref: ./bucket-layouts.yaml
+    description: |-
+      The bucket layouts referenced by the distributions of the graph's metrics,
+      keyed by name.

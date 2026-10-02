@@ -241,6 +241,10 @@ properties:
         additionalProperties:
           $ref: ./node.yaml
           description: One `scheduledJob` node, keyed by its locator.
+          properties:
+            data:
+              oneOf:
+                - $ref: ./node-data/scheduled-job.yaml
 
       database:
         type: object

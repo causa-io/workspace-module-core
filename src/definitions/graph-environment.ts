@@ -1,7 +1,7 @@
 import { WorkspaceFunction, type WorkspaceContext } from '@causa/workspace';
 import { AllowMissing } from '@causa/workspace/validation';
 import { Transform } from 'class-transformer';
-import { IsDate, IsInt, IsObject, IsPositive } from 'class-validator';
+import { IsDate, IsInt, IsObject, IsPositive, IsString } from 'class-validator';
 import type {
   GraphFailure,
   GraphFactReport,
@@ -12,6 +12,7 @@ import type {
   Graph,
   GraphAlert,
   GraphMetricDefinition,
+  GraphMetricMeasure,
   GraphMetricValue,
 } from '../graph/generated.js';
 
@@ -288,3 +289,111 @@ export abstract class GraphEnrichWithEnvironment extends WorkspaceFunction<
  * {@link GraphEnrichWithEnvironment}, which passes a single {@link GraphEnvironmentContext} to all the fetchers.
  */
 export abstract class GraphGetEnvironmentProvider extends WorkspaceFunction<GraphEnvironmentProvider> {}
+
+/**
+ * A group of a {@link GraphMetricSeries}.
+ */
+export type GraphMetricSeriesGroup = {
+  /**
+   * The values of the keys defining the group.
+   */
+  readonly key: Record<string, string>;
+
+  /**
+   * The values for the group, one per step. Missing points are `null`.
+   */
+  readonly values: (GraphMetricMeasure | null)[];
+};
+
+/**
+ * The time series of a metric of a node.
+ */
+export type GraphMetricSeries = {
+  /**
+   * The start of the series.
+   */
+  readonly start: Date;
+
+  /**
+   * The step between points, in seconds.
+   */
+  readonly step: number;
+
+  /**
+   * The total values, one per step. Missing points are `null`.
+   */
+  readonly values: (GraphMetricMeasure | null)[];
+
+  /**
+   * The keys by which `groups` are grouped.
+   */
+  readonly groupBy?: string[];
+
+  /**
+   * The values for each group.
+   */
+  readonly groups?: GraphMetricSeriesGroup[];
+
+  /**
+   * The bucket layouts referenced by distributions, keyed by name.
+   */
+  readonly bucketLayouts?: GraphBucketLayoutsByName;
+};
+
+/**
+ * Fetches the time series of a metric of a node from an environment.
+ * Providers implement this function, and their `_supports` method should check the node and the metric.
+ * The call fails when the values of the series cannot be read. Warnings are not reported: e.g. groups that cannot be
+ * related to a node of the graph have no `node` key, as in the enriched graph.
+ */
+export abstract class GraphFetchEnvironmentMetricSeries extends WorkspaceFunction<
+  Promise<GraphMetricSeries>
+> {
+  /**
+   * The graph containing the node, as returned by {@link GraphEnrichWithEnvironment}.
+   * The series is fetched from the environment the graph was enriched with, using its resolved resources.
+   */
+  @IsObject()
+  readonly graph!: Graph;
+
+  /**
+   * The ID of the node.
+   */
+  @IsString()
+  readonly node!: string;
+
+  /**
+   * The name of the metric.
+   */
+  @IsString()
+  readonly metric!: string;
+
+  /**
+   * The start of the series.
+   */
+  @Transform(({ value }) =>
+    typeof value === 'string' ? new Date(value) : value,
+  )
+  @IsDate()
+  readonly start!: Date;
+
+  /**
+   * The end of the series.
+   */
+  @Transform(({ value }) =>
+    typeof value === 'string' ? new Date(value) : value,
+  )
+  @IsDate()
+  readonly end!: Date;
+
+  /**
+   * The step between points, in seconds.
+   * When missing, the provider chooses one depending on the duration of the series. The provider may use a larger step,
+   * e.g. for metrics sampled less often, and returns the step it used. The series may then start before `start`.
+   */
+  @AllowMissing()
+  @Transform(({ value }) => (typeof value === 'string' ? Number(value) : value))
+  @IsInt()
+  @IsPositive()
+  readonly step?: number;
+}

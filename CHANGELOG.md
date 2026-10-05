@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+Breaking changes:
+
+- Rename `GraphExtractionFailure` to `GraphFailure`, and its `extraction` property to `name`, as failures also name environment providers, facts, and fetchers.
+- Refactor the `GraphContext` into the reusable `GraphFactStore`.
+
+Features:
+
+- Implement `GraphEnrichWithEnvironment`, which adds data and metrics from an environment to the architecture graph using the providers returned by `GraphGetEnvironmentProvider` implementations.
+- Add the `--environment-data` option to `cs graph extract`, enriching the extracted graph with data and metrics from an environment.
+- Define `GraphFetchEnvironmentMetricSeries`, which returns the time series of a metric of a node.
+- Add the `environment`, `metrics`, and `bucketLayouts` properties to the graph schema, and the `metrics` property to nodes, along with the definitions of the metrics of core node types.
+
 ## v1.5.0-beta.1 (2026-10-01)
 
 Features:

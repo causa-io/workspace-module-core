@@ -4,6 +4,7 @@ export * from './environment.js';
 export * from './ids.js';
 export * from './locate.js';
 export * from './merge.js';
+export * from './metrics.js';
 export * from './model.js';
 export * from './projects.js';
 export * from './resource.js';

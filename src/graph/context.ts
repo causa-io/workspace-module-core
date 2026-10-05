@@ -19,13 +19,14 @@ export type GraphWarning = {
 };
 
 /**
- * A part of the extraction that failed as a whole: a `GraphListRules` implementation that could not list its
- * rules, or a {@link GraphFact} that could not be computed.
- * The elements that depend on it are missing from the graph.
+ * A part of the extraction or the enrichment that failed as a whole: a `GraphListRules` or
+ * `GraphGetEnvironmentProvider` implementation that could not return its rules or provider, a {@link GraphFact} that
+ * could not be computed, or a fetcher of environment data that failed.
+ * The elements, data, or metrics that depend on it are missing from the graph.
  */
 export type GraphFailure = {
   /**
-   * The name of what failed: the function implementation, or the fact.
+   * The name of what failed: the function implementation, the fact, or the fetcher.
    */
   readonly name: string;
 
@@ -51,7 +52,7 @@ export type GraphFactOutput<T> = {
 };
 
 /**
- * A fact computed during the extraction, and the warnings it raised.
+ * A fact computed during the extraction or the enrichment, and the warnings it raised.
  */
 export type GraphFactReport = {
   /**
@@ -66,8 +67,9 @@ export type GraphFactReport = {
 };
 
 /**
- * A piece of information about the workspace, computed once per extraction and shared by all the rules needing it,
- * using {@link GraphContext.get}.
+ * A piece of information computed once per extraction or enrichment, and shared by all the rules or fetchers needing it,
+ * using {@link GraphFactStore.get}.
+ * Facts of an extraction extend {@link GraphExtractionFact}, and facts of an enrichment extend `GraphEnvironmentFact`.
  */
 export abstract class GraphFact<T, C> {
   /**

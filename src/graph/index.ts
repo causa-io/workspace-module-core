@@ -1,5 +1,6 @@
 export * from './context.js';
 export * from './domains.js';
+export * from './environment.js';
 export * from './ids.js';
 export * from './locate.js';
 export * from './merge.js';

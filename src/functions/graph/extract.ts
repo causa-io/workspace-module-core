@@ -3,18 +3,22 @@ import { mkdir, writeFile } from 'fs/promises';
 import { dirname, resolve } from 'path';
 import { stringify } from 'yaml';
 import {
+  GraphEnrichWithEnvironment,
   GraphExtract,
   GraphListRules,
   type Graph,
   type GraphExtractResult,
-  type GraphNode,
+  type GraphFetcherReport,
+  type GraphResourcesReport,
   type GraphRule,
 } from '../../definitions/index.js';
 import {
   buildGraph,
   GraphContext,
+  listGraphNodes,
   runGraphRules,
   type GraphFailure,
+  type GraphFactReport,
 } from '../../graph/index.js';
 
 /**
@@ -29,7 +33,7 @@ export class GraphExtractForAll extends GraphExtract {
     const { rules: allRules, failures: listFailures } = listRules(context);
     const graphContext = new GraphContext(context);
     const results = await runGraphRules(allRules, graphContext);
-    const { graph, rules } = buildGraph(results, {
+    const { graph: extractedGraph, rules } = buildGraph(results, {
       name: context.get('workspace.name'),
       description:
         'Extracted from the workspace configuration, model schemas, and infrastructure code by `cs graph extract`.',
@@ -37,21 +41,51 @@ export class GraphExtractForAll extends GraphExtract {
     const factFailures = [...graphContext.failures].sort((a, b) =>
       a.name.localeCompare(b.name),
     );
-    const failures = [...listFailures, ...factFailures];
-    const { facts } = graphContext;
-    const warnings = [...rules, ...facts].flatMap(({ name, warnings }) =>
-      warnings.map((warning) => ({ raisedBy: name, ...warning })),
+    const extractionFailures = [...listFailures, ...factFailures];
+    const { facts: extractionFacts } = graphContext;
+    const dangling = rules.reduce((count, r) => count + r.dangling.length, 0);
+    const extractionWarnings = countWarnings([...rules, ...extractionFacts]);
+    const elements = countElements(extractedGraph);
+    context.logger.info(
+      `🕸️ Extracted ${elements.nodes} node(s) and ${elements.edges} edge(s), with ${extractionWarnings} warning(s), ${extractionFailures.length} failure(s), and ${dangling} dangling reference(s).`,
     );
 
+    let graph = extractedGraph;
+    let resources: GraphResourcesReport | undefined;
+    let fetchers: GraphFetcherReport[] | undefined;
+    let enrichmentFacts: GraphFactReport[] = [];
+    let enrichmentFailures: GraphFailure[] = [];
+    if (this.environmentData) {
+      const envCtx = await context.clone({ environment: this.environmentData });
+      ({
+        graph,
+        resources,
+        fetchers,
+        facts: enrichmentFacts,
+        failures: enrichmentFailures,
+      } = await envCtx.call(GraphEnrichWithEnvironment, {
+        graph,
+        at: this.environmentAt,
+        window: this.environmentWindow,
+      }));
+    }
+
+    const facts = [...extractionFacts, ...enrichmentFacts];
+    const failures = [...extractionFailures, ...enrichmentFailures];
+    const reports = [
+      ...rules,
+      ...facts,
+      ...(resources
+        ? [{ name: 'resources', warnings: resources.warnings }]
+        : []),
+      ...(fetchers ?? []),
+    ];
     const summary = {
-      ...countElements(graph),
-      warnings: warnings.length,
+      ...elements,
+      warnings: countWarnings(reports),
       failures: failures.length,
-      dangling: rules.reduce((count, r) => count + r.dangling.length, 0),
+      dangling,
     };
-    context.logger.info(
-      `🕸️ Extracted ${summary.nodes} node(s) and ${summary.edges} edge(s), with ${summary.warnings} warning(s), ${summary.failures} failure(s), and ${summary.dangling} dangling reference(s).`,
-    );
 
     if (this.output) {
       await writeYaml(this.output, graph);
@@ -59,16 +93,27 @@ export class GraphExtractForAll extends GraphExtract {
     }
 
     if (this.report) {
-      await writeYaml(this.report, { summary, rules, facts, failures });
+      await writeYaml(this.report, {
+        summary,
+        rules,
+        facts,
+        ...(resources ? { resources } : {}),
+        ...(fetchers ? { fetchers } : {}),
+        failures,
+      });
       context.logger.info(`🕸️ Wrote the report to '${this.report}'.`);
     } else {
-      warnings.forEach(({ raisedBy, message, sources }) => {
-        const [source] = sources ?? [];
-        const where = source
-          ? ` (${[source.path, source.pointer].filter((p) => p).join(' ')})`
-          : '';
-        context.logger.warn(`⚠️ [${raisedBy}] ${message}${where}`);
-      });
+      reports
+        .flatMap(({ name, warnings }) =>
+          warnings.map((warning) => ({ raisedBy: name, ...warning })),
+        )
+        .forEach(({ raisedBy, message, sources }) => {
+          const [source] = sources ?? [];
+          const where = source
+            ? ` (${[source.path, source.pointer].filter((p) => p).join(' ')})`
+            : '';
+          context.logger.warn(`⚠️ [${raisedBy}] ${message}${where}`);
+        });
       rules.forEach(({ name, dangling }) =>
         dangling.forEach((reference) => {
           const where =
@@ -82,7 +127,14 @@ export class GraphExtractForAll extends GraphExtract {
       );
     }
 
-    return { graph, rules, facts, failures };
+    return {
+      graph,
+      rules,
+      facts,
+      ...(resources ? { resources } : {}),
+      ...(fetchers ? { fetchers } : {}),
+      failures,
+    };
   }
 
   /**
@@ -148,19 +200,25 @@ function listRules(context: WorkspaceContext): {
 }
 
 /**
+ * Counts the warnings raised by rules, facts, or fetchers.
+ *
+ * @param reports The reports of the rules, facts, or fetchers.
+ * @returns The total number of warnings.
+ */
+function countWarnings(
+  reports: readonly { readonly warnings: readonly unknown[] }[],
+): number {
+  return reports.reduce((count, r) => count + r.warnings.length, 0);
+}
+
+/**
  * Counts the nodes and edges of a graph.
  *
  * @param graph The graph.
  * @returns The number of nodes and edges.
  */
 function countElements(graph: Graph): { nodes: number; edges: number } {
-  const layers = Object.values(graph.nodes ?? {}) as Record<
-    string,
-    Record<string, GraphNode>
-  >[];
-  const nodes = layers
-    .flatMap((byType) => Object.values(byType))
-    .reduce((count, byLocator) => count + Object.keys(byLocator).length, 0);
+  const nodes = listGraphNodes(graph).length;
   const edges = Object.values(graph.edges ?? {}).reduce(
     (count, list) => count + ((list as unknown[] | undefined)?.length ?? 0),
     0,

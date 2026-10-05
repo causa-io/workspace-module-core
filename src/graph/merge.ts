@@ -10,7 +10,7 @@ import type {
   GraphRuleNode,
   GraphRuleReport,
 } from '../definitions/index.js';
-import { nodeId } from './ids.js';
+import { nodeId, type GraphNodeEntry } from './ids.js';
 import type { GraphRuleResult } from './rule.js';
 
 /**
@@ -25,10 +25,9 @@ const LAYER_ORDER: Record<GraphLayer, number> = {
 
 /**
  * A node of the graph being built, along with the fields used to group and sort it.
+ * The node is replaced when other rules emit it.
  */
-type NodeRecord = Pick<GraphRuleNode, 'layer' | 'type' | 'locator'> & {
-  node: GraphNode;
-};
+type NodeRecord = Omit<GraphNodeEntry, 'id' | 'node'> & { node: GraphNode };
 
 /**
  * An edge of the graph being built, along with the type used to group and sort it.

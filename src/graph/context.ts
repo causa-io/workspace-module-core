@@ -23,14 +23,14 @@ export type GraphWarning = {
  * rules, or a {@link GraphFact} that could not be computed.
  * The elements that depend on it are missing from the graph.
  */
-export type GraphExtractionFailure = {
+export type GraphFailure = {
   /**
    * The name of what failed: the function implementation, or the fact.
    */
-  readonly extraction: string;
+  readonly name: string;
 
   /**
-   * The message of the error thrown by the extraction.
+   * The message of the error thrown by what failed.
    */
   readonly message: string;
 };
@@ -40,7 +40,7 @@ export type GraphExtractionFailure = {
  */
 export type GraphFactOutput<T> = {
   /**
-   * The value of the fact, returned by {@link GraphContext.get}.
+   * The value of the fact, returned by {@link GraphFactStore.get}.
    */
   readonly value: T;
 
@@ -69,27 +69,40 @@ export type GraphFactReport = {
  * A piece of information about the workspace, computed once per extraction and shared by all the rules needing it,
  * using {@link GraphContext.get}.
  */
-export abstract class GraphFact<T> {
+export abstract class GraphFact<T, C> {
   /**
    * Computes the fact.
    *
-   * @param graph The context of the extraction, from which other facts can be read.
+   * @param context The context, from which other facts can be read.
    * @returns The value of the fact, and the warnings raised while computing it.
    */
   abstract compute(
-    graph: GraphContext,
+    context: C,
   ): GraphFactOutput<T> | Promise<GraphFactOutput<T>>;
 }
 
 /**
  * The class of a {@link GraphFact}, which identifies the fact.
  */
-export type GraphFactType<T> = new () => GraphFact<T>;
+export type GraphFactType<T, C> = new () => GraphFact<T, C>;
 
 /**
- * Thrown by {@link GraphContext.get} when a fact cannot be computed.
- * The failure is recorded once in {@link GraphContext.failures}, such that the rules depending on the fact do not need
- * to report it.
+ * A piece of information about the workspace, computed once per extraction and shared by all the rules needing it,
+ * using {@link GraphContext.get}.
+ */
+export abstract class GraphExtractionFact<T> extends GraphFact<
+  T,
+  GraphContext
+> {}
+
+/**
+ * The class of a {@link GraphExtractionFact}, which identifies the fact.
+ */
+export type GraphExtractionFactType<T> = GraphFactType<T, GraphContext>;
+
+/**
+ * Thrown by {@link GraphFactStore.get} when a fact cannot be computed.
+ * The failure is recorded once in {@link GraphFactStore.failures}.
  */
 export class GraphFactError extends Error {
   constructor(
@@ -101,19 +114,18 @@ export class GraphFactError extends Error {
 }
 
 /**
- * The context of a single graph extraction, passed to all the rules.
- * It exposes the workspace, and computes the facts rules need once, on first use.
+ * Computes facts once, on first use, and records their reports and failures.
  */
-export class GraphContext {
+export abstract class GraphFactStore {
   /**
-   * The locator used to build origin sources.
+   * The context of the workspace.
    */
-  readonly locator: YamlLocator;
+  abstract readonly context: WorkspaceContext;
 
   /**
    * The facts that could not be computed.
    */
-  readonly failures: GraphExtractionFailure[] = [];
+  readonly failures: GraphFailure[] = [];
 
   /**
    * The reports of the facts computed so far, in the order in which they were computed. Facts whose value is passed
@@ -124,19 +136,19 @@ export class GraphContext {
   /**
    * The values of the facts that have been requested, keyed by their class.
    */
-  private readonly values = new Map<GraphFactType<unknown>, Promise<unknown>>();
+  private readonly values = new Map<
+    GraphFactType<unknown, this>,
+    Promise<unknown>
+  >();
 
   /**
-   * Creates a new {@link GraphContext}.
+   * Creates a new {@link GraphFactStore}.
    *
-   * @param context The context for the workspace root.
    * @param facts Values for some facts, which are then not computed. This is mostly useful for tests.
    */
-  constructor(
-    readonly context: WorkspaceContext,
-    facts: Iterable<[GraphFactType<unknown>, unknown]> = [],
+  protected constructor(
+    facts: Iterable<[GraphFactType<unknown, any>, unknown]>,
   ) {
-    this.locator = new YamlLocator(context.rootPath);
     for (const [fact, value] of facts) {
       this.values.set(fact, Promise.resolve(value));
     }
@@ -144,13 +156,13 @@ export class GraphContext {
 
   /**
    * Returns the value of a fact, computing it on the first call.
-   * If the fact cannot be computed, the failure is recorded in {@link GraphContext.failures}, and a
+   * If the fact cannot be computed, the failure is recorded in {@link GraphFactStore.failures}, and a
    * {@link GraphFactError} is thrown to all callers.
    *
    * @param fact The class of the fact.
    * @returns The value of the fact.
    */
-  get<T>(fact: GraphFactType<T>): Promise<T> {
+  get<T>(fact: GraphFactType<T, this>): Promise<T> {
     let value = this.values.get(fact);
     if (!value) {
       value = this.compute(fact);
@@ -171,7 +183,7 @@ export class GraphContext {
    * Computes a fact, recording its warnings, or the failure if it cannot be computed.
    * A fact failing because another fact failed is not recorded again.
    */
-  private async compute<T>(fact: GraphFactType<T>): Promise<T> {
+  private async compute<T>(fact: GraphFactType<T, this>): Promise<T> {
     try {
       const { value, warnings } = await new fact().compute(this);
       this.reports.push({ name: fact.name, warnings: warnings ?? [] });
@@ -185,10 +197,35 @@ export class GraphContext {
         `❌ Graph fact '${fact.name}' could not be computed: ${error?.stack ?? error}`,
       );
       this.failures.push({
-        extraction: fact.name,
+        name: fact.name,
         message: error?.message ?? `${error}`,
       });
       throw new GraphFactError(fact.name, error);
     }
+  }
+}
+
+/**
+ * The context of a single graph extraction, passed to all the rules.
+ * It exposes the workspace, and computes the facts rules need once, on first use.
+ */
+export class GraphContext extends GraphFactStore {
+  /**
+   * The locator used to build origin sources.
+   */
+  readonly locator: YamlLocator;
+
+  /**
+   * Creates a new {@link GraphContext}.
+   *
+   * @param context The context for the workspace root.
+   * @param facts Values for some facts, which are then not computed. This is mostly useful for tests.
+   */
+  constructor(
+    readonly context: WorkspaceContext,
+    facts: Iterable<[GraphExtractionFactType<unknown>, unknown]> = [],
+  ) {
+    super(facts);
+    this.locator = new YamlLocator(context.rootPath);
   }
 }

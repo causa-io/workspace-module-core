@@ -13,7 +13,10 @@ import {
   GraphOriginKind,
   type GraphRule,
 } from '../../definitions/index.js';
-import { GraphFact, type GraphFactOutput } from '../../graph/index.js';
+import {
+  GraphExtractionFact,
+  type GraphFactOutput,
+} from '../../graph/index.js';
 import { GraphExtractForAll } from './extract.js';
 
 const origin = (rule: string, path: string) => ({
@@ -22,7 +25,7 @@ const origin = (rule: string, path: string) => ({
   sources: [{ path }],
 });
 
-class ProjectNameFact extends GraphFact<string> {
+class ProjectNameFact extends GraphExtractionFact<string> {
   compute(): GraphFactOutput<string> {
     return {
       value: 'ordering-api',
@@ -54,13 +57,13 @@ const projectRule: GraphRule = {
   }),
 };
 
-class FailingFact extends GraphFact<string> {
+class FailingFact extends GraphExtractionFact<string> {
   compute(): GraphFactOutput<string> {
     throw new Error('💥');
   }
 }
 
-class BrokenFact extends GraphFact<string> {
+class BrokenFact extends GraphExtractionFact<string> {
   compute(): GraphFactOutput<string> {
     throw new Error('🔨');
   }
@@ -278,9 +281,9 @@ describe('GraphExtractForAll', () => {
       },
     ]);
     expect(actualResult.failures).toEqual([
-      { extraction: 'FailingRules', message: '💥' },
-      { extraction: 'BrokenFact', message: '🔨' },
-      { extraction: 'FailingFact', message: '💥' },
+      { name: 'FailingRules', message: '💥' },
+      { name: 'BrokenFact', message: '🔨' },
+      { name: 'FailingFact', message: '💥' },
     ]);
   });
 

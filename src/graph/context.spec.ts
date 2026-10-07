@@ -4,18 +4,18 @@ import 'jest-extended';
 import { pino } from 'pino';
 import {
   GraphContext,
-  GraphFact,
+  GraphExtractionFact,
   GraphFactError,
   type GraphFactOutput,
 } from './context.js';
 
-class ValueFact extends GraphFact<string> {
+class ValueFact extends GraphExtractionFact<string> {
   async compute(): Promise<GraphFactOutput<string>> {
     return { value: '🎉' };
   }
 }
 
-class BaseFact extends GraphFact<number> {
+class BaseFact extends GraphExtractionFact<number> {
   compute(): GraphFactOutput<number> {
     return {
       value: 1,
@@ -24,19 +24,19 @@ class BaseFact extends GraphFact<number> {
   }
 }
 
-class DerivedFact extends GraphFact<number> {
+class DerivedFact extends GraphExtractionFact<number> {
   async compute(graph: GraphContext): Promise<GraphFactOutput<number>> {
     return { value: (await graph.get(BaseFact)) + 1 };
   }
 }
 
-class FailingFact extends GraphFact<number> {
+class FailingFact extends GraphExtractionFact<number> {
   compute(): GraphFactOutput<number> {
     throw new Error('💥');
   }
 }
 
-class DependentFact extends GraphFact<number> {
+class DependentFact extends GraphExtractionFact<number> {
   async compute(graph: GraphContext): Promise<GraphFactOutput<number>> {
     return { value: (await graph.get(FailingFact)) + 1 };
   }
@@ -98,9 +98,7 @@ describe('GraphContext', () => {
 
     await expect(actualFailing).rejects.toThrow(GraphFactError);
     await expect(actualDependent).rejects.toThrow(GraphFactError);
-    expect(graph.failures).toEqual([
-      { extraction: 'FailingFact', message: '💥' },
-    ]);
+    expect(graph.failures).toEqual([{ name: 'FailingFact', message: '💥' }]);
     expect(graph.facts).toEqual([]);
   });
 });

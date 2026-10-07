@@ -14,7 +14,7 @@ import {
   buildGraph,
   GraphContext,
   runGraphRules,
-  type GraphExtractionFailure,
+  type GraphFailure,
 } from '../../graph/index.js';
 
 /**
@@ -35,7 +35,7 @@ export class GraphExtractForAll extends GraphExtract {
         'Extracted from the workspace configuration, model schemas, and infrastructure code by `cs graph extract`.',
     });
     const factFailures = [...graphContext.failures].sort((a, b) =>
-      a.extraction.localeCompare(b.extraction),
+      a.name.localeCompare(b.name),
     );
     const failures = [...listFailures, ...factFailures];
     const { facts } = graphContext;
@@ -124,23 +124,23 @@ export class GraphExtractForAll extends GraphExtract {
  */
 function listRules(context: WorkspaceContext): {
   rules: GraphRule[];
-  failures: GraphExtractionFailure[];
+  failures: GraphFailure[];
 } {
   const implementations = context
     .getFunctionImplementations(GraphListRules, {})
     .sort((a, b) => a.constructor.name.localeCompare(b.constructor.name));
 
   const rules: GraphRule[] = [];
-  const failures: GraphExtractionFailure[] = [];
+  const failures: GraphFailure[] = [];
   for (const implementation of implementations) {
     try {
       rules.push(...implementation._call());
     } catch (error: any) {
-      const extraction = implementation.constructor.name;
+      const name = implementation.constructor.name;
       context.logger.error(
-        `❌ Graph rules of '${extraction}' could not be listed: ${error.stack ?? error}`,
+        `❌ Graph rules of '${name}' could not be listed: ${error.stack ?? error}`,
       );
-      failures.push({ extraction, message: error.message ?? `${error}` });
+      failures.push({ name, message: error.message ?? `${error}` });
     }
   }
 

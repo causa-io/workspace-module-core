@@ -1,7 +1,7 @@
 import type { WorkspaceContext } from '@causa/workspace';
 import { dirname, relative } from 'path';
 import {
-  GraphFact,
+  GraphExtractionFact,
   type GraphContext,
   type GraphFactOutput,
 } from './context.js';
@@ -67,7 +67,7 @@ export function domainOfFile(
 /**
  * The domains of the workspace, sorted by directory.
  */
-export class DomainsFact extends GraphFact<WorkspaceDomain[]> {
+export class DomainsFact extends GraphExtractionFact<WorkspaceDomain[]> {
   async compute({
     context,
   }: GraphContext): Promise<GraphFactOutput<WorkspaceDomain[]>> {

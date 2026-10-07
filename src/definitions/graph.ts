@@ -9,7 +9,7 @@ import { IsString } from 'class-validator';
 import { stringify } from 'yaml';
 import type {
   GraphContext,
-  GraphExtractionFailure,
+  GraphFailure,
   GraphFactReport,
   GraphWarning,
 } from '../graph/context.js';
@@ -191,7 +191,7 @@ export type GraphExtractResult = {
   /**
    * The extractions that failed, whose elements are missing from the graph.
    */
-  readonly failures: GraphExtractionFailure[];
+  readonly failures: GraphFailure[];
 };
 
 /**

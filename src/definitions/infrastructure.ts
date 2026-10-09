@@ -5,6 +5,7 @@ import {
   type ParentCliCommandDefinition,
 } from '@causa/cli';
 import { type ProcessorFunction, WorkspaceFunction } from '@causa/workspace';
+import { PassArgumentsByReference } from '@causa/workspace/function-registry';
 import { AllowMissing } from '@causa/workspace/validation';
 import { IsBoolean, IsString } from 'class-validator';
 
@@ -37,6 +38,7 @@ export type PrepareResult = {
  * For example, for a Terraform infrastructure project, this would create the plan for a deployment.
  * Returns a reference to the prepared deployment (e.g. the path to a Terraform plan).
  */
+@PassArgumentsByReference()
 export abstract class InfrastructurePrepare extends WorkspaceFunction<
   Promise<PrepareResult>
 > {
@@ -66,6 +68,7 @@ export abstract class InfrastructurePrepare extends WorkspaceFunction<
 /**
  * Deploys the infrastructure defined by a previous call to the {@link InfrastructurePrepare} function.
  */
+@PassArgumentsByReference()
 export abstract class InfrastructureDeploy extends WorkspaceFunction<
   Promise<void>
 > {
@@ -103,6 +106,7 @@ After a deployment has been prepared, it can be deployed using the 'infrastructu
   summary: 'Prepares a future deployment of an infrastructure project.',
   outputFn: ({ output }) => console.log(output),
 })
+@PassArgumentsByReference()
 export abstract class InfrastructureProcessAndPrepare
   extends WorkspaceFunction<Promise<PrepareResult>>
   implements InfrastructurePrepare
@@ -146,6 +150,7 @@ export abstract class InfrastructureProcessAndPrepare
   description: `Deploys the infrastructure defined by the output of the 'infrastructure prepare' command.`,
   summary: `Deploys an infrastructure project.`,
 })
+@PassArgumentsByReference()
 export abstract class InfrastructureProcessAndDeploy
   extends WorkspaceFunction<Promise<void>>
   implements InfrastructureDeploy

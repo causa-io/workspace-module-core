@@ -1,10 +1,12 @@
 import { WorkspaceFunction } from '@causa/workspace';
+import { PassArgumentsByReference } from '@causa/workspace/function-registry';
 import { AllowMissing } from '@causa/workspace/validation';
 import { IsString } from 'class-validator';
 
 /**
  * Queries a database for records and returns the matching rows or documents.
  */
+@PassArgumentsByReference()
 export abstract class DatabaseQueryRecords extends WorkspaceFunction<
   Promise<any[]>
 > {

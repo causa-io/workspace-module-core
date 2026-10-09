@@ -13,6 +13,11 @@ Features:
 - Add the `--environment-data` option to `cs graph extract`, enriching the extracted graph with data and metrics from an environment.
 - Define `GraphFetchEnvironmentMetricSeries`, which returns the time series of a metric of a node.
 - Add the `environment`, `metrics`, and `bucketLayouts` properties to the graph schema, and the `metrics` property to nodes, along with the definitions of the metrics of core node types.
+- Pass arguments by reference rather than copying them for all function definitions that do not transform their arguments, using `@causa/workspace`'s `PassArgumentsByReference`. Implementations of those functions must not mutate their arguments.
+
+Chores:
+
+- Use the `reuseIfUnchanged` option of `WorkspaceContext.clone` rather than custom logic to avoid cloning contexts unnecessarily.
 
 ## v1.5.0-beta.1 (2026-10-01)
 

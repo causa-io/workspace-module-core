@@ -5,7 +5,8 @@ import type { InfrastructureConfiguration } from './configurations/index.js';
 /**
  * Returns a context configured with the environment project.
  * The location of the environment project is read from the `infrastructure.environmentProject` configuration.
- * If the input context is already configured for the correct project, it is simply returned. If not, it is cloned.
+ * If the input context's working directory is already the environment project, it is simply returned. If not, it is
+ * cloned.
  *
  * @param context The current {@link WorkspaceContext}.
  * @returns The input context, or a clone with the proper {@link WorkspaceContext.workingDirectory}.
@@ -19,18 +20,10 @@ export async function cloneContextForEnvironmentProjectIfNeeded(
     .asConfiguration<InfrastructureConfiguration>()
     .getOrThrow('infrastructure.environmentProject');
 
-  const projectPath = join(context.rootPath, relativeProjectPath);
-  if (context.projectPath === projectPath) {
-    context.logger.debug(
-      '📂 The current project is already the configured environment project.',
-    );
-    return context;
-  }
-
-  context.logger.debug(
-    '📂 Initializing a new context with the configured environment project.',
-  );
-  return await context.clone({ workingDirectory: projectPath });
+  return await context.clone({
+    workingDirectory: join(context.rootPath, relativeProjectPath),
+    reuseIfUnchanged: true,
+  });
 }
 
 /**
@@ -50,9 +43,7 @@ export async function wrapInfrastructureOperation<T>(
       .asConfiguration<InfrastructureConfiguration>()
       .get('infrastructure.processors') ?? [];
 
-  if (processors.length > 0) {
-    context = await context.clone({ processors });
-  }
+  context = await context.clone({ processors, reuseIfUnchanged: true });
 
   try {
     const result = await operation(context);

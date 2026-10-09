@@ -4,6 +4,7 @@ import {
   type ParentCliCommandDefinition,
 } from '@causa/cli';
 import { WorkspaceFunction } from '@causa/workspace';
+import { PassArgumentsByReference } from '@causa/workspace/function-registry';
 import { AllowMissing } from '@causa/workspace/validation';
 import { IsBoolean, IsString } from 'class-validator';
 
@@ -40,6 +41,7 @@ export type EmulatorStartResult = {
  * If {@link EmulatorStart.dryRun} is `true`, the implementation should be a no-op.
  * The implementation should always return the emulator's name (the one matched with {@link EmulatorStart.name}).
  */
+@PassArgumentsByReference()
 export abstract class EmulatorStart extends WorkspaceFunction<
   Promise<EmulatorStartResult>
 > {
@@ -65,6 +67,7 @@ export abstract class EmulatorStart extends WorkspaceFunction<
  * support the call.
  * Returns the name of the emulator.
  */
+@PassArgumentsByReference()
 export abstract class EmulatorStop extends WorkspaceFunction<Promise<string>> {
   @IsString()
   @AllowMissing()
@@ -99,6 +102,7 @@ By default running emulators are restarted.`,
   summary: 'Starts all or the selected emulators.',
   outputFn: ({ emulatorNames }) => console.log(emulatorNames.join('\n')),
 })
+@PassArgumentsByReference()
 export abstract class EmulatorStartMany extends WorkspaceFunction<
   Promise<EmulatorStartManyResult>
 > {
@@ -126,6 +130,7 @@ export abstract class EmulatorStartMany extends WorkspaceFunction<
   description: 'Stops all or the selected emulators.',
   outputFn: (emulators) => console.log(emulators.join('\n')),
 })
+@PassArgumentsByReference()
 export abstract class EmulatorStopMany extends WorkspaceFunction<
   Promise<string[]>
 > {

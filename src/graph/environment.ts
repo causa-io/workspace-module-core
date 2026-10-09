@@ -490,7 +490,11 @@ export class GraphEnvironmentContext extends GraphFactStore {
     }
 
     context.getEnvironmentOrThrow();
-    const rootContext = await cloneContextForRootIfNeeded(context);
+    const rootContext = await context.clone({
+      workingDirectory: context.rootPath,
+      processors: null,
+      reuseIfUnchanged: true,
+    });
     const projectContexts: ProjectContexts = new Map();
     const resolvedGraph = structuredClone(graph);
     const resolution = await resolveGraphResources(
@@ -535,29 +539,15 @@ export class GraphEnvironmentContext extends GraphFactStore {
 
     const { at, window } = graph.environment;
     return new GraphEnvironmentContext(
-      await cloneContextForRootIfNeeded(context),
+      await context.clone({
+        workingDirectory: context.rootPath,
+        processors: null,
+        reuseIfUnchanged: true,
+      }),
       structuredClone(graph),
       at,
       window,
       options.facts,
     );
   }
-}
-
-/**
- * Returns a context for the workspace root in the same environment, without processors.
- * The passed context is returned if it is already set up this way.
- *
- * @param context A context in the workspace.
- * @returns The context for the workspace root.
- */
-async function cloneContextForRootIfNeeded(
-  context: WorkspaceContext,
-): Promise<WorkspaceContext> {
-  const { rootPath, workingDirectory, processors } = context;
-  if (workingDirectory === rootPath && processors.length === 0) {
-    return context;
-  }
-
-  return await context.clone({ workingDirectory: rootPath, processors: null });
 }

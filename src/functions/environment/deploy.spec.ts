@@ -36,7 +36,6 @@ describe('EnvironmentDeployForAll', () => {
       InfrastructureProcessAndDeploy,
       async () => {},
     );
-    jest.spyOn(context, 'clone').mockResolvedValue(context);
   });
 
   it('should throw if the environment is not set', async () => {
@@ -86,6 +85,7 @@ describe('EnvironmentDeployForAll', () => {
     );
     expect(context.clone).toHaveBeenCalledExactlyOnceWith({
       workingDirectory: '/root/dir/somewhere/my/proj',
+      reuseIfUnchanged: true,
     });
   });
 
@@ -95,6 +95,5 @@ describe('EnvironmentDeployForAll', () => {
     expect(processAndDeployMock).toHaveBeenCalledExactlyOnceWith(context, {
       deployment: '🚀',
     });
-    expect(context.clone).not.toHaveBeenCalled();
   });
 });

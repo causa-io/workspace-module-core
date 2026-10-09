@@ -343,6 +343,7 @@ describe('GraphExtractForAll', () => {
       workingDirectory: rootPath,
       processors: null,
       environment: null,
+      reuseIfUnchanged: true,
     });
   });
 
@@ -364,17 +365,20 @@ describe('GraphExtractForAll', () => {
   });
 
   function mockEnvironmentContext(): void {
-    jest.spyOn(context, 'clone').mockImplementation(
-      async (options) =>
-        createContext({
-          workingDirectory: rootPath,
-          rootPath,
-          projectPath: null,
-          environment: options?.environment,
-          configuration: { workspace: { name: 'shop' } },
-          logger: pino({ level: 'silent' }),
-          functions: [EnrichWithEnvironment],
-        }).context,
+    const clone = context.clone.bind(context);
+    jest.spyOn(context, 'clone').mockImplementation(async (options) =>
+      // The context for the workspace root is reused, while the one for the environment is mocked.
+      options?.environment
+        ? createContext({
+            workingDirectory: rootPath,
+            rootPath,
+            projectPath: null,
+            environment: options.environment,
+            configuration: { workspace: { name: 'shop' } },
+            logger: pino({ level: 'silent' }),
+            functions: [EnrichWithEnvironment],
+          }).context
+        : await clone(options),
     );
   }
 
@@ -430,9 +434,7 @@ describe('GraphExtractForAll', () => {
       fetchers: actualResult.fetchers,
       failures: actualResult.failures,
     });
-    expect(context.clone).toHaveBeenCalledExactlyOnceWith({
-      environment: 'prod',
-    });
+    expect(context.clone).toHaveBeenCalledWith({ environment: 'prod' });
   });
 
   it('should pass the evaluation window to the enrichment', async () => {

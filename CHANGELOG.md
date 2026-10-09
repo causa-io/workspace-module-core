@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v1.5.0-beta.2 (2026-10-09)
+
 Breaking changes:
 
 - Rename `GraphExtractionFailure` to `GraphFailure`, and its `extraction` property to `name`, as failures also name environment providers, facts, and fetchers.

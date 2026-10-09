@@ -1,0 +1,46 @@
+# yaml-language-server: $schema=https://json-schema.org/draft/2020-12/schema
+
+title: ScheduledJobGraphNodeData
+type: object
+description: The payload of a `scheduledJob` node.
+additionalProperties: true
+properties:
+  lastAttempt:
+    title: ScheduledJobLastAttempt
+    type: object
+    description: |-
+      The last attempt of the job, added from the environment when the graph
+      is enriched.
+    additionalProperties: false
+    required:
+      - time
+      - status
+    properties:
+      time:
+        type: string
+        format: date-time
+        description: When the attempt started.
+
+      status:
+        title: ScheduledJobAttemptStatus
+        type: string
+        description: |-
+          The outcome of the attempt.
+          - `succeeded`: the target processed the call successfully.
+          - `failed`: the call failed, or the target returned an error.
+        enum:
+          - succeeded
+          - failed
+
+      message:
+        type: string
+        description: |-
+          The detail of the outcome, as given by the provider, e.g. why the
+          attempt failed.
+
+  nextRun:
+    type: string
+    format: date-time
+    description: |-
+      The next scheduled execution, added from the environment when the graph
+      is enriched.

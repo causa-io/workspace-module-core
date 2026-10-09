@@ -2,7 +2,7 @@ import type { WorkspaceContext } from '@causa/workspace';
 import { join, relative } from 'path';
 import type { InfrastructureConfiguration } from '../configurations/index.js';
 import {
-  GraphFact,
+  GraphExtractionFact,
   type GraphContext,
   type GraphFactOutput,
 } from './context.js';
@@ -71,7 +71,7 @@ export function projectAt<T extends { readonly directory: string }>(
 /**
  * The projects of the workspace, sorted by directory.
  */
-export class ProjectsFact extends GraphFact<WorkspaceProject[]> {
+export class ProjectsFact extends GraphExtractionFact<WorkspaceProject[]> {
   async compute(
     graph: GraphContext,
   ): Promise<GraphFactOutput<WorkspaceProject[]>> {

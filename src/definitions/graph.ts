@@ -5,14 +5,19 @@ import {
 } from '@causa/cli';
 import { WorkspaceFunction } from '@causa/workspace';
 import { AllowMissing } from '@causa/workspace/validation';
-import { IsString } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsDate, IsInt, IsPositive, IsString } from 'class-validator';
 import { stringify } from 'yaml';
 import type {
   GraphContext,
-  GraphExtractionFailure,
+  GraphFailure,
   GraphFactReport,
   GraphWarning,
 } from '../graph/context.js';
+import type {
+  GraphFetcherReport,
+  GraphResourcesReport,
+} from './graph-environment.js';
 import type {
   Graph,
   GraphEdge,
@@ -189,9 +194,20 @@ export type GraphExtractResult = {
   readonly facts: GraphFactReport[];
 
   /**
-   * The extractions that failed, whose elements are missing from the graph.
+   * The extractions and fetchers that failed, whose elements, data, or metrics are missing from the graph.
    */
-  readonly failures: GraphExtractionFailure[];
+  readonly failures: GraphFailure[];
+
+  /**
+   * The report of the resolution of the resources of the graph's nodes, when {@link GraphExtract.environmentData} is
+   * set.
+   */
+  readonly resources?: GraphResourcesReport;
+
+  /**
+   * The reports of the fetchers of environment data, when {@link GraphExtract.environmentData} is set.
+   */
+  readonly fetchers?: GraphFetcherReport[];
 };
 
 /**
@@ -241,6 +257,7 @@ export type GraphDanglingReference = {
   name: 'extract',
   description: `Extracts the architecture graph of the workspace.
 The graph is built from the workspace configuration, model schemas, and infrastructure code, by the rules each module contributes.
+It can then be enriched with data and metrics from an environment, using the fetchers each module contributes.
 It is written as YAML to the output file, or to the standard output if no file is specified.`,
   summary: 'Extracts the architecture graph of the workspace.',
   outputFn: ({ graph }, { output }) => {
@@ -278,6 +295,49 @@ export abstract class GraphExtract extends WorkspaceFunction<
   @IsString()
   @AllowMissing()
   readonly report?: string;
+
+  /**
+   * The ID of the environment from which data and metrics are added to the graph, using `GraphEnrichWithEnvironment`.
+   * The extraction itself does not depend on the environment. The graph is not enriched when this is not set.
+   */
+  @CliOption({
+    flags: '--environment-data <environment>',
+    description:
+      'The environment from which data and metrics are added to the graph. The graph is not enriched if not set.',
+  })
+  @IsString()
+  @AllowMissing()
+  readonly environmentData?: string;
+
+  /**
+   * The end of the evaluation window, when {@link GraphExtract.environmentData} is set. Defaults to now.
+   */
+  @CliOption({
+    flags: '--environment-at <at>',
+    description:
+      'The end of the evaluation window, as an ISO 8601 date-time. Defaults to now.',
+  })
+  @AllowMissing()
+  @Transform(({ value }) =>
+    typeof value === 'string' ? new Date(value) : value,
+  )
+  @IsDate()
+  readonly environmentAt?: Date;
+
+  /**
+   * The length of the evaluation window of the metrics, in seconds, when {@link GraphExtract.environmentData} is set.
+   * Defaults to 300 seconds.
+   */
+  @CliOption({
+    flags: '--environment-window <seconds>',
+    description:
+      'The length of the evaluation window of the metrics, in seconds. Defaults to 300 seconds.',
+  })
+  @AllowMissing()
+  @Transform(({ value }) => (typeof value === 'string' ? Number(value) : value))
+  @IsInt()
+  @IsPositive()
+  readonly environmentWindow?: number;
 }
 
 /**

@@ -1,0 +1,85 @@
+# yaml-language-server: $schema=https://json-schema.org/draft/2020-12/schema
+
+title: GraphMetricValue
+type: object
+description: |-
+  The point-in-time value of a metric of a node, computed over the evaluation
+  window.
+additionalProperties: false
+required:
+  - value
+properties:
+  value:
+    oneOf:
+      - $ref: '#/$defs/GraphMetricMeasure'
+    description: The total value.
+
+  groupBy:
+    type: array
+    description: The keys by which `groups` are grouped.
+    items:
+      type: string
+
+  groups:
+    type: array
+    description: The value for each group.
+    items:
+      title: GraphMetricGroup
+      type: object
+      description: The value of a metric for a group.
+      additionalProperties: false
+      required:
+        - key
+        - value
+      properties:
+        key:
+          type: object
+          description: |-
+            The values of the keys defining the group, shown as they are.
+          additionalProperties:
+            type: string
+
+        value:
+          oneOf:
+            - $ref: '#/$defs/GraphMetricMeasure'
+          description: The value for the group.
+
+$defs:
+  GraphMetricMeasure:
+    title: GraphMetricMeasure
+    description: |-
+      A value of a metric: a number for rates and gauges, and a distribution for
+      distributions.
+    oneOf:
+      - type: number
+      - title: GraphDistribution
+        type: object
+        description: |-
+          A histogram of the values measured during the evaluation window.
+
+          Distributions using the same bucket layout can be merged by summing
+          their counts.
+        additionalProperties: false
+        required:
+          - layout
+          - count
+          - buckets
+        properties:
+          layout:
+            type: string
+            description: |-
+              The name of the bucket layout, in the graph's `bucketLayouts`.
+
+          count:
+            type: integer
+            description: The number of measured values.
+
+          mean:
+            type: number
+            description: The mean of the measured values.
+
+          buckets:
+            type: object
+            description: The counts of non-empty buckets, keyed by bucket index.
+            additionalProperties:
+              type: integer

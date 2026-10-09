@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://json-schema.org/draft/2020-12/schema
+
+title: GraphBucketLayouts
+type: object
+description: |-
+  The bucket layouts of distributions, keyed by name.
+
+  A layout is a list of ascending bounds, in the unit of the metric. N bounds
+  define N + 1 buckets: bucket 0 holds values below the first bound, bucket i
+  holds values at or above bound i - 1 and below bound i, and bucket N holds
+  values at or above the last bound. Only distributions with the same layout
+  can be merged.
+additionalProperties:
+  type: array
+  items:
+    type: number

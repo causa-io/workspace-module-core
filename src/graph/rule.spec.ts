@@ -2,7 +2,11 @@ import { createContext } from '@causa/workspace/testing';
 import 'jest-extended';
 import { pino } from 'pino';
 import { GraphOriginKind, type GraphRule } from '../definitions/index.js';
-import { GraphContext, GraphFact, type GraphFactOutput } from './context.js';
+import {
+  GraphContext,
+  GraphExtractionFact,
+  type GraphFactOutput,
+} from './context.js';
 import { runGraphRules } from './rule.js';
 
 describe('runGraphRules', () => {
@@ -111,7 +115,7 @@ describe('runGraphRules', () => {
   });
 
   it('should not report a failed fact in the rules depending on it', async () => {
-    class FailingFact extends GraphFact<string> {
+    class FailingFact extends GraphExtractionFact<string> {
       compute(): GraphFactOutput<string> {
         throw new Error('💥');
       }
@@ -128,8 +132,6 @@ describe('runGraphRules', () => {
     const actualResults = await runGraphRules([rule, rule], graph);
 
     expect(actualResults.map((r) => r.warnings)).toEqual([[], []]);
-    expect(graph.failures).toEqual([
-      { extraction: 'FailingFact', message: '💥' },
-    ]);
+    expect(graph.failures).toEqual([{ name: 'FailingFact', message: '💥' }]);
   });
 });

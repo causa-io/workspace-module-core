@@ -11,7 +11,7 @@ import {
 } from '../definitions/index.js';
 import { fromPointer, splitSchemaPath } from '../jsonschema/index.js';
 import {
-  GraphFact,
+  GraphExtractionFact,
   type GraphContext,
   type GraphFactOutput,
   type GraphWarning,
@@ -96,7 +96,7 @@ export type ModelFacts = {
  * An object schema is an entity when a topic carries it or when it is persisted (`ModelSchemaExtractDatabase` produced
  * a binding). A topic carries the schema its `data` property references.
  */
-export class ModelFact extends GraphFact<ModelFacts> {
+export class ModelFact extends GraphExtractionFact<ModelFacts> {
   async compute(graph: GraphContext): Promise<GraphFactOutput<ModelFacts>> {
     const { context } = graph;
     const [topics, { schemas: parsed, warnings }] = await Promise.all([

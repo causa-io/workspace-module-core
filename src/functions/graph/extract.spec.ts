@@ -8,12 +8,17 @@ import { join, resolve } from 'path';
 import { pino } from 'pino';
 import { parse } from 'yaml';
 import {
+  GraphEnrichWithEnvironment,
   GraphExtract,
   GraphListRules,
   GraphOriginKind,
+  type GraphEnrichWithEnvironmentResult,
   type GraphRule,
 } from '../../definitions/index.js';
-import { GraphFact, type GraphFactOutput } from '../../graph/index.js';
+import {
+  GraphExtractionFact,
+  type GraphFactOutput,
+} from '../../graph/index.js';
 import { GraphExtractForAll } from './extract.js';
 
 const origin = (rule: string, path: string) => ({
@@ -22,7 +27,7 @@ const origin = (rule: string, path: string) => ({
   sources: [{ path }],
 });
 
-class ProjectNameFact extends GraphFact<string> {
+class ProjectNameFact extends GraphExtractionFact<string> {
   compute(): GraphFactOutput<string> {
     return {
       value: 'ordering-api',
@@ -54,13 +59,13 @@ const projectRule: GraphRule = {
   }),
 };
 
-class FailingFact extends GraphFact<string> {
+class FailingFact extends GraphExtractionFact<string> {
   compute(): GraphFactOutput<string> {
     throw new Error('💥');
   }
 }
 
-class BrokenFact extends GraphFact<string> {
+class BrokenFact extends GraphExtractionFact<string> {
   compute(): GraphFactOutput<string> {
     throw new Error('🔨');
   }
@@ -150,6 +155,36 @@ class CoreRules extends GraphListRules {
   }
 }
 
+class EnrichWithEnvironment extends GraphEnrichWithEnvironment {
+  async _call(): Promise<GraphEnrichWithEnvironmentResult> {
+    return {
+      graph: {
+        ...this.graph,
+        environment: {
+          name: this._context.getEnvironmentOrThrow(),
+          at: this.at ?? new Date('2026-10-02T12:00:00Z'),
+          window: this.window ?? 300,
+        },
+      },
+      resources: { resolved: 1, removed: 1, warnings: [{ message: '🔍' }] },
+      fetchers: [
+        {
+          name: 'fetcher',
+          description: 'Fetches.',
+          nodes: 0,
+          warnings: [{ message: '🌍' }],
+        },
+      ],
+      facts: [{ name: 'EnvironmentFact', warnings: [{ message: '🌱' }] }],
+      failures: [{ name: 'other', message: '💥' }],
+    };
+  }
+
+  _supports(): boolean {
+    return true;
+  }
+}
+
 describe('GraphExtractForAll', () => {
   let rootPath: string;
   let context: WorkspaceContext;
@@ -162,7 +197,13 @@ describe('GraphExtractForAll', () => {
       projectPath: null,
       configuration: { workspace: { name: 'shop' } },
       logger: pino({ level: 'silent' }),
-      functions: [GraphExtractForAll, GoogleRules, FailingRules, CoreRules],
+      functions: [
+        GraphExtractForAll,
+        GoogleRules,
+        FailingRules,
+        CoreRules,
+        EnrichWithEnvironment,
+      ],
     }));
   });
 
@@ -278,9 +319,9 @@ describe('GraphExtractForAll', () => {
       },
     ]);
     expect(actualResult.failures).toEqual([
-      { extraction: 'FailingRules', message: '💥' },
-      { extraction: 'BrokenFact', message: '🔨' },
-      { extraction: 'FailingFact', message: '💥' },
+      { name: 'FailingRules', message: '💥' },
+      { name: 'BrokenFact', message: '🔨' },
+      { name: 'FailingFact', message: '💥' },
     ]);
   });
 
@@ -319,6 +360,94 @@ describe('GraphExtractForAll', () => {
       rules: actualResult.rules,
       facts: actualResult.facts,
       failures: actualResult.failures,
+    });
+  });
+
+  function mockEnvironmentContext(): void {
+    jest.spyOn(context, 'clone').mockImplementation(
+      async (options) =>
+        createContext({
+          workingDirectory: rootPath,
+          rootPath,
+          projectPath: null,
+          environment: options?.environment,
+          configuration: { workspace: { name: 'shop' } },
+          logger: pino({ level: 'silent' }),
+          functions: [EnrichWithEnvironment],
+        }).context,
+    );
+  }
+
+  it('should enrich the graph with environment data', async () => {
+    mockEnvironmentContext();
+    const report = join(rootPath, 'out', 'report.yaml');
+
+    const actualResult = await context.call(GraphExtract, {
+      environmentData: 'prod',
+      report,
+    });
+
+    expect(actualResult.graph).toEqual({
+      name: 'shop',
+      description: expect.any(String),
+      nodes: expect.any(Object),
+      edges: expect.any(Object),
+      environment: {
+        name: 'prod',
+        at: new Date('2026-10-02T12:00:00Z'),
+        window: 300,
+      },
+    });
+    expect(actualResult.resources).toEqual({
+      resolved: 1,
+      removed: 1,
+      warnings: [{ message: '🔍' }],
+    });
+    expect(actualResult.fetchers).toEqual([
+      {
+        name: 'fetcher',
+        description: 'Fetches.',
+        nodes: 0,
+        warnings: [{ message: '🌍' }],
+      },
+    ]);
+    expect(actualResult.facts.at(-1)).toEqual({
+      name: 'EnvironmentFact',
+      warnings: [{ message: '🌱' }],
+    });
+    expect(actualResult.failures).toEqual([
+      { name: 'FailingRules', message: '💥' },
+      { name: 'BrokenFact', message: '🔨' },
+      { name: 'FailingFact', message: '💥' },
+      { name: 'other', message: '💥' },
+    ]);
+    const actualReport = parse(await readFile(report, 'utf-8'));
+    expect(actualReport).toEqual({
+      summary: { nodes: 2, edges: 2, warnings: 5, failures: 4, dangling: 2 },
+      rules: actualResult.rules,
+      facts: actualResult.facts,
+      resources: actualResult.resources,
+      fetchers: actualResult.fetchers,
+      failures: actualResult.failures,
+    });
+    expect(context.clone).toHaveBeenCalledExactlyOnceWith({
+      environment: 'prod',
+    });
+  });
+
+  it('should pass the evaluation window to the enrichment', async () => {
+    mockEnvironmentContext();
+
+    const actualResult = await context.call(GraphExtract, {
+      environmentData: 'prod',
+      environmentAt: '2026-10-01T12:00:00Z' as any,
+      environmentWindow: '3600' as any,
+    });
+
+    expect(actualResult.graph.environment).toEqual({
+      name: 'prod',
+      at: new Date('2026-10-01T12:00:00Z'),
+      window: 3600,
     });
   });
 });

@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=https://json-schema.org/draft/2020-12/schema
+
+title: GraphEnvironment
+type: object
+description: |-
+  The environment from which data and metrics were added to the graph.
+
+  Data, e.g. alerts, describes the environment at `at`. Metrics are
+  point-in-time values, computed over the window ending at `at`.
+additionalProperties: false
+required:
+  - name
+  - at
+  - window
+properties:
+  name:
+    type: string
+    description: The ID of the Causa environment.
+
+  at:
+    type: string
+    format: date-time
+    description: The end of the evaluation window.
+
+  window:
+    type: integer
+    description: The length of the evaluation window, in seconds.
+
+  alerts:
+    type: array
+    description: |-
+      The alerts open at `at` that could not be attached to a node of the graph,
+      e.g. because their resource is not part of it.
+    items:
+      $ref: ./alert.yaml

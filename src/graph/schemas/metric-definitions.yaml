@@ -1,0 +1,64 @@
+# yaml-language-server: $schema=https://json-schema.org/draft/2020-12/schema
+
+title: GraphMetricDefinitions
+type: object
+description: |-
+  The definitions of metrics, keyed by node type and then by metric name.
+additionalProperties:
+  type: object
+  description: |-
+    The definitions of the metrics of a node type, keyed by metric name.
+  additionalProperties:
+    $ref: '#/$defs/GraphMetricDefinition'
+
+$defs:
+  GraphMetricDefinition:
+    title: GraphMetricDefinition
+    type: object
+    description: |-
+      The definition of a metric of a node type.
+
+      Metrics are defined per node type, as the same name can differ in kind,
+      unit, and keys from one type to another.
+    additionalProperties: false
+    required:
+      - name
+      - kind
+      - unit
+    properties:
+      name:
+        type: string
+        description: The display name of the metric.
+
+      description:
+        type: string
+        description: A Markdown description of the metric.
+
+      kind:
+        title: GraphMetricKind
+        type: string
+        description: |-
+          How a metric value is computed over the evaluation window.
+          - `rate`: a count per second, averaged over the window.
+          - `gauge`: the latest value before the end of the window.
+          - `distribution`: a histogram of the values measured during the
+            window.
+        enum:
+          - rate
+          - gauge
+          - distribution
+
+      unit:
+        type: string
+        description: |-
+          The unit of the values, as a case-sensitive UCUM code, e.g. `ms`,
+          `By`, or `{request}/s`.
+
+      groupBy:
+        type: object
+        description: |-
+          The keys by which values of the metric may be grouped, with their
+          descriptions. Providers may group values by only some of them, or
+          none.
+        additionalProperties:
+          type: string

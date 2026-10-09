@@ -83,7 +83,7 @@ describe('domains', () => {
       await expect(actualPromise).rejects.toThrow(GraphFactError);
       expect(graph.failures).toEqual([
         {
-          extraction: 'DomainsFact',
+          name: 'DomainsFact',
           message: expect.stringContaining('domain'),
         },
       ]);

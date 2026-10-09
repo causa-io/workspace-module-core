@@ -37,6 +37,16 @@ export type GraphResource = {
 );
 
 /**
+ * The resource of a node of a graph enriched with environment data, whose identifier is valid in the environment.
+ */
+export type GraphResolvedResource = Pick<GraphResource, 'type' | 'scope'> & {
+  /**
+   * The identifier of the resource for its provider.
+   */
+  readonly id: string;
+};
+
+/**
  * A part of a template: either a literal, or a reference to a configuration value.
  */
 export type GraphTemplatePart = string | { readonly configuration: string };

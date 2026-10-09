@@ -1,5 +1,13 @@
+import type {
+  Graph,
+  GraphLayer,
+  GraphNode,
+  GraphRuleNode,
+} from '../definitions/index.js';
+
 /**
- * Node IDs and locators, as `graph/nodes.yaml` defines them for each type of the core schema.
+ * Node IDs and locators, as `graph/nodes.yaml` defines them for each type of the core schema, and the positions of
+ * nodes in a graph.
  * Rules go through these helpers so that a rule referencing a node emitted by another rule spells its ID the same way.
  */
 
@@ -12,6 +20,46 @@
  */
 export function nodeId(type: string, locator: string): string {
   return `${type}:${locator}`;
+}
+
+/**
+ * A node of the graph, along with its position in it.
+ */
+export type GraphNodeEntry = Pick<
+  GraphRuleNode,
+  'layer' | 'type' | 'locator'
+> & {
+  /**
+   * The ID of the node, `<type>:<locator>`.
+   */
+  readonly id: string;
+
+  /**
+   * The node itself.
+   */
+  readonly node: GraphNode;
+};
+
+/**
+ * Lists the nodes of a graph, along with their positions in it.
+ *
+ * @param graph The graph.
+ * @returns The nodes, in the order of the layers, types, and locators of the graph.
+ */
+export function listGraphNodes(graph: Graph): GraphNodeEntry[] {
+  return Object.entries(graph.nodes ?? {}).flatMap(([layer, types]) =>
+    Object.entries(
+      (types ?? {}) as Record<string, Record<string, GraphNode> | undefined>,
+    ).flatMap(([type, nodes]) =>
+      Object.entries(nodes ?? {}).map(([locator, node]) => ({
+        id: nodeId(type, locator),
+        layer: layer as GraphLayer,
+        type,
+        locator,
+        node,
+      })),
+    ),
+  );
 }
 
 export const domainId = (directory: string) => nodeId('domain', directory);

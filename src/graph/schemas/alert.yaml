@@ -1,0 +1,45 @@
+# yaml-language-server: $schema=https://json-schema.org/draft/2020-12/schema
+
+title: GraphAlert
+type: object
+description: |-
+  An alert raised by the provider's monitoring, open at the end of the
+  environment's evaluation window.
+additionalProperties: false
+required:
+  - title
+  - openedAt
+properties:
+  title:
+    type: string
+    description: |-
+      What the alert is about, e.g. the display name of the alerting policy that
+      raised it, or the error of a group of errors.
+
+  severity:
+    title: GraphAlertSeverity
+    type: string
+    description: |-
+      The severity of the alert, when the provider sets one. From most to least
+      severe:
+      - `critical`: the resource is down or losing data, and needs immediate
+        action.
+      - `error`: part of the traffic or processing is failing, and needs action
+        soon.
+      - `warning`: the resource is degraded or at risk, and should be looked
+        into.
+      - `info`: notable, but no action is needed.
+    enum:
+      - critical
+      - error
+      - warning
+      - info
+
+  openedAt:
+    type: string
+    format: date-time
+    description: When the alert was opened.
+
+  url:
+    type: string
+    description: The page of the alert in the provider's console.

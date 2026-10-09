@@ -27,7 +27,14 @@ import {
  */
 export class GraphExtractForAll extends GraphExtract {
   async _call(): Promise<GraphExtractResult> {
-    const context = await this.cloneContextForRootIfNeeded();
+    // The extraction is performed from the workspace root, without processors or environment, such that it does not
+    // depend on the directory the command is run from, nor on the selected environment.
+    const context = await this._context.clone({
+      workingDirectory: this._context.rootPath,
+      processors: null,
+      environment: null,
+      reuseIfUnchanged: true,
+    });
 
     context.logger.info('🕸️ Extracting the architecture graph.');
     const { rules: allRules, failures: listFailures } = listRules(context);
@@ -135,31 +142,6 @@ export class GraphExtractForAll extends GraphExtract {
       ...(fetchers ? { fetchers } : {}),
       failures,
     };
-  }
-
-  /**
-   * Returns a context for the workspace root, without processors or environment, such that the extraction does not
-   * depend on the directory the command is run from, nor on the selected environment.
-   * The current context is returned if it is already set up this way.
-   *
-   * @returns The context to use for the extraction.
-   */
-  private async cloneContextForRootIfNeeded(): Promise<WorkspaceContext> {
-    const { rootPath, workingDirectory, processors, environment } =
-      this._context;
-    if (
-      workingDirectory === rootPath &&
-      processors.length === 0 &&
-      environment === null
-    ) {
-      return this._context;
-    }
-
-    return await this._context.clone({
-      workingDirectory: rootPath,
-      processors: null,
-      environment: null,
-    });
   }
 
   _supports(): boolean {

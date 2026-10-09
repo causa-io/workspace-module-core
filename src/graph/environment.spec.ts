@@ -152,7 +152,15 @@ describe('GraphEnvironmentContext', () => {
       },
       logger: pino({ level: 'silent' }),
     }));
-    jest.spyOn(context, 'clone').mockResolvedValue(projectContext);
+    const clone = context.clone.bind(context);
+    jest
+      .spyOn(context, 'clone')
+      // The context for the workspace root is reused, while project contexts are mocked.
+      .mockImplementation(async (options) =>
+        options?.workingDirectory === rootPath
+          ? await clone(options)
+          : projectContext,
+      );
   });
 
   describe('create', () => {
@@ -187,7 +195,7 @@ describe('GraphEnvironmentContext', () => {
           facts: [],
         }),
       );
-      expect(context.clone).toHaveBeenCalledExactlyOnceWith({
+      expect(context.clone).toHaveBeenCalledWith({
         workingDirectory: resolve(rootPath, 'domains/ordering/api'),
       });
       expect(
@@ -404,6 +412,7 @@ describe('GraphEnvironmentContext', () => {
       expect(otherContext.clone).toHaveBeenCalledExactlyOnceWith({
         workingDirectory: rootPath,
         processors: null,
+        reuseIfUnchanged: true,
       });
     });
   });
@@ -442,7 +451,7 @@ describe('GraphEnvironmentContext', () => {
         }),
       );
       expect(environment.graph).not.toBe(enrichedGraph);
-      expect(context.clone).not.toHaveBeenCalled();
+      expect(environment.context).toBe(context);
     });
 
     it('should throw for a graph that is not enriched', async () => {
@@ -605,7 +614,8 @@ describe('GraphEnvironmentContext', () => {
 
       expect(first).toBe(projectContext);
       expect(second).toBe(projectContext);
-      expect(context.clone).toHaveBeenCalledOnce();
+      // Once for the workspace root, and once for the project.
+      expect(context.clone).toHaveBeenCalledTimes(2);
     });
   });
 });

@@ -115,6 +115,7 @@ describe('InfrastructureProcessAndPrepareForAll', () => {
     });
     expect(context.clone).toHaveBeenCalledExactlyOnceWith({
       processors: expectedProcessorInstructions,
+      reuseIfUnchanged: true,
     });
     expect(firstProcessorMock).toHaveBeenCalledExactlyOnceWith(clonedContext, {
       tearDown: true,

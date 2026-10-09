@@ -5,6 +5,7 @@ import {
   type ParentCliCommandDefinition,
 } from '@causa/cli';
 import { WorkspaceFunction, type BaseConfiguration } from '@causa/workspace';
+import { PassArgumentsByReference } from '@causa/workspace/function-registry';
 import { AllowMissing } from '@causa/workspace/validation';
 import { IsArray, IsBoolean, IsString } from 'class-validator';
 
@@ -19,6 +20,7 @@ Returns the name/identifier of the built artefact.`,
   summary: 'Builds the artefact for the project.',
   outputFn: (name) => console.log(name),
 })
+@PassArgumentsByReference()
 export abstract class ProjectBuildArtefact extends WorkspaceFunction<
   Promise<string>
 > {
@@ -48,6 +50,7 @@ export abstract class ProjectReadVersion extends WorkspaceFunction<
  * This can upload a Cloud Function archive to Storage, push a Docker container to a registry, etc.
  * Returns the destination provided as input.
  */
+@PassArgumentsByReference()
 export abstract class ProjectPushArtefact extends WorkspaceFunction<
   Promise<string>
 > {
@@ -86,6 +89,7 @@ export class ArtefactAlreadyExistsError extends Error {
  * For example, for a service container this would be the remote Docker tag that would be pushed. For a Cloud Function,
  * it would be the Cloud Storage URI where the archive will be uploaded.
  */
+@PassArgumentsByReference()
 export abstract class ProjectGetArtefactDestination extends WorkspaceFunction<
   Promise<string>
 > {
@@ -109,6 +113,7 @@ Returns the artefact's destination (remote location).`,
   summary: 'Builds and pushes the artefact for the given project.',
   outputFn: (location) => console.log(location),
 })
+@PassArgumentsByReference()
 export abstract class ProjectPublishArtefact extends WorkspaceFunction<
   Promise<string>
 > {
@@ -190,6 +195,7 @@ This is mostly useful when using one of the predefined tag formats.`,
 Depending on the project, this could install dependencies, set up a virtual environment, etc.`,
   summary: 'Initializes an existing project locally.',
 })
+@PassArgumentsByReference()
 export abstract class ProjectInit extends WorkspaceFunction<Promise<void>> {
   /**
    * Whether the project should be re-initialized, even if it already is.
@@ -227,6 +233,7 @@ export abstract class ProjectInit extends WorkspaceFunction<Promise<void>> {
 The project might need to be initialized first (see the 'init' command).`,
   summary: 'Runs the tests for the project.',
 })
+@PassArgumentsByReference()
 export abstract class ProjectTest extends WorkspaceFunction<Promise<void>> {
   /**
    * Computes test coverage.
@@ -292,6 +299,7 @@ export abstract class ProjectDependenciesUpdate extends WorkspaceFunction<
 Depending on the provider, this might search for new versions online and install them, or simply update a lock file following a manual update of the dependencies.`,
   summary: `Updates the project's dependencies and run tests.`,
 })
+@PassArgumentsByReference()
 export abstract class ProjectDependenciesUpdateAndTest extends WorkspaceFunction<
   Promise<void>
 > {
@@ -363,6 +371,7 @@ A project is detected as having changes if any of the files within it has change
       json ? JSON.stringify(diff, null, 2) : Object.keys(diff).join('\n'),
     ),
 })
+@PassArgumentsByReference()
 export abstract class ProjectDiff extends WorkspaceFunction<
   Promise<ProjectDiffResult>
 > {

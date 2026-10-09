@@ -5,6 +5,7 @@ import {
   type ParentCliCommandDefinition,
 } from '@causa/cli';
 import { WorkspaceFunction } from '@causa/workspace';
+import { PassArgumentsByReference } from '@causa/workspace/function-registry';
 import { AllowMissing } from '@causa/workspace/validation';
 import { Transform } from 'class-transformer';
 import {
@@ -187,6 +188,7 @@ Finally, some event sources might support filtering of the events to backfill.`,
     }
   },
 })
+@PassArgumentsByReference()
 export abstract class EventTopicBackfill extends WorkspaceFunction<
   Promise<string>
 > {
@@ -293,6 +295,7 @@ export abstract class EventTopicBackfill extends WorkspaceFunction<
 This includes temporary triggers and topic.`,
   summary: 'Cleans up temporary resources created for a backfill.',
 })
+@PassArgumentsByReference()
 export abstract class EventTopicCleanBackfill extends WorkspaceFunction<
   Promise<void>
 > {
@@ -312,6 +315,7 @@ export abstract class EventTopicCleanBackfill extends WorkspaceFunction<
  * Creates a topic for the configured broker.
  * Returns the (broker-specific) topic ID.
  */
+@PassArgumentsByReference()
 export abstract class EventTopicBrokerCreateTopic extends WorkspaceFunction<
   Promise<string>
 > {
@@ -325,6 +329,7 @@ export abstract class EventTopicBrokerCreateTopic extends WorkspaceFunction<
 /**
  * Returns the broker-specific topic ID for an event topic.
  */
+@PassArgumentsByReference()
 export abstract class EventTopicBrokerGetTopicId extends WorkspaceFunction<
   Promise<string>
 > {
@@ -390,6 +395,7 @@ class IsEventTopicBrokerTriggerConstraint implements ValidatorConstraintInterfac
  * Creates a trigger on the given topic for the specified service.
  * Returns IDs of resources that should be deleted after the backfill has completed.
  */
+@PassArgumentsByReference()
 export abstract class EventTopicBrokerCreateTrigger extends WorkspaceFunction<
   Promise<string[]>
 > {
@@ -456,6 +462,7 @@ export type BackfillEvent = {
  * the broker's default storage). Filtering, when supported, is also applied by the implementation: the returned
  * iterable yields only the events that should actually be published.
  */
+@PassArgumentsByReference()
 export abstract class EventTopicCreateBackfillSource extends WorkspaceFunction<
   Promise<AsyncIterable<BackfillEvent>>
 > {
@@ -486,6 +493,7 @@ export abstract class EventTopicCreateBackfillSource extends WorkspaceFunction<
 /**
  * Publishes events from an async iterable to the given topic.
  */
+@PassArgumentsByReference()
 export abstract class EventTopicBrokerPublishEvents extends WorkspaceFunction<
   Promise<void>
 > {
@@ -519,6 +527,7 @@ export abstract class EventTopicBrokerPublishEvents extends WorkspaceFunction<
  * Should throw if processing cannot be confirmed (e.g. on timeout), so the backfill file is preserved for manual
  * cleanup.
  */
+@PassArgumentsByReference()
 export abstract class EventTopicBrokerWaitForProcessing extends WorkspaceFunction<
   Promise<void>
 > {
@@ -539,6 +548,7 @@ export abstract class EventTopicBrokerWaitForProcessing extends WorkspaceFunctio
 /**
  * Deletes a resource that was created for a temporary trigger.
  */
+@PassArgumentsByReference()
 export abstract class EventTopicBrokerDeleteTriggerResource extends WorkspaceFunction<
   Promise<void>
 > {
@@ -552,6 +562,7 @@ export abstract class EventTopicBrokerDeleteTriggerResource extends WorkspaceFun
 /**
  * Deletes a topic using its broker-specific ID.
  */
+@PassArgumentsByReference()
 export abstract class EventTopicBrokerDeleteTopic extends WorkspaceFunction<
   Promise<void>
 > {

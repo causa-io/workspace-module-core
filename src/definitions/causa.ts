@@ -4,6 +4,7 @@ import {
   type ParentCliCommandDefinition,
 } from '@causa/cli';
 import { WorkspaceFunction } from '@causa/workspace';
+import { PassArgumentsByReference } from '@causa/workspace/function-registry';
 import { AllowMissing } from '@causa/workspace/validation';
 import { IsBoolean } from 'class-validator';
 
@@ -66,6 +67,7 @@ export class ConfigurationCheckError extends Error {
   description: 'Validates the workspace configuration.',
   summary: 'Validates the workspace configuration.',
 })
+@PassArgumentsByReference()
 export abstract class ConfigurationCheck extends WorkspaceFunction<
   Promise<void>
 > {

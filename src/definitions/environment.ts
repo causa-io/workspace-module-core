@@ -5,6 +5,7 @@ import {
   type ParentCliCommandDefinition,
 } from '@causa/cli';
 import { WorkspaceFunction } from '@causa/workspace';
+import { PassArgumentsByReference } from '@causa/workspace/function-registry';
 import { AllowMissing } from '@causa/workspace/validation';
 import { IsBoolean, IsString } from 'class-validator';
 import {
@@ -34,6 +35,7 @@ After a deployment has been prepared, it can be deployed using the 'environment 
   summary: 'Prepares a future deployment of the environment.',
   outputFn: ({ output }) => console.log(output),
 })
+@PassArgumentsByReference()
 export abstract class EnvironmentPrepare
   extends WorkspaceFunction<Promise<PrepareResult>>
   implements InfrastructurePrepare
@@ -76,6 +78,7 @@ export abstract class EnvironmentPrepare
   description: `Deploys the infrastructure defined by the output of the 'environment prepare' command.`,
   summary: `Deploys an environment.`,
 })
+@PassArgumentsByReference()
 export abstract class EnvironmentDeploy
   extends WorkspaceFunction<Promise<void>>
   implements InfrastructureDeploy

@@ -1,4 +1,5 @@
 import { type ProcessorResult, WorkspaceFunction } from '@causa/workspace';
+import { PassArgumentsByReference } from '@causa/workspace/function-registry';
 import { CAUSA_FOLDER } from '@causa/workspace/initialization';
 import { AllowMissing } from '@causa/workspace/validation';
 import { IsBoolean } from 'class-validator';
@@ -19,6 +20,7 @@ const DEFAULT_PROJECT_CONFIGURATIONS_DIRECTORY = join(
  * A function that finds all projects in a Causa workspace and writes each project's configuration to a single file.
  * This function returns a partial configuration, such that it can be used as a processor.
  */
+@PassArgumentsByReference()
 export class ProjectWriteConfigurations
   extends WorkspaceFunction<Promise<ProcessorResult>>
   implements InfrastructureProcessor

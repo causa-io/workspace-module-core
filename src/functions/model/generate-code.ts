@@ -34,7 +34,8 @@ export class ModelGenerateCodeForAll extends ModelGenerateCode {
         output[generator] = await this._context.call(ModelRunCodeGenerator, {
           generator,
           configuration,
-          previousGeneratorsOutput: output,
+          // Arguments are passed by reference, and `output` is updated after each generator.
+          previousGeneratorsOutput: { ...output },
         });
       } catch (error) {
         if (error instanceof NoImplementationFoundError) {

@@ -1,4 +1,5 @@
 import { WorkspaceFunction } from '@causa/workspace';
+import { PassArgumentsByReference } from '@causa/workspace/function-registry';
 import { AllowMissing } from '@causa/workspace/validation';
 import { IsObject, IsString } from 'class-validator';
 
@@ -57,6 +58,7 @@ export type HttpResponse = {
 /**
  * Performs an HTTP request and returns the status code, headers, and parsed body.
  */
+@PassArgumentsByReference()
 export abstract class HttpMakeRequest extends WorkspaceFunction<
   Promise<HttpResponse>
 > {

@@ -4,6 +4,7 @@ import {
   type ParentCliCommandDefinition,
 } from '@causa/cli';
 import { WorkspaceFunction } from '@causa/workspace';
+import { PassArgumentsByReference } from '@causa/workspace/function-registry';
 import { AllowMissing } from '@causa/workspace/validation';
 import { IsBoolean, IsString } from 'class-validator';
 
@@ -30,6 +31,7 @@ When run at the workspace level, the specifications for all services are generat
   summary: 'Generates the OpenAPI specification for the service or workspace.',
   outputFn: (path) => console.log(path),
 })
+@PassArgumentsByReference()
 export abstract class OpenApiGenerateSpecification extends WorkspaceFunction<
   Promise<string>
 > {

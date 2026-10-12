@@ -1,3 +1,4 @@
+export { ModelSchemaCountRecordsForAll } from './count-records.js';
 export { ModelGenerateCodeForAll } from './generate-code.js';
 export { ModelParseCodeGeneratorInputsForAll } from './parse-code-generator-inputs.js';
 export { ModelSchemaParseForJsonSchema } from './parse-schemas-json.js';

@@ -11,5 +11,6 @@ export * from './model.js';
 export * from './model.types.js';
 export * from './openapi.js';
 export * from './project.js';
+export * from './records.js';
 export * from './scenario.js';
 export * from './service-container.js';

@@ -1,6 +1,7 @@
 import {
   appendToSchemaPath,
   fromPointer,
+  joinSchemaPath,
   splitSchemaPath,
   toPointer,
 } from './pointer.js';
@@ -55,6 +56,30 @@ describe('pointer', () => {
 
       expect(actualSplit).toEqual({ file: '/abs/file.yaml', pointer: '' });
     });
+
+    it('should return an empty pointer for a fragment to the whole document', () => {
+      expect(splitSchemaPath('/abs/file.yaml#')).toEqual({
+        file: '/abs/file.yaml',
+        pointer: '',
+      });
+      expect(splitSchemaPath('/abs/file.yaml#/')).toEqual({
+        file: '/abs/file.yaml',
+        pointer: '',
+      });
+    });
+  });
+
+  describe('joinSchemaPath', () => {
+    it('should join the file and the pointer', () => {
+      const actualPath = joinSchemaPath('/abs/file.yaml', '/$defs/Foo');
+
+      expect(actualPath).toEqual('/abs/file.yaml#/$defs/Foo');
+    });
+
+    it('should omit the pointer to the whole document', () => {
+      expect(joinSchemaPath('/abs/file.yaml', '')).toEqual('/abs/file.yaml');
+      expect(joinSchemaPath('/abs/file.yaml', '/')).toEqual('/abs/file.yaml');
+    });
   });
 
   describe('appendToSchemaPath', () => {
@@ -77,6 +102,18 @@ describe('pointer', () => {
       );
 
       expect(actualPath).toEqual('/abs/file.yaml#/$defs/Foo/oneOf/1/a~1b');
+    });
+
+    it('should append segments to a fragment to the whole document', () => {
+      const actualPath = appendToSchemaPath('/abs/file.yaml#/', '$defs', 'Foo');
+
+      expect(actualPath).toEqual('/abs/file.yaml#/$defs/Foo');
+    });
+
+    it('should return the file when no segment is appended to the whole document', () => {
+      const actualPath = appendToSchemaPath('/abs/file.yaml#/');
+
+      expect(actualPath).toEqual('/abs/file.yaml');
     });
   });
 });

@@ -262,6 +262,29 @@ describe('apply', () => {
     });
   });
 
+  it('should write refs to the whole document of a file without a pointer', () => {
+    const schema: ObjectSchema = {
+      kind: 'object',
+      name: 'User',
+      path: `${filePath}#/$defs/User`,
+      properties: [],
+      additionalProperties: false,
+      extensions: {
+        constraintFor: `${filePath}#/`,
+        projectionOf: '/abs/other.yaml#/',
+      },
+      databases: [],
+    };
+
+    const out = apply('', schema);
+
+    const parsed = yaml.parse(out);
+    expect(parsed.$defs.User.causa).toEqual({
+      constraintFor: '#',
+      projectionOf: 'other.yaml',
+    });
+  });
+
   it('should add a nested schema into $defs without overwriting siblings', () => {
     const contents = `
 title: Root

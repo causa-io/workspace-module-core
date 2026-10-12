@@ -9,7 +9,11 @@ import {
   type ObjectSchema,
   type Schema,
 } from '../definitions/index.js';
-import { fromPointer, splitSchemaPath } from '../jsonschema/index.js';
+import {
+  fromPointer,
+  joinSchemaPath,
+  splitSchemaPath,
+} from '../jsonschema/index.js';
 import {
   GraphExtractionFact,
   type GraphContext,
@@ -176,7 +180,7 @@ export class ModelFact extends GraphExtractionFact<ModelFacts> {
       path,
       file,
       segments: fromPointer(pointer),
-      locator: pointer && pointer !== '/' ? `${file}#${pointer}` : file,
+      locator: joinSchemaPath(file, pointer),
     };
   }
 

@@ -33,16 +33,33 @@ export function fromPointer(pointer: string): string[] {
  * A schema path is an absolute file path, followed by a fragment for a nested schema, e.g. `/abs/file.yaml#/$defs/Foo`.
  *
  * @param path The schema path.
- * @returns The file, and the JSON pointer, which is empty for the schema at the root of the file.
+ * @returns The file, and the JSON pointer, which is empty for the schema at the root of the file, including when the
+ *   fragment is `/`.
  */
 export function splitSchemaPath(path: string): {
   file: string;
   pointer: string;
 } {
   const hash = path.indexOf('#');
-  return hash < 0
-    ? { file: path, pointer: '' }
-    : { file: path.slice(0, hash), pointer: path.slice(hash + 1) };
+  if (hash < 0) {
+    return { file: path, pointer: '' };
+  }
+
+  const pointer = path.slice(hash + 1);
+  return { file: path.slice(0, hash), pointer: pointer === '/' ? '' : pointer };
+}
+
+/**
+ * Joins a file and the JSON pointer to a schema within the file into a schema path.
+ * The pointer to the whole document (`''` or `/`) is omitted, such that the schema at the root of a file is identified
+ * by the file alone.
+ *
+ * @param file The file.
+ * @param pointer The JSON pointer to the schema within the file.
+ * @returns The schema path, e.g. `/abs/file.yaml#/$defs/Foo`, or `/abs/file.yaml` for the schema at the root.
+ */
+export function joinSchemaPath(file: string, pointer: string): string {
+  return pointer && pointer !== '/' ? `${file}#${pointer}` : file;
 }
 
 /**
@@ -58,5 +75,5 @@ export function appendToSchemaPath(
   ...segments: (string | number)[]
 ): string {
   const { file, pointer } = splitSchemaPath(path);
-  return `${file}#${pointer}${toPointer(segments)}`;
+  return joinSchemaPath(file, `${pointer}${toPointer(segments)}`);
 }

@@ -3,6 +3,7 @@ export { parseJsonSchema } from './parser.js';
 export {
   appendToSchemaPath,
   fromPointer,
+  joinSchemaPath,
   splitSchemaPath,
   toPointer,
 } from './pointer.js';

@@ -13,7 +13,12 @@ import {
   type Schema,
   type UnionSchema,
 } from '../definitions/index.js';
-import { appendToSchemaPath, fromPointer, splitSchemaPath } from './pointer.js';
+import {
+  appendToSchemaPath,
+  fromPointer,
+  joinSchemaPath,
+  splitSchemaPath,
+} from './pointer.js';
 
 /**
  * Internal alias used while walking the source JSON Schema.
@@ -776,25 +781,23 @@ function buildExtensions(raw: unknown, path: string): CausaExtensions {
 /**
  * Resolve a raw `$ref` value found in a schema to an absolute schema path.
  *
- * - `"#"` resolves to the current file path (whole-document self-ref).
  * - A fragment-only ref (`"#/$defs/Foo"`) is prefixed with the current file path, yielding e.g.
  *   `"/abs/file.yaml#/$defs/Foo"`.
  * - Any other value is treated as a path relative to the current file's directory; the fragment portion (if any) is
  *   preserved as part of the normalized result.
+ * - A ref to the whole document (`"#"`, `"#/"`, `"./other.yaml#/"`) resolves to the file path alone.
  *
  * @param rawRef The `$ref` value as it appears in the source schema.
  * @param currentPath Absolute path of the file containing the ref (may carry a fragment, which is ignored).
  * @returns The absolute, normalized schema path the ref points to.
  */
 function resolveRef(rawRef: string, currentPath: string): string {
-  const { file: filePath } = splitSchemaPath(currentPath);
-  if (rawRef === '#') {
-    return filePath;
-  }
-  if (rawRef.startsWith('#')) {
-    return `${filePath}${rawRef}`;
-  }
-  return normalize(join(dirname(filePath), rawRef));
+  const { file: currentFile } = splitSchemaPath(currentPath);
+  const { file, pointer } = splitSchemaPath(rawRef);
+  const absoluteFile = file
+    ? normalize(join(dirname(currentFile), file))
+    : currentFile;
+  return joinSchemaPath(absoluteFile, pointer);
 }
 
 /**

@@ -13,6 +13,7 @@ import {
   IsDate,
   IsInstance,
   IsInt,
+  IsObject,
   IsPositive,
   IsString,
   Validate,
@@ -20,6 +21,7 @@ import {
   ValidatorConstraint,
   type ValidatorConstraintInterface,
 } from 'class-validator';
+import type { RecordCounts, RecordFilters } from './records.js';
 
 /**
  * The definition for an event topic.
@@ -646,4 +648,38 @@ export abstract class EventTopicQueryEvents extends WorkspaceFunction<
   @IsInt()
   @IsPositive()
   readonly limit?: number;
+}
+
+/**
+ * Counts the events published to an event topic within a time range, and those matching each of the given filters.
+ * Events published several times by the broker are counted once.
+ */
+@PassArgumentsByReference()
+export abstract class EventTopicCountEvents extends WorkspaceFunction<
+  Promise<RecordCounts>
+> {
+  /**
+   * The full event topic name.
+   */
+  @IsString()
+  readonly topic!: string;
+
+  /**
+   * The inclusive lower bound of the time range over which events are counted.
+   */
+  @IsDate()
+  readonly from!: Date;
+
+  /**
+   * The exclusive upper bound of the time range over which events are counted.
+   */
+  @IsDate()
+  readonly to!: Date;
+
+  /**
+   * The filters for which matching events are counted. The paths of conditions start from the root of the event
+   * payload, e.g. `name` or `data.state`.
+   */
+  @IsObject()
+  readonly filters!: RecordFilters;
 }

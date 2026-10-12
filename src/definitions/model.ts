@@ -1,8 +1,15 @@
-import { CliCommand, type ParentCliCommandDefinition } from '@causa/cli';
+import {
+  CliArgument,
+  CliCommand,
+  CliOption,
+  type ParentCliCommandDefinition,
+} from '@causa/cli';
 import { WorkspaceFunction } from '@causa/workspace';
 import { PassArgumentsByReference } from '@causa/workspace/function-registry';
 import { AllowMissing } from '@causa/workspace/validation';
-import { Allow, IsArray, IsObject, IsString } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { Allow, IsArray, IsDate, IsObject, IsString } from 'class-validator';
+import { stringify } from 'yaml';
 import type {
   LoadSchemasResult,
   ObjectSchemaWithoutDatabases,
@@ -265,4 +272,124 @@ export abstract class ModelSchemaWrite extends WorkspaceFunction<
    */
   @IsObject()
   readonly action!: SchemaWriteAction;
+}
+
+/**
+ * The number of records of a schema, and of those satisfying each of its constraints, in one of the sources storing
+ * them.
+ */
+export type SourceRecordCounts = {
+  /**
+   * Where the records were counted: the database persisting the objects of the schema, or the event topic whose events
+   * follow the schema.
+   */
+  readonly source:
+    | {
+        readonly type: 'database';
+        readonly engine: string;
+        readonly table?: string;
+      }
+    | {
+        readonly type: 'eventTopic';
+        readonly topic: string;
+        readonly from: Date;
+        readonly to: Date;
+      };
+
+  /**
+   * The total number of records.
+   */
+  readonly total: number;
+
+  /**
+   * The number of records satisfying each supported constraint, keyed by the locator of the constraint: the path of its
+   * file relative to the workspace root, followed by `#` and the JSON pointer to the constraint within the file.
+   */
+  readonly constraints: Record<string, number>;
+};
+
+/**
+ * The counts returned by {@link ModelSchemaCountRecords}.
+ */
+export type SchemaRecordCounts = {
+  /**
+   * The counts in each source storing records of the schema.
+   * This is empty when the schema is neither persisted in a database nor the schema of an event topic, or when counting
+   * is not supported for them.
+   */
+  readonly sources: SourceRecordCounts[];
+
+  /**
+   * The constraints that cannot be counted, keyed by locator, with the reason why.
+   */
+  readonly unsupported: Record<string, string>;
+};
+
+/**
+ * Counts the records of a schema, and those satisfying each of its constraints, i.e. the schemas declaring it as their
+ * `constraintFor`.
+ * Constraints are only looked up in the file of the schema, and in the files it references. Constraints declared in
+ * other files are ignored.
+ * For an object schema persisted in databases, the records currently stored are counted using
+ * {@link DatabaseCountRecords}. For the event schema of a topic, the events published within the time range are counted
+ * using {@link EventTopicCountEvents}.
+ */
+@CliCommand({
+  parent: modelCommandDefinition,
+  name: 'countRecords',
+  description: `Counts the records of a schema, and those satisfying each of its constraints.
+For an object schema persisted in a database, the rows or documents currently stored are counted.
+For the event schema of a topic, the events published within the time range are counted.
+Constraints are only looked up in the file of the schema, and in the files it references. Constraints declared in other files are ignored.
+A constraint is counted when each of its properties is constrained to a constant, to null, to a non-null value, or to another such constraint.`,
+  summary:
+    'Counts the records of a schema, and those satisfying each of its constraints.',
+  outputFn: (result) => console.log(stringify(result, { lineWidth: 0 })),
+})
+export abstract class ModelSchemaCountRecords extends WorkspaceFunction<
+  Promise<SchemaRecordCounts>
+> {
+  /**
+   * The path to the schema, followed by `#` and the JSON pointer to the schema for a schema nested in its file.
+   * Relative paths are resolved from the workspace root.
+   */
+  @CliArgument({
+    name: 'schema',
+    position: 0,
+    description:
+      'The path to the schema, followed by `#` and the JSON pointer to the schema for a schema nested in its file. Relative paths are resolved from the workspace root.',
+  })
+  @IsString()
+  readonly schema!: string;
+
+  /**
+   * The inclusive lower bound of the time range over which events are counted. Defaults to one day before
+   * {@link ModelSchemaCountRecords.to}.
+   */
+  @CliOption({
+    flags: '--from <from>',
+    description:
+      'The start of the time range over which events are counted, as an ISO 8601 date-time. Defaults to one day before the end of the time range.',
+  })
+  @AllowMissing()
+  @Transform(({ value }) =>
+    typeof value === 'string' ? new Date(value) : value,
+  )
+  @IsDate()
+  readonly from?: Date;
+
+  /**
+   * The exclusive upper bound of the time range over which events are counted. Defaults to now.
+   */
+  @CliOption({
+    flags: '--to <to>',
+    description:
+      'The end of the time range over which events are counted, as an ISO 8601 date-time. Defaults to now.',
+  })
+  @AllowMissing()
+  @Transform(({ value }) =>
+    typeof value === 'string' ? new Date(value) : value,
+  )
+  @IsDate()
+  readonly to?: Date;
 }

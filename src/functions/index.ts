@@ -33,6 +33,7 @@ import {
 import {
   ModelGenerateCodeForAll,
   ModelParseCodeGeneratorInputsForAll,
+  ModelSchemaCountRecordsForAll,
   ModelSchemaParseForJsonSchema,
   ModelSchemaWriteForJsonSchema,
 } from './model/index.js';
@@ -74,6 +75,7 @@ export function registerFunctions(context: ModuleRegistrationContext) {
     HttpMakeRequestForAll,
     ModelGenerateCodeForAll,
     ModelParseCodeGeneratorInputsForAll,
+    ModelSchemaCountRecordsForAll,
     ModelSchemaParseForJsonSchema,
     ModelSchemaWriteForJsonSchema,
     OpenApiGenerateSpecificationForProjectByMerging,

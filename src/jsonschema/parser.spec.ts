@@ -542,6 +542,48 @@ properties:
         ref: '/abs/address.yaml',
       });
     });
+
+    it('should resolve refs to the whole document to the file path', () => {
+      const [schema] = parseJsonSchema(
+        `
+title: U
+type: object
+properties:
+  self:
+    $ref: "#"
+  selfWithSlash:
+    $ref: "#/"
+  other:
+    $ref: "../other/address.yaml#/"
+causa:
+  constraintFor: "#/"`,
+        path,
+      );
+
+      expect((schema as any).properties.map((p: any) => p.type)).toEqual([
+        { kind: 'ref', ref: path },
+        { kind: 'ref', ref: path },
+        { kind: 'ref', ref: '/other/address.yaml' },
+      ]);
+      expect(schema.extensions).toEqual({ constraintFor: path });
+    });
+
+    it('should resolve a relative file ref with a fragment', () => {
+      const [schema] = parseJsonSchema(
+        `
+title: U
+type: object
+properties:
+  address:
+    $ref: "../other/address.yaml#/$defs/Street"`,
+        path,
+      );
+
+      expect((schema as any).properties[0].type).toEqual({
+        kind: 'ref',
+        ref: '/other/address.yaml#/$defs/Street',
+      });
+    });
   });
 
   describe('nested and inline schemas', () => {

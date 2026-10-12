@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+Features:
+
+- Implement the `cs model countRecords` command (`ModelSchemaCountRecords`), which counts the records of a schema, and those satisfying each of its constraints, in the databases persisting the schema or in the event topic whose events follow it.
+- Define `DatabaseCountRecords` and `EventTopicCountEvents`, which count the records of a database and the events of a topic matching each of the given `RecordFilters`.
+- Export `joinSchemaPath` from `@causa/workspace-core/jsonschema`, which builds a schema path from a file and a JSON pointer, omitting the pointer to the whole document.
+
+Fixes:
+
+- Resolve `$ref`s and ref-bearing `causa` extensions pointing to the whole document with a `/` fragment, e.g. `#/` or `./other.yaml#/`, to the path of the file, as for `#`.
+- Return an empty pointer from `splitSchemaPath` for a `/` fragment, which also fixes the paths built by `appendToSchemaPath`, the default names of schemas, and the `$ref`s written for such paths.
+
 ## v1.5.0-beta.2 (2026-10-09)
 
 Breaking changes:

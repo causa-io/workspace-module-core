@@ -50,6 +50,7 @@ serviceContainer:
       type: event
       topic: ordering.order.v1
       endpoint: { type: http, path: /events/order }
+      google.pubSub: { minimumBackoff: 10s }
     onUnknown:
       type: event
       topic: unknown.topic.v1
@@ -422,7 +423,18 @@ describe('CORE_GRAPH_RULES', () => {
           }),
         ],
       },
-      data: { type: 'event', path: '/events/order' },
+      data: {
+        type: 'event',
+        path: '/events/order',
+        extra: { 'google.pubSub': { minimumBackoff: '10s' } },
+      },
+    });
+    expect(
+      architecture.trigger['domains/ordering/api#processOrder'].data,
+    ).toEqual({
+      type: 'task',
+      path: '/tasks/order',
+      queue: 'process-order',
     });
 
     expect(architecture.apiOperation).toEqual({

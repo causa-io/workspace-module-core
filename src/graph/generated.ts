@@ -1531,4 +1531,19 @@ export class TriggerGraphNodeData {
   @_CausaRuntimeAllowMissing()
   @_ClassValidatorIsString()
   readonly timezone?: string;
+
+  /**
+   * The name of the queue, for `task` triggers.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsString()
+  readonly queue?: string;
+
+  /**
+   * The properties of the trigger's configuration that are not represented
+   * elsewhere in the graph, e.g. module-specific options.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsObject()
+  readonly extra?: Record<string, any>;
 }

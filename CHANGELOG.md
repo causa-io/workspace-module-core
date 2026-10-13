@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+Features:
+
+- Copy the properties of a trigger's configuration that are not represented elsewhere in the graph, e.g. module-specific options, to the `extra` property of the `trigger` node data.
+- Add the `queue` of `task` triggers to the `trigger` node data.
+
 ## v1.5.0-beta.3 (2026-10-13)
 
 Features:

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v1.5.0-beta.3 (2026-10-13)
+
 Features:
 
 - Implement the `cs model countRecords` command (`ModelSchemaCountRecords`), which counts the records of a schema, and those satisfying each of its constraints, in the databases persisting the schema or in the event topic whose events follow it.

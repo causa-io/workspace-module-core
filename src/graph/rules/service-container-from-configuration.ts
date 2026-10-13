@@ -15,7 +15,8 @@ import { ProjectsFact } from '../projects.js';
  * The elements declared by the `serviceContainer` configuration of every service container project.
  *
  * - A `trigger` node per `serviceContainer.triggers` entry. The data is the trigger's declared shape (type, enabled,
- *   endpoint path, schedule, timezone). Module-specific properties are not copied.
+ *   endpoint path, schedule, timezone, queue). The other properties of the trigger, e.g. module-specific options, are
+ *   copied as is to `extra`, except the endpoint and the topic, which the graph already represents.
  * - A `delivers` edge from a topic to each `event` trigger consuming it.
  * - A `publishes` edge from a project to each topic of its `serviceContainer.outputs.eventTopics`.
  */
@@ -46,13 +47,25 @@ export const serviceContainerFromConfiguration: GraphRule = {
       const triggers =
         configuration.get('serviceContainer.triggers', { unsafe: true }) ?? {};
       for (const [name, trigger] of Object.entries(triggers)) {
+        const {
+          description,
+          type,
+          enabled,
+          endpoint,
+          schedule,
+          timezone,
+          queue,
+          topic,
+          ...extra
+        } = trigger;
         const data: TriggerGraphNodeData = {
-          type: string(trigger.type),
-          enabled:
-            typeof trigger.enabled === 'boolean' ? trigger.enabled : undefined,
-          path: string(trigger.endpoint?.path),
-          schedule: string(trigger.schedule),
-          timezone: string(trigger.timezone),
+          type: string(type),
+          enabled: typeof enabled === 'boolean' ? enabled : undefined,
+          path: string(endpoint?.path),
+          schedule: string(schedule),
+          timezone: string(timezone),
+          queue: string(queue),
+          extra: Object.keys(extra).length > 0 ? extra : undefined,
         };
         nodes.push({
           layer: 'architecture',
@@ -60,7 +73,7 @@ export const serviceContainerFromConfiguration: GraphRule = {
           locator: triggerLocator(project.directory, name),
           parent: projectId(project.directory),
           name,
-          description: string(trigger.description),
+          description: string(description),
           sources: [
             await locator.configurationSource(project.context, [
               'serviceContainer',
@@ -71,7 +84,7 @@ export const serviceContainerFromConfiguration: GraphRule = {
           data,
         });
 
-        if (trigger.type !== 'event') {
+        if (type !== 'event') {
           continue;
         }
 
@@ -81,7 +94,7 @@ export const serviceContainerFromConfiguration: GraphRule = {
           name,
           'topic',
         ]);
-        if (typeof trigger.topic !== 'string') {
+        if (typeof topic !== 'string') {
           warnings.push({
             message: `Trigger '${name}' of '${project.name}' has no topic.`,
             sources: [source],
@@ -89,9 +102,9 @@ export const serviceContainerFromConfiguration: GraphRule = {
           continue;
         }
 
-        if (!model.topics.has(trigger.topic)) {
+        if (!model.topics.has(topic)) {
           warnings.push({
-            message: `Trigger '${name}' of '${project.name}' consumes '${trigger.topic}', which no event schema defines.`,
+            message: `Trigger '${name}' of '${project.name}' consumes '${topic}', which no event schema defines.`,
             sources: [source],
           });
           continue;
@@ -99,7 +112,7 @@ export const serviceContainerFromConfiguration: GraphRule = {
 
         edges.push({
           type: 'delivers',
-          from: topicId(trigger.topic),
+          from: topicId(topic),
           to: triggerId(project.directory, name),
           sources: [source],
         });

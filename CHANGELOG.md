@@ -2,8 +2,13 @@
 
 ## Unreleased
 
+Breaking changes:
+
+- Parent `apiOperation` graph nodes to the `api` node of the OpenAPI document declaring them, rather than to their project.
+
 Features:
 
+- Add an `api` graph node per OpenAPI document matched by a project's `openApi.specifications`, named after its `info.title`, with its format and version as data.
 - Copy the properties of a trigger's configuration that are not represented elsewhere in the graph, e.g. module-specific options, to the `extra` property of the `trigger` node data.
 - Add the `queue` of `task` triggers to the `trigger` node data.
 

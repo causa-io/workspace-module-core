@@ -43,7 +43,7 @@ project:
   type: serviceContainer
   language: typescript
 openApi:
-  specifications: [openapi.yaml]
+  specifications: [openapi.yaml, empty.yaml]
 serviceContainer:
   triggers:
     onOrder:
@@ -64,7 +64,7 @@ serviceContainer:
 `,
   'domains/ordering/api/openapi.yaml': `
 openapi: 3.0.0
-info: { title: Ordering, version: 1.0.0 }
+info: { title: Ordering, description: Places and lists orders., version: 1.0.0 }
 security: [{ auth: [] }]
 paths:
   /orders:
@@ -82,7 +82,7 @@ project:
   type: serviceContainer
   language: typescript
 openApi:
-  specifications: [openapi.yaml]
+  specifications: [openapi.yaml, ../api/empty.yaml]
   global:
     security: [{ auth: [] }]
 serviceContainer:
@@ -105,6 +105,9 @@ serviceContainer:
       endpoint: { type: http, path: /tasks/ignored }
   outputs:
     eventTopics: [ordering.order.v1]
+`,
+  'domains/ordering/api/empty.yaml': `
+openapi: 3.0.0
 `,
   'domains/ordering/worker/openapi.yaml': `
 openapi: 3.0.0
@@ -303,6 +306,9 @@ describe('CORE_GRAPH_RULES', () => {
     expect(graphContext.failures).toEqual([]);
     const { nodes, edges } = summarize(graph);
     expect(nodes).toEqual([
+      'architecture api:domains/ordering/api/empty.yaml',
+      'architecture api:domains/ordering/api/openapi.yaml',
+      'architecture api:domains/ordering/worker/openapi.yaml',
       'architecture apiOperation:orderCreate',
       'architecture apiOperation:orderList',
       'architecture apiOperation:workerStatus',
@@ -359,7 +365,8 @@ describe('CORE_GRAPH_RULES', () => {
     );
     expect(actualWarnings).toEqual({
       apiOperationFromOpenApi: [
-        "Operation 'orderCreate' is declared by both 'project:domains/ordering/api' and 'project:domains/ordering/worker'. It is kept under the first one.",
+        "Document 'domains/ordering/api/empty.yaml' is matched by both 'project:domains/ordering/api' and 'project:domains/ordering/worker'. It is kept under the first one.",
+        "Operation 'orderCreate' is declared by both 'api:domains/ordering/api/openapi.yaml' and 'api:domains/ordering/worker/openapi.yaml'. It is kept under the first one.",
         "Operation PUT /status has no 'operationId' and cannot be located.",
       ],
       serviceContainerFromConfiguration: [
@@ -437,9 +444,36 @@ describe('CORE_GRAPH_RULES', () => {
       queue: 'process-order',
     });
 
+    expect(architecture.api).toEqual({
+      'domains/ordering/api/empty.yaml': {
+        parent: 'project:domains/ordering/api',
+        name: 'empty.yaml',
+        origin: {
+          kind: 'declared',
+          rule: 'apiOperationFromOpenApi',
+          sources: [{ path: 'domains/ordering/api/empty.yaml' }],
+        },
+        data: { format: 'openApi' },
+      },
+      'domains/ordering/api/openapi.yaml': {
+        parent: 'project:domains/ordering/api',
+        name: 'Ordering',
+        description: 'Places and lists orders.',
+        origin: {
+          kind: 'declared',
+          rule: 'apiOperationFromOpenApi',
+          sources: [{ path: 'domains/ordering/api/openapi.yaml' }],
+        },
+        data: { format: 'openApi', version: '1.0.0' },
+      },
+      'domains/ordering/worker/openapi.yaml': expect.objectContaining({
+        parent: 'project:domains/ordering/worker',
+        name: 'Worker',
+      }),
+    });
     expect(architecture.apiOperation).toEqual({
       orderCreate: {
-        parent: 'project:domains/ordering/api',
+        parent: 'api:domains/ordering/api/openapi.yaml',
         name: 'orderCreate',
         description: 'Creates an order.',
         origin: {
@@ -462,7 +496,7 @@ describe('CORE_GRAPH_RULES', () => {
         data: { method: 'get', path: '/orders', public: true },
       }),
       workerStatus: expect.objectContaining({
-        parent: 'project:domains/ordering/worker',
+        parent: 'api:domains/ordering/worker/openapi.yaml',
         data: { method: 'get', path: '/status', public: false },
       }),
     });

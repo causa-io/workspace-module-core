@@ -20,3 +20,12 @@ properties:
   timezone:
     type: string
     description: The timezone of the cron schedule. Defaults to UTC.
+  queue:
+    type: string
+    description: The name of the queue, for `task` triggers.
+  extra:
+    type: object
+    description: |-
+      The properties of the trigger's configuration that are not represented
+      elsewhere in the graph, e.g. module-specific options.
+    additionalProperties: true

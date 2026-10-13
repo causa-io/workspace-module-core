@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=https://json-schema.org/draft/2020-12/schema
+
+title: ApiGraphNodeData
+type: object
+description: The payload of an `api` node.
+additionalProperties: false
+properties:
+  format:
+    type: string
+    description: The format of the document declaring the API, e.g. `openApi`.
+  version:
+    type: string
+    description: |-
+      The version of the API, e.g. the `info.version` of an OpenAPI document.

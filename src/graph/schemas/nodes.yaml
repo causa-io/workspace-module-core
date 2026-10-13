@@ -63,12 +63,30 @@ properties:
               oneOf:
                 - $ref: ./node-data/project.yaml
 
+      api:
+        type: object
+        description: |-
+          An API exposed by a project: a set of operations declared together,
+          e.g. an OpenAPI document.
+
+          Parent: `project`.
+
+          Locator: For OpenAPI documents, the document path, relative to the
+          workspace root, e.g. `domains/my-domain/api/my-entity.api.yaml`.
+        additionalProperties:
+          description: One `api` node, keyed by its locator.
+          $ref: ./node.yaml
+          properties:
+            data:
+              oneOf:
+                - $ref: ./node-data/api.yaml
+
       apiOperation:
         type: object
         description: |-
-          A single operation of a project's API (e.g. from an OpenAPI document).
+          A single operation of an API (e.g. from an OpenAPI document).
 
-          Parent: `project`.
+          Parent: `api`.
 
           Locator: For OpenAPI operations, the `operationId`.
         additionalProperties:

@@ -43,6 +43,29 @@ export class AccessesGraphEdgeData {
 }
 
 /**
+ * The payload of an `api` node.
+ */
+export class ApiGraphNodeData {
+  constructor(init: ApiGraphNodeData) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * The format of the document declaring the API, e.g. `openApi`.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsString()
+  readonly format?: string;
+
+  /**
+   * The version of the API, e.g. the `info.version` of an OpenAPI document.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsString()
+  readonly version?: string;
+}
+
+/**
  * The payload of a `brokerSubscription` node.
  */
 export class BrokerSubscriptionGraphNodeData {
@@ -890,9 +913,22 @@ export class ArchitectureGraphNodes {
   readonly project?: Record<string, GraphNode>;
 
   /**
-   * A single operation of a project's API (e.g. from an OpenAPI document).
+   * An API exposed by a project: a set of operations declared together,
+   * e.g. an OpenAPI document.
    *
    * Parent: `project`.
+   *
+   * Locator: For OpenAPI documents, the document path, relative to the
+   * workspace root, e.g. `domains/my-domain/api/my-entity.api.yaml`.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsObject()
+  readonly api?: Record<string, GraphNode>;
+
+  /**
+   * A single operation of an API (e.g. from an OpenAPI document).
+   *
+   * Parent: `api`.
    *
    * Locator: For OpenAPI operations, the `operationId`.
    */

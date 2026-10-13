@@ -66,6 +66,8 @@ export const domainId = (directory: string) => nodeId('domain', directory);
 
 export const projectId = (directory: string) => nodeId('project', directory);
 
+export const apiId = (locator: string) => nodeId('api', locator);
+
 export const apiOperationId = (operationId: string) =>
   nodeId('apiOperation', operationId);
 

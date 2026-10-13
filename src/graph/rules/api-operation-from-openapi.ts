@@ -1,24 +1,26 @@
 import type { OpenAPIV3_1 } from '@scalar/openapi-types';
 import { readFile } from 'fs/promises';
 import { globby } from 'globby';
-import { join, relative } from 'path';
+import { basename, join, relative } from 'path';
 import { parse } from 'yaml';
 import type { OpenApiConfiguration } from '../../configurations/index.js';
 import {
   GraphOriginKind,
   HttpMethod,
+  type ApiGraphNodeData,
   type ApiOperationGraphNodeData,
   type GraphRule,
   type GraphRuleNode,
   type GraphWarning,
 } from '../../definitions/index.js';
-import { projectId } from '../ids.js';
+import { apiId, projectId } from '../ids.js';
 import { ProjectsFact } from '../projects.js';
 
 /**
- * An `apiOperation` node per operation of the OpenAPI documents matched by a project's `openApi.specifications`,
- * resolved relative to the project directory as `cs openapi generateSpecification` does. The locator is the
- * `operationId`.
+ * An `api` node per OpenAPI document matched by a project's `openApi.specifications`, resolved relative to the project
+ * directory as `cs openapi generateSpecification` does, and an `apiOperation` node per operation of the document. The
+ * locator of an `api` is the path of the document, relative to the workspace root, and its name is the document's
+ * `info.title`, falling back to the file name. The locator of an `apiOperation` is its `operationId`.
  *
  * `public` reads the effective `security` of the operation: its own, else the document's, else the project's
  * `openApi.global.security`. An empty list, or no security at all, makes the operation public.
@@ -27,14 +29,15 @@ export const apiOperationFromOpenApi: GraphRule = {
   name: 'apiOperationFromOpenApi',
   kind: GraphOriginKind.Declared,
   description:
-    "One `apiOperation` node per operation in the OpenAPI documents matched by each project's `openApi.specifications`.",
+    "One `api` node per OpenAPI document matched by each project's `openApi.specifications`, parented to the project, and one `apiOperation` node per operation in the document, parented to the `api`.",
   async run(graph) {
     const { locator, context } = graph;
     const projects = await graph.get(ProjectsFact);
     const nodes: GraphRuleNode[] = [];
     const warnings: GraphWarning[] = [];
 
-    const parents = new Map<string, string>();
+    const documentParents = new Map<string, string>();
+    const operationParents = new Map<string, string>();
 
     for (const project of projects) {
       const openApi = project.context.asConfiguration<OpenApiConfiguration>();
@@ -50,14 +53,43 @@ export const apiOperationFromOpenApi: GraphRule = {
       });
       files.sort();
       const globalSecurity = openApi.get('openApi.global.security');
-      const parent = projectId(project.directory);
+      const projectNode = projectId(project.directory);
 
       for (const file of files) {
         const absolutePath = join(projectPath, file);
         const relativePath = relative(context.rootPath, absolutePath);
+        const documentSource = await locator.source(relativePath);
+
+        // Several projects can match the same document, e.g. through a shared configuration file. It is read once.
+        const existingProject = documentParents.get(relativePath);
+        if (existingProject) {
+          warnings.push({
+            message: `Document '${relativePath}' is matched by both '${existingProject}' and '${projectNode}'. It is kept under the first one.`,
+            sources: [documentSource],
+          });
+          continue;
+        }
+        documentParents.set(relativePath, projectNode);
+
         const document = parse(
           await readFile(absolutePath, 'utf-8'),
         ) as OpenAPIV3_1.Document;
+        const { title, description, version } = document.info ?? {};
+        const apiData: ApiGraphNodeData = {
+          format: 'openApi',
+          version: typeof version === 'string' ? version : undefined,
+        };
+        nodes.push({
+          layer: 'architecture',
+          type: 'api',
+          locator: relativePath,
+          parent: projectNode,
+          name: typeof title === 'string' ? title : basename(relativePath),
+          description: description || undefined,
+          sources: [documentSource],
+          data: apiData,
+        });
+        const parent = apiId(relativePath);
 
         for (const [path, item] of Object.entries(document.paths ?? {})) {
           for (const method of Object.values(HttpMethod)) {
@@ -80,15 +112,15 @@ export const apiOperationFromOpenApi: GraphRule = {
               continue;
             }
 
-            // The locator is the bare `operationId`: two projects matching the same document collide on one node.
-            const existingParent = parents.get(operationId);
+            // The locator is the bare `operationId`: two documents declaring the same operation collide on one node.
+            const existingParent = operationParents.get(operationId);
             if (existingParent && existingParent !== parent) {
               warnings.push({
                 message: `Operation '${operationId}' is declared by both '${existingParent}' and '${parent}'. It is kept under the first one.`,
                 sources: [source],
               });
             }
-            parents.set(operationId, existingParent ?? parent);
+            operationParents.set(operationId, existingParent ?? parent);
 
             const security =
               operation.security ?? document.security ?? globalSecurity ?? [];

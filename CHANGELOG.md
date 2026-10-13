@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v1.5.0-beta.4 (2026-10-13)
+
 Breaking changes:
 
 - Parent `apiOperation` graph nodes to the `api` node of the OpenAPI document declaring them, rather than to their project.

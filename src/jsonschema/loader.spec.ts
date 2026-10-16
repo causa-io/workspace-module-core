@@ -80,6 +80,27 @@ causa:
     expect(schemas['/abs/mutation.yaml']).toMatchObject({ name: 'Mutation' });
   });
 
+  it('should follow ref-bearing causa extensions of properties transitively', async () => {
+    const files: Record<string, string> = {
+      '/abs/root.yaml': `
+title: Root
+type: object
+properties:
+  otherId:
+    type: string
+    causa:
+      identifierOf:
+        schema: "./other.yaml"`,
+      '/abs/other.yaml': 'title: Other\ntype: object',
+    };
+
+    const { schemas } = await loadSchemas(['/abs/root.yaml'], {
+      fileReader: async (p) => files[p],
+    });
+
+    expect(schemas['/abs/other.yaml']).toMatchObject({ name: 'Other' });
+  });
+
   it('should record per-file errors instead of aborting', async () => {
     const files: Record<string, string> = {
       '/abs/ok.yaml': 'title: Ok\ntype: object',

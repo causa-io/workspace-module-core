@@ -1373,6 +1373,42 @@ causa:
         custom: 'untouched',
       });
     });
+
+    it('should normalize ref-bearing extensions of properties to absolute paths', () => {
+      const [schema] = parseJsonSchema(
+        `
+title: U
+type: object
+properties:
+  customerId:
+    type: string
+    causa:
+      identifierOf:
+        schema: "../customers/customer.yaml"
+        property: id
+  status:
+    type: string
+    causa:
+      enumHint: "#/$defs/Status"`,
+        path,
+      );
+
+      expect(schema).toMatchObject({
+        kind: 'object',
+        properties: [
+          {
+            name: 'customerId',
+            extensions: {
+              identifierOf: {
+                schema: '/customers/customer.yaml',
+                property: 'id',
+              },
+            },
+          },
+          { name: 'status', extensions: { enumHint: `${path}#/$defs/Status` } },
+        ],
+      });
+    });
   });
 
   it('should leave databases empty', () => {

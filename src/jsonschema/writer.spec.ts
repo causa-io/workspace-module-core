@@ -262,6 +262,38 @@ describe('apply', () => {
     });
   });
 
+  it('should rewrite the schema of a property identifier back to relative form', () => {
+    const schema: ObjectSchema = {
+      kind: 'object',
+      name: 'User',
+      path: filePath,
+      properties: [
+        {
+          name: 'teamId',
+          type: { kind: 'primitive', type: 'string' },
+          nullable: false,
+          required: true,
+          extensions: {
+            identifierOf: {
+              schema: '/abs/team.yaml',
+              scope: { company: 'company' },
+            },
+          },
+        },
+      ],
+      additionalProperties: false,
+      extensions: {},
+      databases: [],
+    };
+
+    const out = apply('', schema);
+
+    const parsed = yaml.parse(out);
+    expect(parsed.properties.teamId.causa).toEqual({
+      identifierOf: { schema: 'team.yaml', scope: { company: 'company' } },
+    });
+  });
+
   it('should write refs to the whole document of a file without a pointer', () => {
     const schema: ObjectSchema = {
       kind: 'object',

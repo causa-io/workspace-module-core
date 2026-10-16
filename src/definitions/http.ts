@@ -103,7 +103,19 @@ export abstract class HttpMakeRequest extends WorkspaceFunction<
    *   {@link HttpFormField} values) and the header's boundary is set automatically.
    * - When the `Content-Type` header is `application/json`, the body is JSON-serialized.
    * - Otherwise, strings are sent as-is, and objects and arrays are JSON-serialized.
+   *
+   * Cannot be set along with {@link HttpMakeRequest.bodyFile}.
    */
   @AllowMissing()
   readonly body?: any;
+
+  /**
+   * The path to a local file, resolved from the workspace root, whose raw content is sent as the request body,
+   * regardless of the `Content-Type` header. The header is not inferred from the file and should be set explicitly.
+   *
+   * Cannot be set along with {@link HttpMakeRequest.body}.
+   */
+  @AllowMissing()
+  @IsString()
+  readonly bodyFile?: string;
 }

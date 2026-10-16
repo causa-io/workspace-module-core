@@ -239,6 +239,63 @@ describe('HttpMakeRequestForAll', () => {
     );
   });
 
+  it('should send the raw content of a local file as the body', async () => {
+    await writeFile(join(tmpDir, 'data.csv'), 'a,b\n1,2\n');
+    const scope = nock('https://api.example.com', {
+      reqheaders: { 'content-type': 'text/csv' },
+    })
+      .put('/import', 'a,b\n1,2\n')
+      .reply(204);
+
+    const actual = await context.call(HttpMakeRequest, {
+      baseUrl: 'https://api.example.com',
+      method: 'PUT',
+      path: '/import',
+      headers: { 'content-type': 'text/csv' },
+      bodyFile: 'data.csv',
+    });
+
+    expect(actual.statusCode).toEqual(204);
+    scope.done();
+  });
+
+  it('should not JSON-serialize the content of a local file when the content type is application/json', async () => {
+    await writeFile(join(tmpDir, 'item.json'), '{"name":"thing"}');
+    const scope = nock('https://api.example.com', {
+      reqheaders: { 'content-type': 'application/json' },
+    })
+      .post('/items', (body) => body.name === 'thing')
+      .reply(201, { id: '🆔' }, { 'content-type': 'application/json' });
+
+    const actual = await context.call(HttpMakeRequest, {
+      baseUrl: 'https://api.example.com',
+      method: 'POST',
+      path: '/items',
+      headers: { 'content-type': 'application/json' },
+      bodyFile: 'item.json',
+    });
+
+    expect(actual).toEqual({
+      statusCode: 201,
+      headers: { 'content-type': 'application/json' },
+      body: { id: '🆔' },
+    });
+    scope.done();
+  });
+
+  it('should throw when both body and bodyFile are set', async () => {
+    const actualPromise = context.call(HttpMakeRequest, {
+      baseUrl: 'https://api.example.com',
+      method: 'POST',
+      body: 'inline',
+      bodyFile: 'data.csv',
+    });
+
+    await expect(actualPromise).rejects.toThrow(
+      "Only one of 'body' and 'bodyFile' can be set.",
+    );
+  });
+
   it('should expose error responses without throwing', async () => {
     const scope = nock('https://api.example.com')
       .get('/missing')

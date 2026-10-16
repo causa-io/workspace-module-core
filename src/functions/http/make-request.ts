@@ -31,8 +31,15 @@ export class HttpMakeRequestForAll extends HttpMakeRequest {
     const isFormData = contentType?.includes('multipart/form-data');
     const isJsonRequest = contentType?.includes('application/json');
 
-    let body: string | FormData | undefined;
-    if (this.body !== undefined && method !== 'GET' && method !== 'HEAD') {
+    if (this.body !== undefined && this.bodyFile !== undefined) {
+      throw new Error("Only one of 'body' and 'bodyFile' can be set.");
+    }
+
+    const canHaveBody = method !== 'GET' && method !== 'HEAD';
+    let body: string | FormData | Buffer | undefined;
+    if (canHaveBody && this.bodyFile !== undefined) {
+      body = await readFile(resolve(this._context.rootPath, this.bodyFile));
+    } else if (canHaveBody && this.body !== undefined) {
       if (isFormData) {
         // `fetch` sets the `multipart/form-data` content type, including the boundary, from the `FormData` body, so the
         // header is removed to let it do so.

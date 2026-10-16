@@ -1,7 +1,7 @@
 import type { OpenAPIV3_1 } from '@scalar/openapi-types';
 import { readFile } from 'fs/promises';
 import { globby } from 'globby';
-import { basename, join, relative } from 'path';
+import { basename, dirname, join, relative } from 'path';
 import { parse } from 'yaml';
 import type { OpenApiConfiguration } from '../../configurations/index.js';
 import {
@@ -10,11 +10,93 @@ import {
   type ApiGraphNodeData,
   type ApiOperationGraphNodeData,
   type GraphRule,
+  type GraphRuleEdge,
   type GraphRuleNode,
   type GraphWarning,
+  type ReturnsGraphEdgeData,
 } from '../../definitions/index.js';
-import { apiId, projectId } from '../ids.js';
+import { joinSchemaPath, splitSchemaPath } from '../../jsonschema/index.js';
+import { apiId, apiOperationId, projectId } from '../ids.js';
+import type { DocumentPath } from '../locate.js';
+import { ModelFact } from '../model.js';
 import { ProjectsFact } from '../projects.js';
+
+/**
+ * A body of a request or a response of an OpenAPI operation, along with its path in the document.
+ */
+type OpenApiBody = {
+  /**
+   * The response status, or `undefined` for the request body.
+   */
+  readonly status?: string;
+
+  /**
+   * The schema of the body.
+   */
+  readonly schema: unknown;
+
+  /**
+   * The path to the schema of the body in the document.
+   */
+  readonly segments: DocumentPath;
+};
+
+/**
+ * Lists the bodies of the request and responses of an operation, one per media type.
+ *
+ * @param operation The OpenAPI operation.
+ * @param segments The path to the operation in the document.
+ * @returns The bodies of the request and responses.
+ */
+function operationBodies(
+  operation: OpenAPIV3_1.OperationObject,
+  segments: DocumentPath,
+): OpenApiBody[] {
+  const bodiesOf = (
+    body: unknown,
+    bodySegments: DocumentPath,
+    status?: string,
+  ): OpenApiBody[] => {
+    const content = (body as OpenAPIV3_1.RequestBodyObject | undefined)
+      ?.content;
+    return Object.entries(content ?? {}).map(([mediaType, media]) => ({
+      status,
+      schema: media?.schema,
+      segments: [...bodySegments, 'content', mediaType, 'schema'],
+    }));
+  };
+
+  return [
+    ...bodiesOf(operation.requestBody, [...segments, 'requestBody']),
+    ...Object.entries(operation.responses ?? {}).flatMap(([status, response]) =>
+      bodiesOf(response, [...segments, 'responses', status], status),
+    ),
+  ];
+}
+
+/**
+ * Lists the schemas referenced by the schema of a body: the schema itself, the members of a `oneOf` or `anyOf`, or the
+ * items of an array, when they are references.
+ *
+ * @param schema The schema of the body.
+ * @returns The `$ref` values.
+ */
+function bodyRefs(schema: unknown): string[] {
+  if (!schema || typeof schema !== 'object') {
+    return [];
+  }
+
+  const { $ref, oneOf, anyOf, items } = schema as Record<string, unknown>;
+  if (typeof $ref === 'string') {
+    return [$ref];
+  }
+
+  const members = [oneOf, anyOf].flatMap((m) => (Array.isArray(m) ? m : []));
+  return [...members, items].flatMap((m) => {
+    const ref = (m as Record<string, unknown> | undefined)?.$ref;
+    return typeof ref === 'string' ? [ref] : [];
+  });
+}
 
 /**
  * An `api` node per OpenAPI document matched by a project's `openApi.specifications`, resolved relative to the project
@@ -24,16 +106,24 @@ import { ProjectsFact } from '../projects.js';
  *
  * `public` reads the effective `security` of the operation: its own, else the document's, else the project's
  * `openApi.global.security`. An empty list, or no security at all, makes the operation public.
+ *
+ * An operation `accepts` the schemas of its request body, and `returns` the schemas of its responses, labelled with the
+ * status. A body schema is followed when it is a `$ref` to a schema file, a `oneOf` or `anyOf` of such references, or
+ * an array of them. References within the document (e.g. to `#/components/schemas`) are not schemas of the model.
  */
 export const apiOperationFromOpenApi: GraphRule = {
   name: 'apiOperationFromOpenApi',
   kind: GraphOriginKind.Declared,
   description:
-    "One `api` node per OpenAPI document matched by each project's `openApi.specifications`, parented to the project, and one `apiOperation` node per operation in the document, parented to the `api`.",
+    "One `api` node per OpenAPI document matched by each project's `openApi.specifications`, parented to the project, and one `apiOperation` node per operation in the document, parented to the `api`. One `accepts` edge from an operation to each schema of its request body, and one `returns` edge to each schema of its responses.",
   async run(graph) {
     const { locator, context } = graph;
-    const projects = await graph.get(ProjectsFact);
+    const [projects, model] = await Promise.all([
+      graph.get(ProjectsFact),
+      graph.get(ModelFact),
+    ]);
     const nodes: GraphRuleNode[] = [];
+    const edges: GraphRuleEdge[] = [];
     const warnings: GraphWarning[] = [];
 
     const documentParents = new Map<string, string>();
@@ -139,11 +229,55 @@ export const apiOperationFromOpenApi: GraphRule = {
               sources: [source],
               data,
             });
+
+            const bodies = operationBodies(operation, ['paths', path, method]);
+            for (const { status, schema, segments } of bodies) {
+              const bodySource = await locator.source(relativePath, segments);
+              for (const ref of bodyRefs(schema)) {
+                const { file, pointer } = splitSchemaPath(ref);
+                const target = file
+                  ? model.schemas.get(
+                      joinSchemaPath(
+                        join(dirname(absolutePath), file),
+                        pointer,
+                      ),
+                    )
+                  : undefined;
+                if (!target) {
+                  warnings.push({
+                    message: `Operation '${operationId}' refers to '${ref}', which is not a schema of the model.`,
+                    sources: [bodySource],
+                  });
+                  continue;
+                }
+
+                const from = apiOperationId(operationId);
+                if (status === undefined) {
+                  edges.push({
+                    type: 'accepts',
+                    from,
+                    to: target.id,
+                    sources: [bodySource],
+                  });
+                  continue;
+                }
+
+                const returnsData: ReturnsGraphEdgeData = { status };
+                edges.push({
+                  type: 'returns',
+                  from,
+                  to: target.id,
+                  label: status,
+                  sources: [bodySource],
+                  data: returnsData,
+                });
+              }
+            }
           }
         }
       }
     }
 
-    return { nodes, warnings };
+    return { nodes, edges, warnings };
   },
 };

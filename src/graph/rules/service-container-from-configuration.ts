@@ -1,3 +1,4 @@
+import { join, relative } from 'path';
 import type { ServiceContainerConfiguration } from '../../configurations/index.js';
 import {
   GraphOriginKind,
@@ -7,6 +8,7 @@ import {
   type GraphWarning,
   type TriggerGraphNodeData,
 } from '../../definitions/index.js';
+import { joinSchemaPath, splitSchemaPath } from '../../jsonschema/index.js';
 import { projectId, topicId, triggerId, triggerLocator } from '../ids.js';
 import { ModelFact } from '../model.js';
 import { ProjectsFact } from '../projects.js';
@@ -16,17 +18,18 @@ import { ProjectsFact } from '../projects.js';
  *
  * - A `trigger` node per `serviceContainer.triggers` entry. The data is the trigger's declared shape (type, enabled,
  *   endpoint path, schedule, timezone, queue). The other properties of the trigger, e.g. module-specific options, are
- *   copied as is to `extra`, except the endpoint and the topic, which the graph already represents.
+ *   copied as is to `extra`, except the endpoint, the topic, and the DTO, which the graph already represents.
  * - A `delivers` edge from a topic to each `event` trigger consuming it.
+ * - An `accepts` edge from a trigger to the schema of its `dto`, resolved relative to the project directory.
  * - A `publishes` edge from a project to each topic of its `serviceContainer.outputs.eventTopics`.
  */
 export const serviceContainerFromConfiguration: GraphRule = {
   name: 'serviceContainerFromConfiguration',
   kind: GraphOriginKind.Declared,
   description:
-    'For each service container project, one `trigger` node per key of `serviceContainer.triggers`, parented to the project, and one `delivers` edge to each trigger of type `event` from the topic it names. One `publishes` edge from a project to each topic listed in its `serviceContainer.outputs.eventTopics`.',
+    'For each service container project, one `trigger` node per key of `serviceContainer.triggers`, parented to the project, one `delivers` edge to each trigger of type `event` from the topic it names, and one `accepts` edge from each trigger to the schema of its `dto`. One `publishes` edge from a project to each topic listed in its `serviceContainer.outputs.eventTopics`.',
   async run(graph) {
-    const { locator } = graph;
+    const { locator, context } = graph;
     const [projects, model] = await Promise.all([
       graph.get(ProjectsFact),
       graph.get(ModelFact),
@@ -56,6 +59,7 @@ export const serviceContainerFromConfiguration: GraphRule = {
           timezone,
           queue,
           topic,
+          dto,
           ...extra
         } = trigger;
         const data: TriggerGraphNodeData = {
@@ -83,6 +87,34 @@ export const serviceContainerFromConfiguration: GraphRule = {
           ],
           data,
         });
+
+        if (typeof dto === 'string') {
+          const { file, pointer } = splitSchemaPath(dto);
+          const ref = joinSchemaPath(
+            join(context.rootPath, project.directory, file),
+            pointer,
+          );
+          const schema = model.schemas.get(ref);
+          const dtoSource = await locator.configurationSource(project.context, [
+            'serviceContainer',
+            'triggers',
+            name,
+            'dto',
+          ]);
+          if (schema) {
+            edges.push({
+              type: 'accepts',
+              from: triggerId(project.directory, name),
+              to: schema.id,
+              sources: [dtoSource],
+            });
+          } else {
+            warnings.push({
+              message: `Trigger '${name}' of '${project.name}' accepts '${relative(context.rootPath, ref)}', which is not a schema of the model.`,
+              sources: [dtoSource],
+            });
+          }
+        }
 
         if (type !== 'event') {
           continue;

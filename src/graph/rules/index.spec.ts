@@ -61,6 +61,7 @@ serviceContainer:
     processOrder:
       type: task
       queue: process-order
+      dto: ../tasks/process-order.yaml
       endpoint: { type: http, path: /tasks/order }
   outputs:
     eventTopics: [ordering.order.v1]
@@ -74,10 +75,36 @@ paths:
     post:
       operationId: orderCreate
       summary: Creates an order.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: ./dtos/order-create.dto.yaml
+      responses:
+        201:
+          content:
+            application/json:
+              schema:
+                $ref: ./dtos/order.dto.yaml
+        '400':
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: ../../../shared/error.yaml
+                  - $ref: '#/components/schemas/Unknown'
     get:
       operationId: orderList
       summary: Lists orders.
       security: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: ./dtos/order.dto.yaml
 `,
   'domains/ordering/api/dtos/order-create.dto.yaml': `
 title: OrderCreateDto
@@ -166,6 +193,11 @@ serviceContainer:
     noTopic:
       type: event
       endpoint: { type: http, path: /events/none }
+    cleanUp:
+      type: cron
+      schedule: '0 0 * * *'
+      dto: ../tasks/missing.yaml
+      endpoint: { type: http, path: /tasks/clean-up }
   outputs:
     eventTopics: [unknown.topic.v1]
 `,
@@ -448,6 +480,7 @@ describe('CORE_GRAPH_RULES', () => {
       'architecture trigger:domains/ordering/api#onOrder',
       'architecture trigger:domains/ordering/api#onUnknown',
       'architecture trigger:domains/ordering/api#processOrder',
+      'architecture trigger:domains/ordering/worker#cleanUp',
       'architecture trigger:domains/ordering/worker#noTopic',
       'model schema:domains/ordering/api/dtos/order-create.dto.yaml',
       'model schema:domains/ordering/api/dtos/order.dto.yaml',
@@ -474,6 +507,8 @@ describe('CORE_GRAPH_RULES', () => {
       'model schema:shared/error.yaml',
     ]);
     expect(edges).toEqual([
+      'accepts apiOperation:orderCreate -> schema:domains/ordering/api/dtos/order-create.dto.yaml',
+      'accepts trigger:domains/ordering/api#processOrder -> schema:domains/ordering/tasks/process-order.yaml',
       'carries topic:ordering.order.v1 -> entity:domains/ordering/entities/order.yaml',
       'constrains schema:domains/ordering/entities/placed-order.yaml -> schema:domains/ordering/entities/order.yaml',
       'constrains schema:domains/ordering/entities/shipped-order.yaml -> schema:domains/ordering/entities/order.yaml',
@@ -511,6 +546,9 @@ describe('CORE_GRAPH_RULES', () => {
       'references schema:domains/ordering/entities/order.yaml -> schema:domains/ordering/entities/customer.yaml',
       'references schema:domains/ordering/entities/placed-order.yaml -> schema:domains/ordering/entities/order.yaml',
       'references schema:domains/ordering/tasks/process-order.yaml -> schema:domains/ordering/entities/order.yaml',
+      'returns apiOperation:orderCreate -> schema:domains/ordering/api/dtos/order.dto.yaml',
+      'returns apiOperation:orderCreate -> schema:shared/error.yaml',
+      'returns apiOperation:orderList -> schema:domains/ordering/api/dtos/order.dto.yaml',
       'transitions null -> state:domains/ordering/entities/placed-order.yaml',
       'transitions state:domains/ordering/entities/placed-order.yaml -> state:domains/ordering/entities/shipped-order.yaml',
     ]);
@@ -531,9 +569,9 @@ describe('CORE_GRAPH_RULES', () => {
       kind: 'declared',
       description: expect.any(String),
       domains: 0,
-      nodes: 4,
-      edges: 2,
-      warnings: expect.toBeArrayOfSize(3),
+      nodes: 5,
+      edges: 3,
+      warnings: expect.toBeArrayOfSize(4),
       dangling: [],
     });
 
@@ -544,6 +582,7 @@ describe('CORE_GRAPH_RULES', () => {
     );
     expect(actualWarnings).toEqual({
       apiOperationFromOpenApi: [
+        "Operation 'orderCreate' refers to '#/components/schemas/Unknown', which is not a schema of the model.",
         "Document 'domains/ordering/api/empty.yaml' is matched by both 'project:domains/ordering/api' and 'project:domains/ordering/worker'. It is kept under the first one.",
         "Operation 'orderCreate' is declared by both 'api:domains/ordering/api/openapi.yaml' and 'api:domains/ordering/worker/openapi.yaml'. It is kept under the first one.",
         "Operation PUT /status has no 'operationId' and cannot be located.",
@@ -551,6 +590,7 @@ describe('CORE_GRAPH_RULES', () => {
       serviceContainerFromConfiguration: [
         "Trigger 'onUnknown' of 'ordering-api' consumes 'unknown.topic.v1', which no event schema defines.",
         "Trigger 'noTopic' of 'ordering-worker' has no topic.",
+        "Trigger 'cleanUp' of 'ordering-worker' accepts 'domains/ordering/tasks/missing.yaml', which is not a schema of the model.",
         "Project 'ordering-worker' publishes to 'unknown.topic.v1', which no event schema defines.",
       ],
       entityFromSchema: [
@@ -877,5 +917,37 @@ describe('CORE_GRAPH_RULES', () => {
         },
       }),
     );
+    expect(graph.edges?.accepts).toContainEqual({
+      from: 'trigger:domains/ordering/api#processOrder',
+      to: 'schema:domains/ordering/tasks/process-order.yaml',
+      origin: {
+        kind: 'declared',
+        rule: 'serviceContainerFromConfiguration',
+        sources: [
+          expect.objectContaining({
+            path: 'domains/ordering/api/causa.yaml',
+            pointer: '/serviceContainer/triggers/processOrder/dto',
+          }),
+        ],
+      },
+    });
+    expect(graph.edges?.returns).toContainEqual({
+      from: 'apiOperation:orderCreate',
+      to: 'schema:domains/ordering/api/dtos/order.dto.yaml',
+      label: '201',
+      origin: {
+        kind: 'declared',
+        rule: 'apiOperationFromOpenApi',
+        sources: [
+          {
+            path: 'domains/ordering/api/openapi.yaml',
+            pointer:
+              '/paths/~1orders/post/responses/201/content/application~1json/schema',
+            location: expect.any(Object),
+          },
+        ],
+      },
+      data: { status: '201' },
+    });
   });
 });

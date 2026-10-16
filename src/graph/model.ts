@@ -20,13 +20,19 @@ import {
   type GraphFactOutput,
   type GraphWarning,
 } from './context.js';
-import { entityId } from './ids.js';
+import { domainOfFile, DomainsFact, type WorkspaceDomain } from './domains.js';
+import { entityId, schemaId, stateId } from './ids.js';
 import type { DocumentPath } from './locate.js';
 
 /**
  * A parsed schema, located in the workspace.
  */
 export type SchemaFacts = {
+  /**
+   * The ID of the `schema` node.
+   */
+  readonly id: string;
+
   /**
    * The parsed schema.
    */
@@ -51,6 +57,26 @@ export type SchemaFacts = {
    * The locator of the schema: its file, with `#<JSON pointer>` appended for a nested definition.
    */
   readonly locator: string;
+
+  /**
+   * The domain of the file declaring the schema.
+   */
+  readonly domain: WorkspaceDomain | undefined;
+};
+
+/**
+ * An event topic of the workspace.
+ */
+export type TopicFacts = EventTopicDefinition & {
+  /**
+   * The parsed event schema of the topic, if it could be parsed.
+   */
+  readonly schema: SchemaFacts | undefined;
+
+  /**
+   * The domain of the topic's event schema file.
+   */
+  readonly domain: WorkspaceDomain | undefined;
 };
 
 /**
@@ -70,17 +96,42 @@ export type EntityFacts = {
   /**
    * The topics whose event schema's `data` property references the entity's schema.
    */
-  readonly carriedBy: readonly EventTopicDefinition[];
+  readonly carriedBy: readonly TopicFacts[];
 };
 
 /**
- * The model of the workspace: its event topics, its schemas, and the entities they define.
+ * A state of an entity: an object schema whose `causa.constraintFor` references the entity's schema.
+ */
+export type StateFacts = {
+  /**
+   * The ID of the `state` node.
+   */
+  readonly id: string;
+
+  /**
+   * The constraint schema defining the state.
+   */
+  readonly schema: SchemaFacts & { readonly definition: ObjectSchema };
+
+  /**
+   * The entity the state constrains.
+   */
+  readonly entity: EntityFacts;
+};
+
+/**
+ * The model of the workspace: its event topics, its schemas, and the entities and states they define.
  */
 export type ModelFacts = {
   /**
    * The event topics, keyed by ID.
    */
-  readonly topics: ReadonlyMap<string, EventTopicDefinition>;
+  readonly topics: ReadonlyMap<string, TopicFacts>;
+
+  /**
+   * The event topics, keyed by the absolute path of their event schema file.
+   */
+  readonly topicsBySchema: ReadonlyMap<string, TopicFacts>;
 
   /**
    * The parsed schemas, keyed by absolute path.
@@ -91,35 +142,55 @@ export type ModelFacts = {
    * The entities, keyed by the absolute path of their schema.
    */
   readonly entities: ReadonlyMap<string, EntityFacts>;
+
+  /**
+   * The states of the entities, keyed by the absolute path of their constraint schema.
+   */
+  readonly states: ReadonlyMap<string, StateFacts>;
 };
 
 /**
- * The model of the workspace: its event topics, its schemas, and the entities they define.
+ * The model of the workspace: its event topics, its schemas, and the entities and states they define.
  *
  * Schemas are those matched by the `model.globs` configuration, and those they reference.
  * An object schema is an entity when a topic carries it or when it is persisted (`ModelSchemaExtractDatabase` produced
- * a binding). A topic carries the schema its `data` property references.
+ * a binding). A topic carries the schema its `data` property references. An object schema whose `causa.constraintFor`
+ * references an entity is a state of that entity.
+ * The domain of a schema or a topic is the one of the file declaring the schema.
  */
 export class ModelFact extends GraphExtractionFact<ModelFacts> {
   async compute(graph: GraphContext): Promise<GraphFactOutput<ModelFacts>> {
     const { context } = graph;
-    const [topics, { schemas: parsed, warnings }] = await Promise.all([
-      context.call(EventTopicList, {}),
-      this.parseSchemas(context),
-    ]);
+    const [domains, definitions, { schemas: parsed, warnings }] =
+      await Promise.all([
+        graph.get(DomainsFact),
+        context.call(EventTopicList, {}),
+        this.parseSchemas(context),
+      ]);
 
     const schemas = new Map(
       Object.entries(parsed).map(([path, schema]) => [
         path,
-        this.locateSchema(context, path, schema),
+        this.locateSchema(context, domains, path, schema),
       ]),
     );
+    const topics = definitions.map((topic): TopicFacts => ({
+      ...topic,
+      schema: schemas.get(topic.schemaFilePath),
+      domain: domainOfFile(
+        domains,
+        relative(context.rootPath, topic.schemaFilePath),
+      ),
+    }));
+    const entities = this.classifyEntities(schemas, topics);
 
     return {
       value: {
         topics: new Map(topics.map((t) => [t.id, t])),
+        topicsBySchema: new Map(topics.map((t) => [t.schemaFilePath, t])),
         schemas,
-        entities: this.classifyEntities(schemas, topics),
+        entities,
+        states: this.classifyStates(schemas, entities),
       },
       warnings,
     };
@@ -164,23 +235,28 @@ export class ModelFact extends GraphExtractionFact<ModelFacts> {
    * Locates a parsed schema in the workspace.
    *
    * @param context The workspace context.
+   * @param domains The domains of the workspace.
    * @param path The absolute path of the schema, as the parser keys it.
    * @param definition The parsed schema.
    * @returns The {@link SchemaFacts}.
    */
   private locateSchema(
     context: WorkspaceContext,
+    domains: readonly WorkspaceDomain[],
     path: string,
     definition: Schema,
   ): SchemaFacts {
     const { file: absoluteFile, pointer } = splitSchemaPath(path);
     const file = relative(context.rootPath, absoluteFile);
+    const locator = joinSchemaPath(file, pointer);
     return {
+      id: schemaId(locator),
       definition,
       path,
       file,
       segments: fromPointer(pointer),
-      locator: joinSchemaPath(file, pointer),
+      locator,
+      domain: domainOfFile(domains, file),
     };
   }
 
@@ -193,11 +269,11 @@ export class ModelFact extends GraphExtractionFact<ModelFacts> {
    */
   private classifyEntities(
     schemas: ReadonlyMap<string, SchemaFacts>,
-    topics: readonly EventTopicDefinition[],
+    topics: readonly TopicFacts[],
   ): Map<string, EntityFacts> {
-    const carriers = new Map<string, EventTopicDefinition[]>();
+    const carriers = new Map<string, TopicFacts[]>();
     for (const topic of topics) {
-      const event = schemas.get(topic.schemaFilePath)?.definition;
+      const event = topic.schema?.definition;
       if (event?.kind !== 'object') {
         continue;
       }
@@ -230,5 +306,38 @@ export class ModelFact extends GraphExtractionFact<ModelFacts> {
     }
 
     return entities;
+  }
+
+  /**
+   * Returns the object schemas constraining an entity.
+   *
+   * @param schemas The schemas of the workspace, keyed by path.
+   * @param entities The entities of the workspace, keyed by the path of their schema.
+   * @returns The {@link StateFacts}, keyed by the path of their constraint schema.
+   */
+  private classifyStates(
+    schemas: ReadonlyMap<string, SchemaFacts>,
+    entities: ReadonlyMap<string, EntityFacts>,
+  ): Map<string, StateFacts> {
+    const states = new Map<string, StateFacts>();
+    for (const schema of schemas.values()) {
+      const { definition } = schema;
+      const { constraintFor } = definition.extensions;
+      const entity =
+        definition.kind === 'object' && typeof constraintFor === 'string'
+          ? entities.get(constraintFor)
+          : undefined;
+      if (definition.kind !== 'object' || !entity) {
+        continue;
+      }
+
+      states.set(schema.path, {
+        id: stateId(schema.locator),
+        schema: { ...schema, definition },
+        entity,
+      });
+    }
+
+    return states;
   }
 }

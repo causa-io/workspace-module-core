@@ -1,27 +1,25 @@
 import {
   GraphOriginKind,
   type GraphRule,
-  type GraphRuleNode,
+  type GraphRuleDomain,
 } from '../../definitions/index.js';
 import { DomainsFact } from '../domains.js';
 
 /**
- * A `domain` node per configuration file declaring `domain.name`. The locator is the directory holding the file.
+ * A domain per configuration file declaring `domain.name`. The locator is the directory holding the file.
  */
 export const domainFromConfiguration: GraphRule = {
   name: 'domainFromConfiguration',
   kind: GraphOriginKind.Declared,
   description:
-    'One `domain` node per `causa*.yaml` file declaring `domain.name`. The locator is the directory holding the file.',
+    'One domain per `causa*.yaml` file declaring `domain.name`. The locator is the directory holding the file.',
   async run(graph) {
     const { locator } = graph;
     const domains = await graph.get(DomainsFact);
-    const nodes: GraphRuleNode[] = [];
+    const graphDomains: GraphRuleDomain[] = [];
 
     for (const domain of domains) {
-      nodes.push({
-        layer: 'architecture',
-        type: 'domain',
+      graphDomains.push({
         locator: domain.directory,
         name: domain.name,
         description: domain.description,
@@ -31,6 +29,6 @@ export const domainFromConfiguration: GraphRule = {
       });
     }
 
-    return { nodes };
+    return { domains: graphDomains };
   },
 };

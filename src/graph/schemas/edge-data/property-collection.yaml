@@ -1,0 +1,11 @@
+# yaml-language-server: $schema=https://json-schema.org/draft/2020-12/schema
+
+title: SchemaPropertyCollection
+type: string
+enum:
+  - array
+  - map
+description: |-
+  How a property holds several values.
+  - `array`: as the items of an array.
+  - `map`: as the values of a map.

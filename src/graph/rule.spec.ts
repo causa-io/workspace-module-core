@@ -54,6 +54,7 @@ describe('runGraphRules', () => {
         name: 'projectRule',
         kind: 'declared',
         description: 'Emits a project.',
+        domains: [],
         nodes: [
           {
             layer: 'architecture',
@@ -99,6 +100,7 @@ describe('runGraphRules', () => {
         name: 'failingRule',
         kind: 'inferred',
         description: 'Fails.',
+        domains: [],
         nodes: [],
         edges: [],
         warnings: [{ message: 'The rule failed: 💥' }],
@@ -107,6 +109,7 @@ describe('runGraphRules', () => {
         name: 'authoredFromFiles',
         kind: 'authored',
         description: 'Emits nothing.',
+        domains: [],
         nodes: [],
         edges: [],
         warnings: [],

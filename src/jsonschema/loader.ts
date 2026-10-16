@@ -1,11 +1,11 @@
 import {
-  REF_BEARING_CAUSA_EXTENSIONS,
   type CausaExtensions,
   type LoadSchemasResult,
   type PropertyType,
   type Schema,
   type SchemaFileReader,
 } from '../definitions/index.js';
+import { mapExtensionRefs } from './extensions.js';
 import { parseJsonSchema } from './parser.js';
 import { splitSchemaPath } from './pointer.js';
 
@@ -134,22 +134,16 @@ function* refsFromType(type: PropertyType): Generator<string> {
 }
 
 /**
- * Yield every ref-bearing value from a {@link CausaExtensions} bag.
+ * Yield every reference to another schema from a {@link CausaExtensions} bag.
  *
  * @param extensions The extensions to walk.
- * @yields Each ref string found under a key in {@link REF_BEARING_CAUSA_EXTENSIONS}.
+ * @yields Each ref string found by {@link mapExtensionRefs}.
  */
 function* refsFromExtensions(extensions: CausaExtensions): Generator<string> {
-  for (const key of REF_BEARING_CAUSA_EXTENSIONS) {
-    const value = extensions[key];
-    if (typeof value === 'string') {
-      yield value;
-    } else if (Array.isArray(value)) {
-      for (const item of value) {
-        if (typeof item === 'string') {
-          yield item;
-        }
-      }
-    }
-  }
+  const refs: string[] = [];
+  mapExtensionRefs(extensions, (ref) => {
+    refs.push(ref);
+    return ref;
+  });
+  yield* refs;
 }

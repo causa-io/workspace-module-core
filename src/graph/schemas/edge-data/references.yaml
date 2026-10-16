@@ -1,0 +1,36 @@
+# yaml-language-server: $schema=https://json-schema.org/draft/2020-12/schema
+
+title: ReferencesGraphEdgeData
+type: object
+description: The payload of a `references` edge.
+additionalProperties: false
+required:
+  - property
+  - targetProperty
+properties:
+  property:
+    type: string
+    description: The name of the property holding the identifier.
+
+  collection:
+    oneOf:
+      - $ref: ./property-collection.yaml
+    description: |-
+      How the property holds the identifiers, when it holds several. Absent when
+      it holds a single identifier.
+
+  targetProperty:
+    type: string
+    description: |-
+      The dot-separated path of the property of the referenced schema that the
+      identifier matches, e.g. `id`.
+
+  scope:
+    type: object
+    description: |-
+      The other properties of the referenced schema needed to identify an
+      instance, e.g. the parent's ID in a composite key, mapped to the
+      dot-separated paths of the properties holding them in the referencing
+      schema. Absent when the identifier alone identifies an instance.
+    additionalProperties:
+      type: string

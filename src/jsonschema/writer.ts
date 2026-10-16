@@ -2,7 +2,6 @@ import { dirname, relative, sep } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import * as yaml from 'yaml';
 import {
-  REF_BEARING_CAUSA_EXTENSIONS,
   type CausaExtensions,
   type EnumSchema,
   type ObjectSchema,
@@ -12,6 +11,7 @@ import {
   type Schema,
   type UnionSchema,
 } from '../definitions/index.js';
+import { mapExtensionRefs } from './extensions.js';
 import { fromPointer, splitSchemaPath, toPointer } from './pointer.js';
 
 /**
@@ -361,8 +361,8 @@ function applyDescription(
 }
 
 /**
- * Apply the `causa` block from `extensions`, rewriting ref-bearing values back to relative form. An empty bag removes
- * the block.
+ * Apply the `causa` block from `extensions`, rewriting references to other schemas (see {@link mapExtensionRefs}) back
+ * to relative form. An empty bag removes the block.
  *
  * @param node The target node.
  * @param extensions The causa extensions to apply.
@@ -373,34 +373,14 @@ function applyExtensions(
   extensions: CausaExtensions,
   filePath: string,
 ): void {
-  const entries = Object.entries(extensions);
-  if (entries.length === 0) {
+  if (Object.keys(extensions).length === 0) {
     node.delete('causa');
     return;
   }
 
-  const value = Object.fromEntries(
-    entries.map(([key, val]) => {
-      if (!REF_BEARING_CAUSA_EXTENSIONS.includes(key)) {
-        return [key, val];
-      }
-
-      if (Array.isArray(val)) {
-        return [
-          key,
-          val.map((item) =>
-            typeof item === 'string' ? toRelativeRef(item, filePath) : item,
-          ),
-        ];
-      }
-
-      return [
-        key,
-        typeof val === 'string' ? toRelativeRef(val, filePath) : val,
-      ];
-    }),
+  const value = mapExtensionRefs(extensions, (ref) =>
+    toRelativeRef(ref, filePath),
   );
-
   applyMinimalChange(node, { causa: value });
 }
 

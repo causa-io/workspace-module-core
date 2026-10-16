@@ -6,9 +6,11 @@ import {
   isMap,
   isNode,
   isScalar,
+  isSeq,
   LineCounter,
   parseDocument,
   type Document,
+  type Pair,
 } from 'yaml';
 import { toPointer } from '../jsonschema/pointer.js';
 import type { GraphOriginSource, GraphSourceLocation } from './generated.js';
@@ -32,6 +34,42 @@ type ParsedDocument = {
    */
   readonly lines: LineCounter;
 };
+
+/**
+ * Returns the node at a path in a document, along with the pair holding it when its parent is a map.
+ * Map keys are compared as strings.
+ *
+ * @param document The YAML document.
+ * @param path The path to the node.
+ * @returns The node and the pair holding it, or `undefined` if the path does not exist.
+ */
+function nodeAt(
+  document: Document,
+  path: DocumentPath,
+): { node: unknown; pair?: Pair } | undefined {
+  let node: unknown = document.contents;
+  let pair: Pair | undefined;
+  for (const segment of path) {
+    if (isMap(node)) {
+      pair = node.items.find(
+        (item) =>
+          isScalar(item.key) && String(item.key.value) === String(segment),
+      );
+      node = pair?.value;
+    } else if (isSeq(node)) {
+      pair = undefined;
+      node = node.items[Number(segment)];
+    } else {
+      return undefined;
+    }
+
+    if (node === undefined) {
+      return undefined;
+    }
+  }
+
+  return { node, pair };
+}
 
 /**
  * Resolves paths to line and column positions in YAML (and JSON) files.
@@ -102,25 +140,15 @@ export class YamlLocator {
     }
 
     const { document, lines } = entry;
-    const node = document.getIn(path, true);
+    const { node, pair } = nodeAt(document, path) ?? {};
     if (!isNode(node) || !node.range) {
       return undefined;
     }
 
     let start = node.range[0];
     const end = node.range[1];
-    const last = path[path.length - 1];
-    const parent =
-      path.length > 1
-        ? document.getIn(path.slice(0, -1), true)
-        : document.contents;
-    if (isMap(parent)) {
-      const pair = parent.items.find(
-        (item) => isScalar(item.key) && String(item.key.value) === String(last),
-      );
-      if (pair && isNode(pair.key) && pair.key.range) {
-        start = pair.key.range[0];
-      }
+    if (pair && isNode(pair.key) && pair.key.range) {
+      start = pair.key.range[0];
     }
 
     const from = lines.linePos(start);

@@ -3,7 +3,6 @@ import { basename, dirname, extname, join, normalize } from 'node:path';
 import * as yaml from 'yaml';
 import {
   InvalidSchemaError,
-  REF_BEARING_CAUSA_EXTENSIONS,
   type CausaExtensions,
   type EnumSchema,
   type EnumType,
@@ -13,6 +12,7 @@ import {
   type Schema,
   type UnionSchema,
 } from '../definitions/index.js';
+import { mapExtensionRefs } from './extensions.js';
 import {
   appendToSchemaPath,
   fromPointer,
@@ -746,13 +746,13 @@ function inferEnumType(schema: CausaSchema): EnumType {
 }
 
 /**
- * Build the {@link CausaExtensions} for a schema or property by cloning the raw `causa` value with ref-bearing keys
- * (see {@link REF_BEARING_CAUSA_EXTENSIONS}) normalized to absolute paths.
+ * Build the {@link CausaExtensions} for a schema or property by cloning the raw `causa` value with its references to
+ * other schemas (see {@link mapExtensionRefs}) normalized to absolute paths.
  *
  * Other entries are passed through unchanged.
  *
  * @param raw The raw `causa` value, if any.
- * @param path Absolute path of the containing file, used to resolve ref-bearing values.
+ * @param path Absolute path of the containing file, used to resolve references.
  * @returns The processed extensions, or an empty object when `raw` is not an object.
  */
 function buildExtensions(raw: unknown, path: string): CausaExtensions {
@@ -760,22 +760,7 @@ function buildExtensions(raw: unknown, path: string): CausaExtensions {
     return {};
   }
 
-  return Object.fromEntries(
-    Object.entries(raw).map(([key, value]) => {
-      if (!REF_BEARING_CAUSA_EXTENSIONS.includes(key)) {
-        return [key, value];
-      }
-
-      if (Array.isArray(value)) {
-        return [
-          key,
-          value.map((i) => (typeof i === 'string' ? resolveRef(i, path) : i)),
-        ];
-      }
-
-      return [key, typeof value === 'string' ? resolveRef(value, path) : value];
-    }),
-  );
+  return mapExtensionRefs(raw, (ref) => resolveRef(ref, path));
 }
 
 /**

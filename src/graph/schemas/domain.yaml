@@ -1,0 +1,31 @@
+# yaml-language-server: $schema=https://json-schema.org/draft/2020-12/schema
+
+title: GraphDomain
+type: object
+description: |-
+  A business domain, i.e. a directory with a `causa.yaml` defining
+  `domain.name`.
+
+  A domain is not a node. It partitions the nodes of every layer: the projects,
+  topics, and entities of the architecture, the resources realizing them, the
+  schemas defining them, etc. Each node names the domain it belongs to in its
+  `domain`.
+additionalProperties: false
+required:
+  - name
+  - origin
+properties:
+  name:
+    type: string
+    description: The display name of the domain.
+
+  description:
+    type: string
+    description: A Markdown description, copied from the domain declaration.
+
+  origin:
+    oneOf:
+      - $ref: ./origin.yaml
+    description: |-
+      The workspace sources the domain was extracted from, how it was
+      extracted, and how much to trust it.

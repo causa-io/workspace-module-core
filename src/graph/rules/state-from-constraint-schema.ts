@@ -7,7 +7,7 @@ import {
   type GraphWarning,
   type TransitionsGraphEdgeData,
 } from '../../definitions/index.js';
-import { stateId, topicId } from '../ids.js';
+import { topicId } from '../ids.js';
 import { ModelFact } from '../model.js';
 
 /**
@@ -30,19 +30,8 @@ export const stateFromConstraintSchema: GraphRule = {
     const edges: GraphRuleEdge[] = [];
     const warnings: GraphWarning[] = [];
 
-    const states = new Map<string, string>();
-    for (const schema of model.schemas.values()) {
+    for (const { schema, entity } of model.states.values()) {
       const { definition } = schema;
-      const { constraintFor } = definition.extensions;
-      const entity =
-        definition.kind === 'object' && typeof constraintFor === 'string'
-          ? model.entities.get(constraintFor)
-          : undefined;
-      if (!entity) {
-        continue;
-      }
-
-      states.set(schema.path, stateId(schema.locator));
       nodes.push({
         layer: 'architecture',
         type: 'state',
@@ -60,9 +49,6 @@ export const stateFromConstraintSchema: GraphRule = {
       });
     }
 
-    const topics = new Map(
-      [...model.topics.values()].map((t) => [t.schemaFilePath, t]),
-    );
     for (const { file, segments, definition } of model.schemas.values()) {
       if (definition.kind !== 'object') {
         continue;
@@ -72,7 +58,7 @@ export const stateFromConstraintSchema: GraphRule = {
         definition.extensions;
       const topic =
         typeof constraintFor === 'string'
-          ? topics.get(constraintFor)
+          ? model.topicsBySchema.get(constraintFor)
           : undefined;
       if (!topic || !Array.isArray(entityMutationFrom)) {
         continue;
@@ -81,7 +67,7 @@ export const stateFromConstraintSchema: GraphRule = {
       const source = await locator.source(file, segments);
       const data = definition.properties.find((p) => p.name === 'data');
       const target = data?.type.kind === 'ref' ? data.type.ref : undefined;
-      const to = target ? states.get(target) : undefined;
+      const to = target ? model.states.get(target)?.id : undefined;
       if (!to) {
         warnings.push({
           message: `Event constraint '${definition.name}' has 'entityMutationFrom' but its 'data' ${
@@ -112,7 +98,7 @@ export const stateFromConstraintSchema: GraphRule = {
         ]);
         let from: string | null = null;
         if (entry !== null) {
-          const state = states.get(entry);
+          const state = model.states.get(entry)?.id;
           if (!state) {
             warnings.push({
               message: `Event constraint '${definition.name}' mutates from '${relative(context.rootPath, entry)}', which is not a state.`,

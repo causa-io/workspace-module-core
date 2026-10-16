@@ -71,8 +71,19 @@ properties:
   realizes:
     type: array
     description: |-
-      A resource one layer down is the concrete form of a concept one layer up:
-      a `service` realizes a `project`, a `brokerTopic` a `topic`, etc.
+      A resource is the concrete form of a concept of the architecture, i.e.
+      what runs it: a `service` realizes a `project`, a `brokerTopic` a
+      `topic`, etc. A schema does not realize the concept read from it, it
+      `defines` it.
+    items:
+      $ref: ./edge.yaml
+
+  defines:
+    type: array
+    description: |-
+      A `schema` defines the concept of the architecture that is read from it:
+      an `entity`, a `state` (from its constraint schema), or a `topic` (from
+      its event schema).
     items:
       $ref: ./edge.yaml
 
@@ -87,8 +98,8 @@ properties:
   carries:
     type: array
     description: |-
-      A topic carries an entity: the `data` property of the topic's event
-      schema references it.
+      A topic carries an entity: the topic's event schema embeds the entity's
+      schema in its `data` property.
     items:
       $ref: ./edge.yaml
 
@@ -96,8 +107,8 @@ properties:
     type: array
     description: |-
       An entity moves from one state to another. Derived from an event
-      constraint's `entityMutationFrom` and the state its `data` property
-      references.
+      constraint's `entityMutationFrom` and the state whose schema its `data`
+      property embeds.
     items:
       $ref: ./edge.yaml
       properties:
@@ -116,8 +127,74 @@ properties:
   projects:
     type: array
     description: |-
-      An entity is projected into another entity: the destination is a local
-      view of the source, maintained from the source's event stream, usually
-      across a domain boundary.
+      A source is projected into a destination: the destination is a local view
+      of the source, maintained from the source's event stream, usually across a
+      domain boundary. Declared by `causa.projectionOf` on the destination's
+      schema. In the architecture layer, an `entity` is projected into another
+      `entity`. In the model layer, a `schema` into another `schema`.
     items:
       $ref: ./edge.yaml
+
+  embeds:
+    type: array
+    description: |-
+      A `schema` embeds another `schema`: a value of the former holds a value of
+      the latter. Derived from the type of each property, including the items
+      of an array and the values of a map, from the additional properties of an
+      object, and from the members of a union. A property whose values are
+      suggested by an enum (`causa.enumHint`) also embeds it, as a hint. One
+      edge per property, labelled with its name. The edges of a union are its
+      members, and those of an object without a property are its additional
+      properties.
+    items:
+      $ref: ./edge.yaml
+      properties:
+        data:
+          oneOf:
+            - $ref: ./edge-data/embeds.yaml
+
+  references:
+    type: array
+    description: |-
+      A `schema` references another `schema` by identity: a property holds the
+      identifier of an instance of the latter, as declared by its
+      `causa.identifierOf`. One edge per property, labelled with its name. The
+      data names the property of the referenced schema the identifier matches,
+      and the other properties identifying an instance, if any.
+    items:
+      $ref: ./edge.yaml
+      properties:
+        data:
+          oneOf:
+            - $ref: ./edge-data/references.yaml
+
+  constrains:
+    type: array
+    description: |-
+      A constraint `schema` constrains the `schema` named by its
+      `causa.constraintFor`, e.g. a state of an entity, or the events of a topic
+      performing a transition.
+    items:
+      $ref: ./edge.yaml
+
+  accepts:
+    type: array
+    description: |-
+      A `trigger` or an `apiOperation` accepts a payload following a `schema`:
+      the `dto` of a trigger, or the request body of an operation. An `event`
+      trigger has no `accepts` edge: its payload is an event of the topic
+      delivering to it, whose event schema `defines` the topic.
+    items:
+      $ref: ./edge.yaml
+
+  returns:
+    type: array
+    description: |-
+      An `apiOperation` returns a response body following a `schema`. One edge
+      per response status and schema, labelled with the status.
+    items:
+      $ref: ./edge.yaml
+      properties:
+        data:
+          oneOf:
+            - $ref: ./edge-data/returns.yaml

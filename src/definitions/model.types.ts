@@ -10,11 +10,36 @@ export type PrimitiveType =
 export type EnumType = 'string' | 'integer';
 
 /**
+ * Declares that a property holds the identifier of an instance of another schema, i.e. a reference by identity, like a
+ * foreign key. For an array or a map, each value identifies an instance.
+ */
+export type IdentifierOfExtension = {
+  /**
+   * Absolute path of the schema whose instances the property identifies.
+   */
+  schema: string;
+
+  /**
+   * The dot-separated path of the property of the identified schema that the value matches. Defaults to `id`.
+   */
+  property?: string;
+
+  /**
+   * The other properties of the identified schema needed to identify an instance, e.g. the parent's ID in a composite
+   * key, mapped to the dot-separated paths of the properties holding them in the object declaring the identifier.
+   *
+   * @example { "company": "company" }
+   */
+  scope?: Record<string, string>;
+};
+
+/**
  * A bag of format-specific extensions attached to a schema or property.
  *
  * Known keys are typed explicitly; the index signature accepts unknown entries that pass through unchanged.
- * Ref-bearing keys listed in {@link REF_BEARING_CAUSA_EXTENSIONS} are normalized to absolute schema paths during
- * parsing.
+ * References to other schemas (in `constraintFor`, `enumHint`, `entityMutationFrom`, `projectionOf`, and the `schema`
+ * of `identifierOf`) are normalized to absolute schema paths during parsing, such that consumers never need to resolve
+ * them.
  */
 export type CausaExtensions = {
   /**
@@ -45,21 +70,13 @@ export type CausaExtensions = {
    */
   projectionOf?: string;
 
+  /**
+   * The schema whose instances this property identifies, and how its value matches them.
+   */
+  identifierOf?: IdentifierOfExtension;
+
   [key: string]: unknown;
 };
-
-/**
- * Causa extension keys whose values are references to other schemas.
- *
- * Values stored under these keys are normalized to absolute paths during parsing so downstream consumers never need to
- * perform pointer resolution themselves.
- */
-export const REF_BEARING_CAUSA_EXTENSIONS: readonly string[] = [
-  'constraintFor',
-  'enumHint',
-  'entityMutationFrom',
-  'projectionOf',
-];
 
 /**
  * Fields common to every parsed schema.

@@ -599,6 +599,44 @@ export class GraphOrigin {
 }
 
 /**
+ * A business domain, i.e. a directory with a `causa.yaml` defining
+ * `domain.name`.
+ *
+ * A domain is not a node. It partitions the nodes of every layer: the projects,
+ * topics, and entities of the architecture, the resources realizing them, the
+ * schemas defining them, etc. Each node names the domain it belongs to in its
+ * `domain`.
+ */
+export class GraphDomain {
+  constructor(init: GraphDomain) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * The display name of the domain.
+   */
+  @_ClassValidatorIsString()
+  readonly name!: string;
+
+  /**
+   * A Markdown description, copied from the domain declaration.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsString()
+  readonly description?: string;
+
+  /**
+   * The workspace sources the domain was extracted from, how it was
+   * extracted, and how much to trust it.
+   */
+  @_ClassTransformerType(() => GraphOrigin)
+  @_ClassValidatorIsDefined()
+  @_ClassValidatorIsObject()
+  @_ClassValidatorValidateNested()
+  readonly origin!: GraphOrigin;
+}
+
+/**
  * A directed relation between two nodes, oriented in the direction data or
  * control flows.
  */
@@ -734,8 +772,10 @@ export class GraphEdges {
   readonly enqueues?: GraphEdge[];
 
   /**
-   * A resource one layer down is the concrete form of a concept one layer up:
-   * a `service` realizes a `project`, a `brokerTopic` a `topic`, etc.
+   * A resource is the concrete form of a concept of the architecture, i.e.
+   * what runs it: a `service` realizes a `project`, a `brokerTopic` a
+   * `topic`, etc. A schema does not realize the concept read from it, it
+   * `defines` it.
    */
   @_CausaRuntimeAllowMissing()
   @_ClassTransformerType(() => GraphEdge)
@@ -743,6 +783,18 @@ export class GraphEdges {
   @_ClassValidatorIsObject({ each: true })
   @_ClassValidatorValidateNested()
   readonly realizes?: GraphEdge[];
+
+  /**
+   * A `schema` defines the concept of the architecture that is read from it:
+   * an `entity`, a `state` (from its constraint schema), or a `topic` (from
+   * its event schema).
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassTransformerType(() => GraphEdge)
+  @_ClassValidatorIsArray()
+  @_ClassValidatorIsObject({ each: true })
+  @_ClassValidatorValidateNested()
+  readonly defines?: GraphEdge[];
 
   /**
    * A `brokerSubscription`, `queue`, or `scheduledJob` targets what receives
@@ -756,8 +808,8 @@ export class GraphEdges {
   readonly targets?: GraphEdge[];
 
   /**
-   * A topic carries an entity: the `data` property of the topic's event
-   * schema references it.
+   * A topic carries an entity: the topic's event schema embeds the entity's
+   * schema in its `data` property.
    */
   @_CausaRuntimeAllowMissing()
   @_ClassTransformerType(() => GraphEdge)
@@ -768,8 +820,8 @@ export class GraphEdges {
 
   /**
    * An entity moves from one state to another. Derived from an event
-   * constraint's `entityMutationFrom` and the state its `data` property
-   * references.
+   * constraint's `entityMutationFrom` and the state whose schema its `data`
+   * property embeds.
    */
   @_CausaRuntimeAllowMissing()
   @_ClassTransformerType(() => GraphEdge)
@@ -790,9 +842,11 @@ export class GraphEdges {
   readonly deploys?: GraphEdge[];
 
   /**
-   * An entity is projected into another entity: the destination is a local
-   * view of the source, maintained from the source's event stream, usually
-   * across a domain boundary.
+   * A source is projected into a destination: the destination is a local view
+   * of the source, maintained from the source's event stream, usually across a
+   * domain boundary. Declared by `causa.projectionOf` on the destination's
+   * schema. In the architecture layer, an `entity` is projected into another
+   * `entity`. In the model layer, a `schema` into another `schema`.
    */
   @_CausaRuntimeAllowMissing()
   @_ClassTransformerType(() => GraphEdge)
@@ -800,6 +854,73 @@ export class GraphEdges {
   @_ClassValidatorIsObject({ each: true })
   @_ClassValidatorValidateNested()
   readonly projects?: GraphEdge[];
+
+  /**
+   * A `schema` embeds another `schema`: a value of the former holds a value of
+   * the latter. Derived from the type of each property, including the items
+   * of an array and the values of a map, from the additional properties of an
+   * object, and from the members of a union. A property whose values are
+   * suggested by an enum (`causa.enumHint`) also embeds it, as a hint. One
+   * edge per property, labelled with its name. The edges of a union are its
+   * members, and those of an object without a property are its additional
+   * properties.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassTransformerType(() => GraphEdge)
+  @_ClassValidatorIsArray()
+  @_ClassValidatorIsObject({ each: true })
+  @_ClassValidatorValidateNested()
+  readonly embeds?: GraphEdge[];
+
+  /**
+   * A `schema` references another `schema` by identity: a property holds the
+   * identifier of an instance of the latter, as declared by its
+   * `causa.identifierOf`. One edge per property, labelled with its name. The
+   * data names the property of the referenced schema the identifier matches,
+   * and the other properties identifying an instance, if any.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassTransformerType(() => GraphEdge)
+  @_ClassValidatorIsArray()
+  @_ClassValidatorIsObject({ each: true })
+  @_ClassValidatorValidateNested()
+  readonly references?: GraphEdge[];
+
+  /**
+   * A constraint `schema` constrains the `schema` named by its
+   * `causa.constraintFor`, e.g. a state of an entity, or the events of a topic
+   * performing a transition.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassTransformerType(() => GraphEdge)
+  @_ClassValidatorIsArray()
+  @_ClassValidatorIsObject({ each: true })
+  @_ClassValidatorValidateNested()
+  readonly constrains?: GraphEdge[];
+
+  /**
+   * A `trigger` or an `apiOperation` accepts a payload following a `schema`:
+   * the `dto` of a trigger, or the request body of an operation. An `event`
+   * trigger has no `accepts` edge: its payload is an event of the topic
+   * delivering to it, whose event schema `defines` the topic.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassTransformerType(() => GraphEdge)
+  @_ClassValidatorIsArray()
+  @_ClassValidatorIsObject({ each: true })
+  @_ClassValidatorValidateNested()
+  readonly accepts?: GraphEdge[];
+
+  /**
+   * An `apiOperation` returns a response body following a `schema`. One edge
+   * per response status and schema, labelled with the status.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassTransformerType(() => GraphEdge)
+  @_ClassValidatorIsArray()
+  @_ClassValidatorIsObject({ each: true })
+  @_ClassValidatorValidateNested()
+  readonly returns?: GraphEdge[];
 
   [key: string]: GraphEdge[] | any;
 }
@@ -826,6 +947,22 @@ export class GraphNode {
   @_CausaRuntimeAllowMissing()
   @_ClassValidatorIsString()
   readonly parent?: string;
+
+  /**
+   * The locator of the domain the node belongs to, i.e. a key of the graph's
+   * `domains`. Absent when the node belongs to no domain, e.g. a resource
+   * shared by several domains.
+   *
+   * Unlike `parent`, a domain can be named by nodes of any layer. A node that
+   * does not name a domain belongs to the domain of its parent: the extraction
+   * fills it in, such that every node of an extracted graph names its domain.
+   * A node naming a domain should therefore only contain nodes of that domain.
+   * A container shared by several domains, e.g. a database holding the tables
+   * of several domains, names none, and its children name their own.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsString()
+  readonly domain?: string;
 
   /**
    * The display name of the node.
@@ -888,22 +1025,10 @@ export class ArchitectureGraphNodes {
   }
 
   /**
-   * A business domain grouping projects and schemas.
-   *
-   * Parent: none.
-   *
-   * Locator: the domain directory, relative to the workspace root, e.g.
-   * `domains/my-domain`.
-   */
-  @_CausaRuntimeAllowMissing()
-  @_ClassValidatorIsObject()
-  readonly domain?: Record<string, GraphNode>;
-
-  /**
    * A Causa project, i.e. a directory with a `causa.yaml` defining
    * `project.name`.
    *
-   * Parent: `domain` or none.
+   * Parent: none.
    *
    * Locator: the project directory, relative to the workspace root, e.g.
    * `domains/my-domain/service`.
@@ -950,9 +1075,9 @@ export class ArchitectureGraphNodes {
   readonly trigger?: Record<string, GraphNode>;
 
   /**
-   * An event topic.
+   * An event topic, defined by its event schema.
    *
-   * Parent: `domain` or none.
+   * Parent: none.
    *
    * Locator: the topic id as formatted by `events.topics.format`, e.g.
    * `my-domain.my-entity.v1`.
@@ -966,10 +1091,9 @@ export class ArchitectureGraphNodes {
    * concept published as events to a topic, or something persisted in a
    * database for a service to use.
    *
-   * Parent: `domain` or none.
+   * Parent: none.
    *
-   * Locator: the schema file path, with `#<JSON pointer>` appended for a
-   * nested definition.
+   * Locator: the locator of the `schema` defining it.
    */
   @_CausaRuntimeAllowMissing()
   @_ClassValidatorIsObject()
@@ -982,8 +1106,7 @@ export class ArchitectureGraphNodes {
    *
    * Parent: `entity`.
    *
-   * Locator: the constraint schema's own address: its file path, with
-   * `#<JSON pointer>` appended when it is a nested definition.
+   * Locator: the locator of the constraint `schema` defining it.
    */
   @_CausaRuntimeAllowMissing()
   @_ClassValidatorIsObject()
@@ -1159,23 +1282,56 @@ export class InfrastructureGraphNodes {
 }
 
 /**
+ * The model layer, keyed by type and then by locator.
+ */
+export class ModelGraphNodes {
+  constructor(init: ModelGraphNodes) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * A schema of the model, i.e. one of the files matched by `model.globs`
+   * and the files they reference: an object, an enum, or a union. Schemas
+   * nested in a file, e.g. a JSON Schema `$defs` definition or a schema
+   * declared inline on a property, are schemas of their own.
+   *
+   * A schema `defines` the `entity`, `state`, or `topic` the architecture
+   * reads from it.
+   *
+   * Parent: the schema enclosing it in its file, or none for the root
+   * schema of a file.
+   *
+   * Locator: for JSON Schema, the schema file path, relative to the
+   * workspace root, with `#<JSON pointer>` appended for a nested schema,
+   * e.g. `domains/my-domain/entities/my-entity.yaml#/$defs/MyEnum`.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsObject()
+  readonly schema?: Record<string, GraphNode>;
+
+  [key: string]: Record<string, GraphNode> | any;
+}
+
+/**
  * The nodes of a graph, keyed by layer, then by type, then by locator.
  *
  * Layers are:
  *
- * - `architecture`: what the workspace declares: domains, projects, what they
- *   handle, the topics and entities they act on.
+ * - `architecture`: what the workspace declares: projects, what they handle,
+ *   the topics and entities they act on.
  * - `infrastructure`: the resources that realize the architecture: services,
  *   broker topics and subscriptions, queues, databases and tables.
- * - `model`: the schema documents behind the architecture. Empty today.
- * - `code`: the modules, classes, and methods that implement the architecture,
- *   parsed from source. Empty today.
+ * - `model`: the schemas defining the architecture's concepts and the payloads
+ *   of its APIs and triggers, and how schemas relate to one another.
  *
  * A node's id is `<type>:<locator>`, without the layer: types are unique across
  * layers.
  *
  * `parent` never crosses a layer. The relation between a resource and the
- * concept it stands for is the `realizes` edge.
+ * concept it stands for is the `realizes` edge, and the relation between a
+ * schema and the concept it specifies is the `defines` edge. Domains are not
+ * nodes: they cut across layers, and each node names the one it belongs to in
+ * its `domain`.
  */
 export class GraphNodes {
   constructor(init: GraphNodes) {
@@ -1201,28 +1357,21 @@ export class GraphNodes {
   readonly infrastructure?: InfrastructureGraphNodes;
 
   /**
-   * The model layer: the schema documents that realize architecture concepts.
-   * Empty today.
+   * The model layer, keyed by type and then by locator.
    */
   @_CausaRuntimeAllowMissing()
+  @_ClassTransformerType(() => ModelGraphNodes)
   @_ClassValidatorIsObject()
-  readonly model?: Record<string, Record<string, GraphNode>>;
-
-  /**
-   * The code layer: modules, classes, and methods that implement the
-   * architecture, parsed from source. Empty today.
-   */
-  @_CausaRuntimeAllowMissing()
-  @_ClassValidatorIsObject()
-  readonly code?: Record<string, Record<string, GraphNode>>;
+  @_ClassValidatorValidateNested()
+  readonly model?: ModelGraphNodes;
 }
 
 /**
  * An architecture graph derived from a Causa workspace.
  *
- * A graph document may be a fragment: several documents can be merged (nodes
- * with nodes, edges with edges) to form the complete graph. This allows
- * splitting a large workspace by domain or by concern.
+ * A graph document may be a fragment: several documents can be merged (domains
+ * with domains, nodes with nodes, edges with edges) to form the complete graph.
+ * This allows splitting a large workspace by domain or by concern.
  */
 export class Graph {
   constructor(init: Graph) {
@@ -1243,6 +1392,15 @@ export class Graph {
   @_CausaRuntimeAllowMissing()
   @_ClassValidatorIsString()
   readonly description?: string;
+
+  /**
+   * The business domains the nodes belong to, keyed by locator: the domain
+   * directory, relative to the workspace root, e.g. `domains/my-domain`.
+   * Domains cut across layers, and are not nodes.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsObject()
+  readonly domains?: Record<string, GraphDomain>;
 
   /**
    * The nodes, keyed by type and then by locator.
@@ -1321,6 +1479,22 @@ export class ProjectGraphNodeData {
  * `causa.entityPropertyChanges`.
  */
 export type PropertyChanges = string[] | '*';
+
+/**
+ * The payload of a `returns` edge.
+ */
+export class ReturnsGraphEdgeData {
+  constructor(init: ReturnsGraphEdgeData) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * The response status, as the API declares it, e.g. `200`, `4XX`, or
+   * `default` for an OpenAPI operation.
+   */
+  @_ClassValidatorIsString()
+  readonly status!: string;
+}
 
 /**
  * The payload of a `routes` edge.
@@ -1410,6 +1584,144 @@ export class ScheduledJobGraphNodeData {
   readonly nextRun?: Date;
 
   [key: string]: any;
+}
+
+/**
+ * How the types of a `union` schema are combined.
+ * - `oneOf`: exactly one type matches a value.
+ * - `anyOf`: at least one type matches a value.
+ */
+export enum SchemaGraphNodeCombiner {
+  OneOf = 'oneOf',
+  AnyOf = 'anyOf',
+}
+
+/**
+ * A database persisting the objects of the schema.
+ */
+export class SchemaGraphNodeDatabase {
+  constructor(init: SchemaGraphNodeDatabase) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * The database engine, as Causa names it in database bindings.
+   */
+  @_ClassValidatorIsString()
+  readonly engine!: string;
+
+  /**
+   * The engine-specific name of the table or collection.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsString()
+  readonly table?: string;
+
+  /**
+   * The dot-separated paths of the properties forming the primary key,
+   * in order.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsArray()
+  @_ClassValidatorIsString({ each: true })
+  readonly primaryKeys?: string[];
+}
+
+/**
+ * The kind of schema.
+ * - `object`: an object with named properties.
+ * - `enum`: a fixed set of values.
+ * - `union`: one of several types.
+ */
+export enum SchemaGraphNodeKind {
+  Object = 'object',
+  Enum = 'enum',
+  Union = 'union',
+}
+
+/**
+ * How a property holds several values.
+ * - `array`: as the items of an array.
+ * - `map`: as the values of a map.
+ */
+export enum SchemaPropertyCollection {
+  Array = 'array',
+  Map = 'map',
+}
+
+/**
+ * The payload of an `embeds` edge.
+ */
+export class EmbedsGraphEdgeData {
+  constructor(init: EmbedsGraphEdgeData) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * The name of the property holding the embedded value. Absent when the
+   * embedded schema is a member of a union, if the source schema is a union,
+   * or types the values of the source object's additional properties
+   * otherwise.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsString()
+  readonly property?: string;
+
+  /**
+   * How the property holds the embedded values, when it holds several. Absent
+   * when it holds a single value.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsIn(['array', 'map'])
+  readonly collection?: SchemaPropertyCollection;
+
+  /**
+   * Whether the embedded enum only suggests the values of the property
+   * (`causa.enumHint`), which may hold other values. Absent means `false`.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsBoolean()
+  readonly hint?: boolean;
+}
+
+/**
+ * The payload of a `references` edge.
+ */
+export class ReferencesGraphEdgeData {
+  constructor(init: ReferencesGraphEdgeData) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * The name of the property holding the identifier.
+   */
+  @_ClassValidatorIsString()
+  readonly property!: string;
+
+  /**
+   * How the property holds the identifiers, when it holds several. Absent when
+   * it holds a single identifier.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsIn(['array', 'map'])
+  readonly collection?: SchemaPropertyCollection;
+
+  /**
+   * The dot-separated path of the property of the referenced schema that the
+   * identifier matches, e.g. `id`.
+   */
+  @_ClassValidatorIsString()
+  readonly targetProperty!: string;
+
+  /**
+   * The other properties of the referenced schema needed to identify an
+   * instance, e.g. the parent's ID in a composite key, mapped to the
+   * dot-separated paths of the properties holding them in the referencing
+   * schema. Absent when the identifier alone identifies an instance.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsObject()
+  readonly scope?: Record<string, string>;
 }
 
 /**
@@ -1582,4 +1894,51 @@ export class TriggerGraphNodeData {
   @_CausaRuntimeAllowMissing()
   @_ClassValidatorIsObject()
   readonly extra?: Record<string, any>;
+}
+
+export type ValuesItem = string | number;
+
+/**
+ * The payload of a `schema` node.
+ */
+export class SchemaGraphNodeData {
+  constructor(init: SchemaGraphNodeData) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * The kind of schema.
+   * - `object`: an object with named properties.
+   * - `enum`: a fixed set of values.
+   * - `union`: one of several types.
+   */
+  @_ClassValidatorIsIn(['object', 'enum', 'union'])
+  readonly kind!: SchemaGraphNodeKind;
+
+  /**
+   * The values of an `enum` schema.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsArray()
+  readonly values?: ValuesItem[];
+
+  /**
+   * How the types of a `union` schema are combined.
+   * - `oneOf`: exactly one type matches a value.
+   * - `anyOf`: at least one type matches a value.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsIn(['oneOf', 'anyOf'])
+  readonly combiner?: SchemaGraphNodeCombiner;
+
+  /**
+   * The databases persisting the objects of an `object` schema, as derived
+   * from its causa extensions by the modules supporting each engine.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassTransformerType(() => SchemaGraphNodeDatabase)
+  @_ClassValidatorIsArray()
+  @_ClassValidatorIsObject({ each: true })
+  @_ClassValidatorValidateNested()
+  readonly databases?: SchemaGraphNodeDatabase[];
 }

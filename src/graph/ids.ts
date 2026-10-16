@@ -62,8 +62,6 @@ export function listGraphNodes(graph: Graph): GraphNodeEntry[] {
   );
 }
 
-export const domainId = (directory: string) => nodeId('domain', directory);
-
 export const projectId = (directory: string) => nodeId('project', directory);
 
 export const apiId = (locator: string) => nodeId('api', locator);
@@ -86,6 +84,8 @@ export const topicId = (topic: string) => nodeId('topic', topic);
 export const entityId = (locator: string) => nodeId('entity', locator);
 
 export const stateId = (locator: string) => nodeId('state', locator);
+
+export const schemaId = (locator: string) => nodeId('schema', locator);
 
 /**
  * The locator of a service, `<project directory>#<service name>`.

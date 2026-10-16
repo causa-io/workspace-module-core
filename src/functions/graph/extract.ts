@@ -54,7 +54,7 @@ export class GraphExtractForAll extends GraphExtract {
     const extractionWarnings = countWarnings([...rules, ...extractionFacts]);
     const elements = countElements(extractedGraph);
     context.logger.info(
-      `🕸️ Extracted ${elements.nodes} node(s) and ${elements.edges} edge(s), with ${extractionWarnings} warning(s), ${extractionFailures.length} failure(s), and ${dangling} dangling reference(s).`,
+      `🕸️ Extracted ${elements.domains} domain(s), ${elements.nodes} node(s), and ${elements.edges} edge(s), with ${extractionWarnings} warning(s), ${extractionFailures.length} failure(s), and ${dangling} dangling reference(s).`,
     );
 
     let graph = extractedGraph;
@@ -124,9 +124,9 @@ export class GraphExtractForAll extends GraphExtract {
       rules.forEach(({ name, dangling }) =>
         dangling.forEach((reference) => {
           const where =
-            reference.field === 'parent'
-              ? `the parent of ${reference.node}`
-              : `the '${reference.field}' of ${reference.edge.type} ${reference.edge.from ?? 'null'} -> ${reference.edge.to ?? 'null'}`;
+            'edge' in reference
+              ? `the '${reference.field}' of ${reference.edge.type} ${reference.edge.from ?? 'null'} -> ${reference.edge.to ?? 'null'}`
+              : `the ${reference.field} of ${reference.node}`;
           context.logger.warn(
             `⚠️ [${name}] Dangling reference to '${reference.id}' in ${where}.`,
           );
@@ -194,18 +194,23 @@ function countWarnings(
 }
 
 /**
- * Counts the nodes and edges of a graph.
+ * Counts the domains, nodes, and edges of a graph.
  *
  * @param graph The graph.
- * @returns The number of nodes and edges.
+ * @returns The number of domains, nodes, and edges.
  */
-function countElements(graph: Graph): { nodes: number; edges: number } {
+function countElements(graph: Graph): {
+  domains: number;
+  nodes: number;
+  edges: number;
+} {
+  const domains = Object.keys(graph.domains ?? {}).length;
   const nodes = listGraphNodes(graph).length;
   const edges = Object.values(graph.edges ?? {}).reduce(
     (count, list) => count + ((list as unknown[] | undefined)?.length ?? 0),
     0,
   );
-  return { nodes, edges };
+  return { domains, nodes, edges };
 }
 
 /**

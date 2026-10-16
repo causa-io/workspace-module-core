@@ -240,6 +240,36 @@ describe('model', () => {
       );
     });
 
+    it('should locate the schemas and topics in their domains, and classify the states of entities', async () => {
+      const actualModel = await new GraphContext(context).get(ModelFact);
+
+      const orderPath = join(rootPath, 'domains/ordering/entities/order.yaml');
+      expect(actualModel.schemas.get(orderPath)).toMatchObject({
+        id: 'schema:domains/ordering/entities/order.yaml',
+        domain: { directory: 'domains/ordering', name: 'Ordering' },
+      });
+      expect(
+        actualModel.schemas.get(join(rootPath, 'shared/address.yaml'))?.domain,
+      ).toBeUndefined();
+      const eventPath = join(rootPath, 'domains/ordering/events/order/v1.yaml');
+      const actualTopic = actualModel.topics.get('ordering.order.v1');
+      expect(actualTopic).toMatchObject({
+        domain: { directory: 'domains/ordering' },
+        schema: { locator: 'domains/ordering/events/order/v1.yaml' },
+      });
+      expect(actualModel.topicsBySchema.get(eventPath)).toBe(actualTopic);
+      const placedPath = join(
+        rootPath,
+        'domains/ordering/entities/placed-order.yaml',
+      );
+      expect([...actualModel.states.keys()]).toEqual([placedPath]);
+      expect(actualModel.states.get(placedPath)).toMatchObject({
+        id: 'state:domains/ordering/entities/placed-order.yaml',
+        schema: { locator: 'domains/ordering/entities/placed-order.yaml' },
+        entity: { id: 'entity:domains/ordering/entities/order.yaml' },
+      });
+    });
+
     it('should report the schema files that cannot be parsed', async () => {
       await writeFile(
         join(rootPath, 'domains/ordering/entities/broken.yaml'),

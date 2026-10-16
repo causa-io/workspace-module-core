@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v1.5.0-beta.5 (2026-10-16)
+
 Breaking changes:
 
 - Replace the `domain` graph nodes with the graph's `domains`, and the `domain` parent of `project`, `topic`, and `entity` nodes with the `domain` property of nodes. Any node of any layer can name its domain, and a node that does not inherits the domain of its parent. `domainId` is removed from `@causa/workspace-core/graph`.

@@ -599,6 +599,44 @@ export class GraphOrigin {
 }
 
 /**
+ * A business domain, i.e. a directory with a `causa.yaml` defining
+ * `domain.name`.
+ *
+ * A domain is not a node. It partitions the nodes of every layer: the projects,
+ * topics, and entities of the architecture, the resources realizing them, the
+ * schemas defining them, etc. Each node names the domain it belongs to in its
+ * `domain`.
+ */
+export class GraphDomain {
+  constructor(init: GraphDomain) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * The display name of the domain.
+   */
+  @_ClassValidatorIsString()
+  readonly name!: string;
+
+  /**
+   * A Markdown description, copied from the domain declaration.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsString()
+  readonly description?: string;
+
+  /**
+   * The workspace sources the domain was extracted from, how it was
+   * extracted, and how much to trust it.
+   */
+  @_ClassTransformerType(() => GraphOrigin)
+  @_ClassValidatorIsDefined()
+  @_ClassValidatorIsObject()
+  @_ClassValidatorValidateNested()
+  readonly origin!: GraphOrigin;
+}
+
+/**
  * A directed relation between two nodes, oriented in the direction data or
  * control flows.
  */
@@ -828,6 +866,22 @@ export class GraphNode {
   readonly parent?: string;
 
   /**
+   * The locator of the domain the node belongs to, i.e. a key of the graph's
+   * `domains`. Absent when the node belongs to no domain, e.g. a resource
+   * shared by several domains.
+   *
+   * Unlike `parent`, a domain can be named by nodes of any layer. A node that
+   * does not name a domain belongs to the domain of its parent: the extraction
+   * fills it in, such that every node of an extracted graph names its domain.
+   * A node naming a domain should therefore only contain nodes of that domain.
+   * A container shared by several domains, e.g. a database holding the tables
+   * of several domains, names none, and its children name their own.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsString()
+  readonly domain?: string;
+
+  /**
    * The display name of the node.
    */
   @_ClassValidatorIsString()
@@ -888,22 +942,10 @@ export class ArchitectureGraphNodes {
   }
 
   /**
-   * A business domain grouping projects and schemas.
-   *
-   * Parent: none.
-   *
-   * Locator: the domain directory, relative to the workspace root, e.g.
-   * `domains/my-domain`.
-   */
-  @_CausaRuntimeAllowMissing()
-  @_ClassValidatorIsObject()
-  readonly domain?: Record<string, GraphNode>;
-
-  /**
    * A Causa project, i.e. a directory with a `causa.yaml` defining
    * `project.name`.
    *
-   * Parent: `domain` or none.
+   * Parent: none.
    *
    * Locator: the project directory, relative to the workspace root, e.g.
    * `domains/my-domain/service`.
@@ -952,7 +994,7 @@ export class ArchitectureGraphNodes {
   /**
    * An event topic.
    *
-   * Parent: `domain` or none.
+   * Parent: none.
    *
    * Locator: the topic id as formatted by `events.topics.format`, e.g.
    * `my-domain.my-entity.v1`.
@@ -966,7 +1008,7 @@ export class ArchitectureGraphNodes {
    * concept published as events to a topic, or something persisted in a
    * database for a service to use.
    *
-   * Parent: `domain` or none.
+   * Parent: none.
    *
    * Locator: the schema file path, with `#<JSON pointer>` appended for a
    * nested definition.
@@ -1163,8 +1205,8 @@ export class InfrastructureGraphNodes {
  *
  * Layers are:
  *
- * - `architecture`: what the workspace declares: domains, projects, what they
- *   handle, the topics and entities they act on.
+ * - `architecture`: what the workspace declares: projects, what they handle,
+ *   the topics and entities they act on.
  * - `infrastructure`: the resources that realize the architecture: services,
  *   broker topics and subscriptions, queues, databases and tables.
  * - `model`: the schema documents behind the architecture. Empty today.
@@ -1175,7 +1217,9 @@ export class InfrastructureGraphNodes {
  * layers.
  *
  * `parent` never crosses a layer. The relation between a resource and the
- * concept it stands for is the `realizes` edge.
+ * concept it stands for is the `realizes` edge. Domains are not nodes: they
+ * cut across layers, and each node names the one it belongs to in its
+ * `domain`.
  */
 export class GraphNodes {
   constructor(init: GraphNodes) {
@@ -1220,9 +1264,9 @@ export class GraphNodes {
 /**
  * An architecture graph derived from a Causa workspace.
  *
- * A graph document may be a fragment: several documents can be merged (nodes
- * with nodes, edges with edges) to form the complete graph. This allows
- * splitting a large workspace by domain or by concern.
+ * A graph document may be a fragment: several documents can be merged (domains
+ * with domains, nodes with nodes, edges with edges) to form the complete graph.
+ * This allows splitting a large workspace by domain or by concern.
  */
 export class Graph {
   constructor(init: Graph) {
@@ -1243,6 +1287,15 @@ export class Graph {
   @_CausaRuntimeAllowMissing()
   @_ClassValidatorIsString()
   readonly description?: string;
+
+  /**
+   * The business domains the nodes belong to, keyed by locator: the domain
+   * directory, relative to the workspace root, e.g. `domains/my-domain`.
+   * Domains cut across layers, and are not nodes.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassValidatorIsObject()
+  readonly domains?: Record<string, GraphDomain>;
 
   /**
    * The nodes, keyed by type and then by locator.

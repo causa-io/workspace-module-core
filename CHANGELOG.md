@@ -15,6 +15,7 @@ Features:
 - Support the `causa.identifierOf` extension on schema properties, declaring the schema whose instances the property identifies (`schema`), the property of that schema the identifier matches (`property`, `id` by default), and the other properties identifying an instance (`scope`), e.g. for a composite key.
 - Expose the domains of schemas and topics, the states of entities, and the topics by event schema in `ModelFact`.
 - Locate YAML map keys regardless of their scalar type in graph origins, e.g. unquoted OpenAPI response codes.
+- Add the `bodyFile` argument to `HttpMakeRequest`, sending the raw content of a local file (resolved from the workspace root) as the request body.
 
 ## v1.5.0-beta.4 (2026-10-13)
 

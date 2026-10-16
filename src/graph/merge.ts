@@ -23,7 +23,6 @@ const LAYER_ORDER: Record<GraphLayer, number> = {
   architecture: 0,
   infrastructure: 1,
   model: 2,
-  code: 3,
 };
 
 /**

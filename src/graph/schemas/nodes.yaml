@@ -12,8 +12,6 @@ description: |-
   - `infrastructure`: the resources that realize the architecture: services,
     broker topics and subscriptions, queues, databases and tables.
   - `model`: the schema documents behind the architecture. Empty today.
-  - `code`: the modules, classes, and methods that implement the architecture,
-    parsed from source. Empty today.
 
   A node's id is `<type>:<locator>`, without the layer: types are unique across
   layers.
@@ -290,16 +288,5 @@ properties:
     additionalProperties:
       type: object
       description: A module-contributed model type.
-      additionalProperties:
-        $ref: ./node.yaml
-
-  code:
-    type: object
-    description: |-
-      The code layer: modules, classes, and methods that implement the
-      architecture, parsed from source. Empty today.
-    additionalProperties:
-      type: object
-      description: A module-contributed code type.
       additionalProperties:
         $ref: ./node.yaml

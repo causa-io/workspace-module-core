@@ -1210,8 +1210,6 @@ export class InfrastructureGraphNodes {
  * - `infrastructure`: the resources that realize the architecture: services,
  *   broker topics and subscriptions, queues, databases and tables.
  * - `model`: the schema documents behind the architecture. Empty today.
- * - `code`: the modules, classes, and methods that implement the architecture,
- *   parsed from source. Empty today.
  *
  * A node's id is `<type>:<locator>`, without the layer: types are unique across
  * layers.
@@ -1251,14 +1249,6 @@ export class GraphNodes {
   @_CausaRuntimeAllowMissing()
   @_ClassValidatorIsObject()
   readonly model?: Record<string, Record<string, GraphNode>>;
-
-  /**
-   * The code layer: modules, classes, and methods that implement the
-   * architecture, parsed from source. Empty today.
-   */
-  @_CausaRuntimeAllowMissing()
-  @_ClassValidatorIsObject()
-  readonly code?: Record<string, Record<string, GraphNode>>;
 }
 
 /**

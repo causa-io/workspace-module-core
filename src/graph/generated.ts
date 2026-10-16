@@ -898,6 +898,30 @@ export class GraphEdges {
   @_ClassValidatorValidateNested()
   readonly constrains?: GraphEdge[];
 
+  /**
+   * A `trigger` or an `apiOperation` accepts a payload following a `schema`:
+   * the `dto` of a trigger, or the request body of an operation. An `event`
+   * trigger has no `accepts` edge: its payload is an event of the topic
+   * delivering to it, whose event schema `defines` the topic.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassTransformerType(() => GraphEdge)
+  @_ClassValidatorIsArray()
+  @_ClassValidatorIsObject({ each: true })
+  @_ClassValidatorValidateNested()
+  readonly accepts?: GraphEdge[];
+
+  /**
+   * An `apiOperation` returns a response body following a `schema`. One edge
+   * per response status and schema, labelled with the status.
+   */
+  @_CausaRuntimeAllowMissing()
+  @_ClassTransformerType(() => GraphEdge)
+  @_ClassValidatorIsArray()
+  @_ClassValidatorIsObject({ each: true })
+  @_ClassValidatorValidateNested()
+  readonly returns?: GraphEdge[];
+
   [key: string]: GraphEdge[] | any;
 }
 
@@ -1455,6 +1479,22 @@ export class ProjectGraphNodeData {
  * `causa.entityPropertyChanges`.
  */
 export type PropertyChanges = string[] | '*';
+
+/**
+ * The payload of a `returns` edge.
+ */
+export class ReturnsGraphEdgeData {
+  constructor(init: ReturnsGraphEdgeData) {
+    Object.assign(this, init);
+  }
+
+  /**
+   * The response status, as the API declares it, e.g. `200`, `4XX`, or
+   * `default` for an OpenAPI operation.
+   */
+  @_ClassValidatorIsString()
+  readonly status!: string;
+}
 
 /**
  * The payload of a `routes` edge.

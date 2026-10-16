@@ -7,8 +7,8 @@ description: |-
 
   Layers are:
 
-  - `architecture`: what the workspace declares: domains, projects, what they
-    handle, the topics and entities they act on.
+  - `architecture`: what the workspace declares: projects, what they handle,
+    the topics and entities they act on.
   - `infrastructure`: the resources that realize the architecture: services,
     broker topics and subscriptions, queues, databases and tables.
   - `model`: the schema documents behind the architecture. Empty today.
@@ -19,7 +19,9 @@ description: |-
   layers.
 
   `parent` never crosses a layer. The relation between a resource and the
-  concept it stands for is the `realizes` edge.
+  concept it stands for is the `realizes` edge. Domains are not nodes: they
+  cut across layers, and each node names the one it belongs to in its
+  `domain`.
 additionalProperties: false
 properties:
   architecture:
@@ -32,26 +34,13 @@ properties:
       additionalProperties:
         $ref: ./node.yaml
     properties:
-      domain:
-        type: object
-        description: |-
-          A business domain grouping projects and schemas.
-
-          Parent: none.
-
-          Locator: the domain directory, relative to the workspace root, e.g.
-          `domains/my-domain`.
-        additionalProperties:
-          $ref: ./node.yaml
-          description: One `domain` node, keyed by its locator.
-
       project:
         type: object
         description: |-
           A Causa project, i.e. a directory with a `causa.yaml` defining
           `project.name`.
 
-          Parent: `domain` or none.
+          Parent: none.
 
           Locator: the project directory, relative to the workspace root, e.g.
           `domains/my-domain/service`.
@@ -120,7 +109,7 @@ properties:
         description: |-
           An event topic.
 
-          Parent: `domain` or none.
+          Parent: none.
 
           Locator: the topic id as formatted by `events.topics.format`, e.g.
           `my-domain.my-entity.v1`.
@@ -135,7 +124,7 @@ properties:
           concept published as events to a topic, or something persisted in a
           database for a service to use.
 
-          Parent: `domain` or none.
+          Parent: none.
 
           Locator: the schema file path, with `#<JSON pointer>` appended for a
           nested definition.

@@ -22,6 +22,20 @@ properties:
 
       The parent of a node must be in the same layer.
 
+  domain:
+    type: string
+    description: |-
+      The locator of the domain the node belongs to, i.e. a key of the graph's
+      `domains`. Absent when the node belongs to no domain, e.g. a resource
+      shared by several domains.
+
+      Unlike `parent`, a domain can be named by nodes of any layer. A node that
+      does not name a domain belongs to the domain of its parent: the extraction
+      fills it in, such that every node of an extracted graph names its domain.
+      A node naming a domain should therefore only contain nodes of that domain.
+      A container shared by several domains, e.g. a database holding the tables
+      of several domains, names none, and its children name their own.
+
   name:
     type: string
     description: The display name of the node.

@@ -5,9 +5,9 @@ type: object
 description: |-
   An architecture graph derived from a Causa workspace.
 
-  A graph document may be a fragment: several documents can be merged (nodes
-  with nodes, edges with edges) to form the complete graph. This allows
-  splitting a large workspace by domain or by concern.
+  A graph document may be a fragment: several documents can be merged (domains
+  with domains, nodes with nodes, edges with edges) to form the complete graph.
+  This allows splitting a large workspace by domain or by concern.
 additionalProperties: false
 properties:
   name:
@@ -19,6 +19,15 @@ properties:
   description:
     type: string
     description: A Markdown description of this document.
+
+  domains:
+    type: object
+    description: |-
+      The business domains the nodes belong to, keyed by locator: the domain
+      directory, relative to the workspace root, e.g. `domains/my-domain`.
+      Domains cut across layers, and are not nodes.
+    additionalProperties:
+      $ref: ./domain.yaml
 
   nodes:
     oneOf:

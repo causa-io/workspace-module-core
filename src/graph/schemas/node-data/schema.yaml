@@ -1,0 +1,70 @@
+# yaml-language-server: $schema=https://json-schema.org/draft/2020-12/schema
+
+title: SchemaGraphNodeData
+type: object
+description: The payload of a `schema` node.
+additionalProperties: false
+required:
+  - kind
+properties:
+  kind:
+    title: SchemaGraphNodeKind
+    type: string
+    enum:
+      - object
+      - enum
+      - union
+    description: |-
+      The kind of schema.
+      - `object`: an object with named properties.
+      - `enum`: a fixed set of values.
+      - `union`: one of several types.
+
+  values:
+    type: array
+    description: The values of an `enum` schema.
+    items:
+      oneOf:
+        - type: string
+        - type: integer
+
+  combiner:
+    title: SchemaGraphNodeCombiner
+    type: string
+    enum:
+      - oneOf
+      - anyOf
+    description: |-
+      How the types of a `union` schema are combined.
+      - `oneOf`: exactly one type matches a value.
+      - `anyOf`: at least one type matches a value.
+
+  databases:
+    type: array
+    description: |-
+      The databases persisting the objects of an `object` schema, as derived
+      from its causa extensions by the modules supporting each engine.
+    items:
+      title: SchemaGraphNodeDatabase
+      type: object
+      description: A database persisting the objects of the schema.
+      additionalProperties: false
+      required:
+        - engine
+      properties:
+        engine:
+          type: string
+          description: |-
+            The database engine, as Causa names it in database bindings.
+
+        table:
+          type: string
+          description: The engine-specific name of the table or collection.
+
+        primaryKeys:
+          type: array
+          description: |-
+            The dot-separated paths of the properties forming the primary key,
+            in order.
+          items:
+            type: string

@@ -11,15 +11,17 @@ description: |-
     the topics and entities they act on.
   - `infrastructure`: the resources that realize the architecture: services,
     broker topics and subscriptions, queues, databases and tables.
-  - `model`: the schema documents behind the architecture. Empty today.
+  - `model`: the schemas defining the architecture's concepts and the payloads
+    of its APIs and triggers, and how schemas relate to one another.
 
   A node's id is `<type>:<locator>`, without the layer: types are unique across
   layers.
 
   `parent` never crosses a layer. The relation between a resource and the
-  concept it stands for is the `realizes` edge. Domains are not nodes: they
-  cut across layers, and each node names the one it belongs to in its
-  `domain`.
+  concept it stands for is the `realizes` edge, and the relation between a
+  schema and the concept it specifies is the `defines` edge. Domains are not
+  nodes: they cut across layers, and each node names the one it belongs to in
+  its `domain`.
 additionalProperties: false
 properties:
   architecture:
@@ -105,7 +107,7 @@ properties:
       topic:
         type: object
         description: |-
-          An event topic.
+          An event topic, defined by its event schema.
 
           Parent: none.
 
@@ -124,8 +126,7 @@ properties:
 
           Parent: none.
 
-          Locator: the schema file path, with `#<JSON pointer>` appended for a
-          nested definition.
+          Locator: the locator of the `schema` defining it.
         additionalProperties:
           $ref: ./node.yaml
           description: One `entity` node, keyed by its locator.
@@ -139,8 +140,7 @@ properties:
 
           Parent: `entity`.
 
-          Locator: the constraint schema's own address: its file path, with
-          `#<JSON pointer>` appended when it is a nested definition.
+          Locator: the locator of the constraint `schema` defining it.
         additionalProperties:
           $ref: ./node.yaml
           description: One `state` node, keyed by its locator.
@@ -281,12 +281,36 @@ properties:
           description: One `table` node, keyed by its locator.
 
   model:
+    title: ModelGraphNodes
     type: object
-    description: |-
-      The model layer: the schema documents that realize architecture concepts.
-      Empty today.
+    description: The model layer, keyed by type and then by locator.
     additionalProperties:
       type: object
       description: A module-contributed model type.
       additionalProperties:
         $ref: ./node.yaml
+    properties:
+      schema:
+        type: object
+        description: |-
+          A schema of the model, i.e. one of the files matched by `model.globs`
+          and the files they reference: an object, an enum, or a union. Schemas
+          nested in a file, e.g. a JSON Schema `$defs` definition or a schema
+          declared inline on a property, are schemas of their own.
+
+          A schema `defines` the `entity`, `state`, or `topic` the architecture
+          reads from it.
+
+          Parent: the schema enclosing it in its file, or none for the root
+          schema of a file.
+
+          Locator: for JSON Schema, the schema file path, relative to the
+          workspace root, with `#<JSON pointer>` appended for a nested schema,
+          e.g. `domains/my-domain/entities/my-entity.yaml#/$defs/MyEnum`.
+        additionalProperties:
+          description: One `schema` node, keyed by its locator.
+          $ref: ./node.yaml
+          properties:
+            data:
+              oneOf:
+                - $ref: ./node-data/schema.yaml

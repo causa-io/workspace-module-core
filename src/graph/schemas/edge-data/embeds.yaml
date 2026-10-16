@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=https://json-schema.org/draft/2020-12/schema
+
+title: EmbedsGraphEdgeData
+type: object
+description: The payload of an `embeds` edge.
+additionalProperties: false
+properties:
+  property:
+    type: string
+    description: |-
+      The name of the property holding the embedded value. Absent when the
+      embedded schema is a member of a union, if the source schema is a union,
+      or types the values of the source object's additional properties
+      otherwise.
+
+  collection:
+    oneOf:
+      - $ref: ./property-collection.yaml
+    description: |-
+      How the property holds the embedded values, when it holds several. Absent
+      when it holds a single value.
+
+  hint:
+    type: boolean
+    description: |-
+      Whether the embedded enum only suggests the values of the property
+      (`causa.enumHint`), which may hold other values. Absent means `false`.

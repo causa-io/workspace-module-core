@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+Breaking changes:
+
+- Replace the `domain` graph nodes with the graph's `domains`, and the `domain` parent of `project`, `topic`, and `entity` nodes with the `domain` property of nodes. Any node of any layer can name its domain, and a node that does not inherits the domain of its parent. `domainId` is removed from `@causa/workspace-core/graph`.
+- Remove the `code` layer from the graph nodes, until it is extracted.
+- Remove `REF_BEARING_CAUSA_EXTENSIONS`. The references held by each Causa extension are documented on `CausaExtensions`, and handled internally by the JSONSchema parser, loader, and writer.
+
+Features:
+
+- Extract the model layer of the graph: a `schema` node per schema of the model, `defines` edges to the entities, states, and topics read from schemas, and `embeds`, `references`, `constrains`, and `projects` edges between schemas.
+- Add `accepts` edges from triggers to the schema of their `dto`, and from API operations to the schemas of their request body, and `returns` edges from API operations to the schemas of their responses.
+- Support the `causa.identifierOf` extension on schema properties, declaring the schema whose instances the property identifies (`schema`), the property of that schema the identifier matches (`property`, `id` by default), and the other properties identifying an instance (`scope`), e.g. for a composite key.
+- Expose the domains of schemas and topics, the states of entities, and the topics by event schema in `ModelFact`.
+- Locate YAML map keys regardless of their scalar type in graph origins, e.g. unquoted OpenAPI response codes.
+
 ## v1.5.0-beta.4 (2026-10-13)
 
 Breaking changes:

@@ -40,6 +40,37 @@ describe('locate', () => {
       });
     });
 
+    it('should match map keys regardless of their scalar type', async () => {
+      await writeFile(
+        join(rootPath, 'api.yaml'),
+        "responses:\n  200:\n    description: OK\n  '404':\n    description: Not found\n",
+      );
+      const locator = new YamlLocator(rootPath);
+
+      const actualNumeric = await locator.source('api.yaml', [
+        'responses',
+        '200',
+      ]);
+      const actualQuoted = await locator.source('api.yaml', ['responses', 404]);
+
+      expect(actualNumeric).toEqual({
+        path: 'api.yaml',
+        pointer: '/responses/200',
+        location: {
+          start: { line: 2, column: 3 },
+          end: { line: 3, column: 20 },
+        },
+      });
+      expect(actualQuoted).toEqual({
+        path: 'api.yaml',
+        pointer: '/responses/404',
+        location: {
+          start: { line: 4, column: 3 },
+          end: { line: 5, column: 27 },
+        },
+      });
+    });
+
     it('should return the file alone when the construct cannot be found', async () => {
       const locator = new YamlLocator(rootPath);
 

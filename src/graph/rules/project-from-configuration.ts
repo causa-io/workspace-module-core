@@ -4,18 +4,17 @@ import {
   type GraphRuleNode,
   type ProjectGraphNodeData,
 } from '../../definitions/index.js';
-import { domainId } from '../ids.js';
 import { ProjectsFact } from '../projects.js';
 
 /**
  * A `project` node per directory whose configuration declares `project.name`, with `project.type` and
- * `project.language` as data. The parent is the domain the project belongs to.
+ * `project.language` as data, in the domain the project belongs to.
  */
 export const projectFromConfiguration: GraphRule = {
   name: 'projectFromConfiguration',
   kind: GraphOriginKind.Declared,
   description:
-    'One `project` node per `causa.yaml` declaring `project.name`, parented to the `domain` it belongs to.',
+    'One `project` node per `causa.yaml` declaring `project.name`, in the domain it belongs to.',
   async run(graph) {
     const { locator } = graph;
     const projects = await graph.get(ProjectsFact);
@@ -28,7 +27,7 @@ export const projectFromConfiguration: GraphRule = {
         layer: 'architecture',
         type: 'project',
         locator: project.directory,
-        parent: project.domain ? domainId(project.domain.directory) : undefined,
+        domain: project.domain?.directory,
         name: project.name,
         description: context.get('project.description'),
         sources: [await locator.configurationSource(context, ['project'])],

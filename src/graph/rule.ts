@@ -1,6 +1,7 @@
 import type {
   GraphOriginKind,
   GraphRule,
+  GraphRuleDomain,
   GraphRuleEdge,
   GraphRuleNode,
   GraphRuleOutput,
@@ -10,7 +11,7 @@ import { GraphFactError, type GraphContext } from './context.js';
 
 /**
  * The result of running a single rule: what it emitted, and the warnings it raised.
- * Nodes and edges are not deduplicated, and may reference nodes emitted by other rules.
+ * Domains, nodes, and edges are not deduplicated, and may reference domains and nodes emitted by other rules.
  */
 export type GraphRuleResult = {
   /**
@@ -27,6 +28,11 @@ export type GraphRuleResult = {
    * What the rule reads and emits.
    */
   readonly description: string;
+
+  /**
+   * The domains the rule emitted.
+   */
+  readonly domains: GraphRuleDomain[];
 
   /**
    * The nodes the rule emitted.
@@ -91,6 +97,7 @@ async function runGraphRule(
     name,
     kind,
     description,
+    domains: output.domains ?? [],
     nodes: output.nodes ?? [],
     edges: output.edges ?? [],
     warnings: output.warnings ?? [],

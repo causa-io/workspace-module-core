@@ -20,6 +20,7 @@ import {
   type GraphFactOutput,
   type GraphWarning,
 } from './context.js';
+import { domainOfFile, DomainsFact, type WorkspaceDomain } from './domains.js';
 import { entityId } from './ids.js';
 import type { DocumentPath } from './locate.js';
 
@@ -51,6 +52,26 @@ export type SchemaFacts = {
    * The locator of the schema: its file, with `#<JSON pointer>` appended for a nested definition.
    */
   readonly locator: string;
+
+  /**
+   * The domain of the file declaring the schema.
+   */
+  readonly domain: WorkspaceDomain | undefined;
+};
+
+/**
+ * An event topic of the workspace.
+ */
+export type TopicFacts = EventTopicDefinition & {
+  /**
+   * The parsed event schema of the topic, if it could be parsed.
+   */
+  readonly schema: SchemaFacts | undefined;
+
+  /**
+   * The domain of the topic's event schema file.
+   */
+  readonly domain: WorkspaceDomain | undefined;
 };
 
 /**
@@ -70,7 +91,7 @@ export type EntityFacts = {
   /**
    * The topics whose event schema's `data` property references the entity's schema.
    */
-  readonly carriedBy: readonly EventTopicDefinition[];
+  readonly carriedBy: readonly TopicFacts[];
 };
 
 /**
@@ -80,7 +101,7 @@ export type ModelFacts = {
   /**
    * The event topics, keyed by ID.
    */
-  readonly topics: ReadonlyMap<string, EventTopicDefinition>;
+  readonly topics: ReadonlyMap<string, TopicFacts>;
 
   /**
    * The parsed schemas, keyed by absolute path.
@@ -99,21 +120,32 @@ export type ModelFacts = {
  * Schemas are those matched by the `model.globs` configuration, and those they reference.
  * An object schema is an entity when a topic carries it or when it is persisted (`ModelSchemaExtractDatabase` produced
  * a binding). A topic carries the schema its `data` property references.
+ * The domain of a schema or a topic is the one of the file declaring the schema.
  */
 export class ModelFact extends GraphExtractionFact<ModelFacts> {
   async compute(graph: GraphContext): Promise<GraphFactOutput<ModelFacts>> {
     const { context } = graph;
-    const [topics, { schemas: parsed, warnings }] = await Promise.all([
-      context.call(EventTopicList, {}),
-      this.parseSchemas(context),
-    ]);
+    const [domains, definitions, { schemas: parsed, warnings }] =
+      await Promise.all([
+        graph.get(DomainsFact),
+        context.call(EventTopicList, {}),
+        this.parseSchemas(context),
+      ]);
 
     const schemas = new Map(
       Object.entries(parsed).map(([path, schema]) => [
         path,
-        this.locateSchema(context, path, schema),
+        this.locateSchema(context, domains, path, schema),
       ]),
     );
+    const topics = definitions.map((topic): TopicFacts => ({
+      ...topic,
+      schema: schemas.get(topic.schemaFilePath),
+      domain: domainOfFile(
+        domains,
+        relative(context.rootPath, topic.schemaFilePath),
+      ),
+    }));
 
     return {
       value: {
@@ -164,12 +196,14 @@ export class ModelFact extends GraphExtractionFact<ModelFacts> {
    * Locates a parsed schema in the workspace.
    *
    * @param context The workspace context.
+   * @param domains The domains of the workspace.
    * @param path The absolute path of the schema, as the parser keys it.
    * @param definition The parsed schema.
    * @returns The {@link SchemaFacts}.
    */
   private locateSchema(
     context: WorkspaceContext,
+    domains: readonly WorkspaceDomain[],
     path: string,
     definition: Schema,
   ): SchemaFacts {
@@ -181,6 +215,7 @@ export class ModelFact extends GraphExtractionFact<ModelFacts> {
       file,
       segments: fromPointer(pointer),
       locator: joinSchemaPath(file, pointer),
+      domain: domainOfFile(domains, file),
     };
   }
 
@@ -193,11 +228,11 @@ export class ModelFact extends GraphExtractionFact<ModelFacts> {
    */
   private classifyEntities(
     schemas: ReadonlyMap<string, SchemaFacts>,
-    topics: readonly EventTopicDefinition[],
+    topics: readonly TopicFacts[],
   ): Map<string, EntityFacts> {
-    const carriers = new Map<string, EventTopicDefinition[]>();
+    const carriers = new Map<string, TopicFacts[]>();
     for (const topic of topics) {
-      const event = schemas.get(topic.schemaFilePath)?.definition;
+      const event = topic.schema?.definition;
       if (event?.kind !== 'object') {
         continue;
       }

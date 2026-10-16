@@ -1,14 +1,17 @@
 import type {
   Graph,
   GraphDanglingReference,
+  GraphDomain,
   GraphEdge,
   GraphLayer,
   GraphNode,
   GraphOrigin,
   GraphOriginSource,
+  GraphRuleDomain,
   GraphRuleEdge,
   GraphRuleNode,
   GraphRuleReport,
+  GraphWarning,
 } from '../definitions/index.js';
 import { nodeId, type GraphNodeEntry } from './ids.js';
 import type { GraphRuleResult } from './rule.js';
@@ -82,9 +85,11 @@ function edgeKey(rule: GraphRuleResult, edge: GraphRuleEdge): string {
 /**
  * Builds the architecture graph from the results of all the rules that ran.
  *
- * Rules are processed in order. When several rules emit the same node, the first emission defines its name, parent, and
- * origin. Later emissions only fill in the description and data when missing, and all sources are merged.
- * Identical edges emitted by the same rule are merged.
+ * Rules are processed in order. When several rules emit the same domain or node, the first emission defines its name,
+ * parent, domain, and origin. Later emissions only fill in the description, data, and domain when missing, and all
+ * sources are merged. Identical edges emitted by the same rule are merged.
+ *
+ * A node that does not name a domain inherits the domain of its closest ancestor naming one.
  *
  * @param results The results of all the rules, in the order they ran.
  * @param header The name and description of the graph.
@@ -94,11 +99,16 @@ export function buildGraph(
   results: readonly GraphRuleResult[],
   header: Pick<Graph, 'name' | 'description'> = {},
 ): { graph: Graph; rules: GraphRuleReport[] } {
+  const domains = new Map<string, GraphDomain>();
   const nodes = new Map<string, NodeRecord>();
   const edges = new Map<string, EdgeRecord>();
 
   const accepted = results.map((rule) => {
     const warnings = [...rule.warnings];
+    for (const domain of rule.domains) {
+      addDomain(domains, rule, domain);
+    }
+
     const ruleNodes = rule.nodes.filter((node) => {
       const id = nodeId(node.type, node.locator);
       const existing = nodes.get(id);
@@ -110,7 +120,10 @@ export function buildGraph(
         return false;
       }
 
-      addNode(nodes, id, rule, node);
+      const warning = addNode(nodes, id, rule, node);
+      if (warning) {
+        warnings.push(warning);
+      }
       return true;
     });
 
@@ -124,23 +137,52 @@ export function buildGraph(
     return { rule, warnings, nodes: ruleNodes, edges: [...ruleEdges.values()] };
   });
 
+  const inheritanceWarnings = inheritDomains(nodes);
   const rules: GraphRuleReport[] = accepted.map(
     ({ rule, warnings, nodes: ruleNodes, edges: ruleEdges }) => ({
       name: rule.name,
       kind: rule.kind,
       description: rule.description,
+      domains: new Set(rule.domains.map((d) => d.locator)).size,
       nodes: new Set(ruleNodes.map((n) => nodeId(n.type, n.locator))).size,
       edges: ruleEdges.length,
-      warnings,
-      dangling: danglingReferences(nodes, ruleNodes, ruleEdges),
+      warnings: [...warnings, ...(inheritanceWarnings.get(rule.name) ?? [])],
+      dangling: danglingReferences(domains, nodes, ruleNodes, ruleEdges),
     }),
   );
 
-  return { graph: toGraph(nodes, edges, header), rules };
+  return { graph: toGraph(domains, nodes, edges, header), rules };
+}
+
+/**
+ * Adds a domain emitted by a rule to the graph, or merges it into an existing domain with the same locator.
+ */
+function addDomain(
+  domains: Map<string, GraphDomain>,
+  rule: GraphRuleResult,
+  { locator, name, description, sources }: GraphRuleDomain,
+): void {
+  const existing = domains.get(locator);
+  if (!existing) {
+    domains.set(locator, {
+      name,
+      description,
+      origin: originOf(rule, sources),
+    });
+    return;
+  }
+
+  mergeSources(existing.origin.sources, sources);
+  domains.set(locator, {
+    ...existing,
+    description: existing.description ?? description,
+  });
 }
 
 /**
  * Adds a node emitted by a rule to the graph, or merges it into an existing node with the same ID.
+ *
+ * @returns A warning when the node is emitted with a domain other than the one it already belongs to.
  */
 function addNode(
   nodes: Map<string, NodeRecord>,
@@ -151,17 +193,18 @@ function addNode(
     type,
     locator,
     parent,
+    domain,
     name,
     description,
     tags,
     data,
     sources,
   }: GraphRuleNode,
-): void {
+): GraphWarning | undefined {
   const existing = nodes.get(id);
   if (!existing) {
     const origin = originOf(rule, sources);
-    const node = { parent, name, description, origin, tags, data };
+    const node = { parent, domain, name, description, origin, tags, data };
     nodes.set(id, { layer, type, locator, node });
     return;
   }
@@ -169,9 +212,80 @@ function addNode(
   mergeSources(existing.node.origin.sources, sources);
   existing.node = {
     ...existing.node,
+    domain: existing.node.domain ?? domain,
     description: existing.node.description ?? description,
     data: existing.node.data ?? data,
   };
+
+  if (
+    domain !== undefined &&
+    existing.node.domain !== undefined &&
+    domain !== existing.node.domain
+  ) {
+    return {
+      message: `Node '${id}' is emitted in domain '${domain}' but already belongs to domain '${existing.node.domain}'. The domain is ignored.`,
+      sources,
+    };
+  }
+}
+
+/**
+ * Sets the domain of each node that does not name one to the domain of its closest ancestor naming one.
+ *
+ * @param nodes The nodes of the graph, whose domains are updated.
+ * @returns The warnings about nodes naming a domain other than the one of their parent, keyed by the name of the rule
+ *   that emitted the node first.
+ */
+function inheritDomains(
+  nodes: Map<string, NodeRecord>,
+): Map<string, GraphWarning[]> {
+  const resolved = new Map<string, string | undefined>();
+  const resolve = (id: string): string | undefined => {
+    const chain: string[] = [];
+    let domain: string | undefined;
+    for (
+      let current: string | undefined = id;
+      current !== undefined && !chain.includes(current);
+      current = nodes.get(current)?.node.parent
+    ) {
+      if (resolved.has(current)) {
+        domain = resolved.get(current);
+        break;
+      }
+
+      chain.push(current);
+      domain = nodes.get(current)?.node.domain;
+      if (domain !== undefined) {
+        break;
+      }
+    }
+
+    chain.forEach((c) => resolved.set(c, resolved.get(c) ?? domain));
+    return domain;
+  };
+
+  const warnings = new Map<string, GraphWarning[]>();
+  for (const [id, record] of nodes) {
+    const { parent, domain, origin } = record.node;
+    const parentDomain = parent !== undefined ? resolve(parent) : undefined;
+    if (domain === undefined) {
+      if (parentDomain !== undefined) {
+        record.node = { ...record.node, domain: parentDomain };
+      }
+      continue;
+    }
+
+    if (parentDomain !== undefined && parentDomain !== domain) {
+      const ruleWarnings = warnings.get(origin.rule) ?? [];
+      ruleWarnings.push({
+        message: `Node '${id}' belongs to domain '${domain}', but its parent '${parent}' belongs to domain '${parentDomain}'.`,
+        sources: origin.sources,
+      });
+      warnings.set(origin.rule, ruleWarnings);
+    }
+  }
+
+  return warnings;
 }
 
 /**
@@ -195,21 +309,30 @@ function addEdge(
 }
 
 /**
- * Returns the references held by the given nodes and edges to nodes that do not exist in the graph.
+ * Returns the references held by the given nodes and edges to domains and nodes that do not exist in the graph.
  */
 function danglingReferences(
+  domains: Map<string, GraphDomain>,
   nodes: Map<string, NodeRecord>,
   ruleNodes: GraphRuleNode[],
   ruleEdges: GraphRuleEdge[],
 ): GraphDanglingReference[] {
   const dangling = new Map<string, GraphDanglingReference>();
 
-  for (const { type, locator, parent } of ruleNodes) {
+  for (const { type, locator, parent, domain } of ruleNodes) {
+    const node = nodeId(type, locator);
     if (parent !== undefined && !nodes.has(parent)) {
-      const node = nodeId(type, locator);
-      dangling.set(JSON.stringify([node, parent]), {
+      dangling.set(JSON.stringify([node, 'parent', parent]), {
         id: parent,
         field: 'parent',
+        node,
+      });
+    }
+
+    if (domain !== undefined && !domains.has(domain)) {
+      dangling.set(JSON.stringify([node, 'domain', domain]), {
+        id: domain,
+        field: 'domain',
         node,
       });
     }
@@ -234,13 +357,19 @@ function danglingReferences(
 }
 
 /**
- * Groups the nodes by layer, type, and locator, and the edges by type, sorting them for stable diffs.
+ * Keys the domains by locator, groups the nodes by layer, type, and locator, and the edges by type, sorting them for
+ * stable diffs.
  */
 function toGraph(
+  domainRecords: Map<string, GraphDomain>,
   nodeRecords: Map<string, NodeRecord>,
   edgeRecords: Map<string, EdgeRecord>,
   header: Pick<Graph, 'name' | 'description'>,
 ): Graph {
+  const domains = Object.fromEntries(
+    [...domainRecords.entries()].sort(([a], [b]) => a.localeCompare(b)),
+  );
+
   const nodes: Record<string, Record<string, Record<string, GraphNode>>> = {};
   const sortedNodes = [...nodeRecords.values()].sort(
     (a, b) =>
@@ -264,5 +393,5 @@ function toGraph(
     (edges[type] ??= []).push(edge);
   }
 
-  return { ...header, nodes, edges };
+  return { ...header, domains, nodes, edges };
 }

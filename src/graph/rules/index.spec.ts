@@ -312,7 +312,6 @@ describe('CORE_GRAPH_RULES', () => {
       'architecture apiOperation:orderCreate',
       'architecture apiOperation:orderList',
       'architecture apiOperation:workerStatus',
-      'architecture domain:domains/ordering',
       'architecture entity:domains/ordering/entities/order-summary.yaml',
       'architecture entity:domains/ordering/entities/order.yaml',
       'architecture entity:domains/ordering/entities/report.yaml',
@@ -352,6 +351,7 @@ describe('CORE_GRAPH_RULES', () => {
       name: 'serviceContainerFromConfiguration',
       kind: 'declared',
       description: expect.any(String),
+      domains: 0,
       nodes: 4,
       edges: 2,
       warnings: expect.toBeArrayOfSize(3),
@@ -394,31 +394,34 @@ describe('CORE_GRAPH_RULES', () => {
     ]);
 
     const architecture = graph.nodes?.architecture as any;
-    expect(architecture.domain['domains/ordering']).toEqual({
-      name: 'Ordering',
-      description: 'Orders placed by customers.',
-      origin: {
-        kind: 'declared',
-        rule: 'domainFromConfiguration',
-        sources: [
-          {
-            path: 'domains/ordering/causa.yaml',
-            pointer: '/domain',
-            location: {
-              start: { line: 2, column: 1 },
-              end: { line: 4, column: 43 },
+    expect(graph.domains).toEqual({
+      'domains/ordering': {
+        name: 'Ordering',
+        description: 'Orders placed by customers.',
+        origin: {
+          kind: 'declared',
+          rule: 'domainFromConfiguration',
+          sources: [
+            {
+              path: 'domains/ordering/causa.yaml',
+              pointer: '/domain',
+              location: {
+                start: { line: 2, column: 1 },
+                end: { line: 4, column: 43 },
+              },
             },
-          },
-        ],
+          ],
+        },
       },
     });
     expect(architecture.project['domains/ordering/api']).toMatchObject({
-      parent: 'domain:domains/ordering',
+      domain: 'domains/ordering',
       name: 'ordering-api',
       data: { type: 'serviceContainer', language: 'typescript' },
     });
     expect(architecture.trigger['domains/ordering/api#onOrder']).toEqual({
       parent: 'project:domains/ordering/api',
+      domain: 'domains/ordering',
       name: 'onOrder',
       origin: {
         kind: 'declared',
@@ -447,6 +450,7 @@ describe('CORE_GRAPH_RULES', () => {
     expect(architecture.api).toEqual({
       'domains/ordering/api/empty.yaml': {
         parent: 'project:domains/ordering/api',
+        domain: 'domains/ordering',
         name: 'empty.yaml',
         origin: {
           kind: 'declared',
@@ -457,6 +461,7 @@ describe('CORE_GRAPH_RULES', () => {
       },
       'domains/ordering/api/openapi.yaml': {
         parent: 'project:domains/ordering/api',
+        domain: 'domains/ordering',
         name: 'Ordering',
         description: 'Places and lists orders.',
         origin: {
@@ -474,6 +479,7 @@ describe('CORE_GRAPH_RULES', () => {
     expect(architecture.apiOperation).toEqual({
       orderCreate: {
         parent: 'api:domains/ordering/api/openapi.yaml',
+        domain: 'domains/ordering',
         name: 'orderCreate',
         description: 'Creates an order.',
         origin: {
@@ -503,7 +509,7 @@ describe('CORE_GRAPH_RULES', () => {
 
     expect(architecture.entity['domains/ordering/entities/order.yaml']).toEqual(
       {
-        parent: 'domain:domains/ordering',
+        domain: 'domains/ordering',
         name: 'Order',
         description: 'An order.',
         origin: {

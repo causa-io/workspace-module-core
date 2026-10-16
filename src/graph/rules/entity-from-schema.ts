@@ -6,14 +6,13 @@ import {
   type GraphRuleNode,
   type GraphWarning,
 } from '../../definitions/index.js';
-import { domainOfFile, DomainsFact } from '../domains.js';
-import { domainId, topicId } from '../ids.js';
+import { topicId } from '../ids.js';
 import { ModelFact } from '../model.js';
 
 /**
  * An `entity` node per object schema the system exchanges or persists: carried by a topic (the schema its `data`
- * property references), or persisted (`ModelSchemaExtractDatabase` produced a binding). The parent is the domain of the
- * schema file.
+ * property references), or persisted (`ModelSchemaExtractDatabase` produced a binding), in the domain of the schema
+ * file.
  *
  * Also emits a `carries` edge from each topic carrying the entity, and a `projects` edge from the entity a schema
  * declares it projects (`causa.projectionOf`) to the schema's entity. The extension is a reference to the source schema,
@@ -23,13 +22,10 @@ export const entityFromSchema: GraphRule = {
   name: 'entityFromSchema',
   kind: GraphOriginKind.Declared,
   description:
-    "One `entity` node per object schema that a topic carries or that a database binding persists, parented to the domain of its file. One `carries` edge from each topic whose event schema's `data` references it, and one `projects` edge from the entity its `causa.projectionOf` references.",
+    "One `entity` node per object schema that a topic carries or that a database binding persists, in the domain of its file. One `carries` edge from each topic whose event schema's `data` references it, and one `projects` edge from the entity its `causa.projectionOf` references.",
   async run(graph) {
     const { locator, context } = graph;
-    const [domains, model] = await Promise.all([
-      graph.get(DomainsFact),
-      graph.get(ModelFact),
-    ]);
+    const model = await graph.get(ModelFact);
     const nodes: GraphRuleNode[] = [];
     const edges: GraphRuleEdge[] = [];
     const warnings: GraphWarning[] = [];
@@ -44,12 +40,11 @@ export const entityFromSchema: GraphRule = {
           ]),
         ),
       );
-      const domain = domainOfFile(domains, schema.file);
       nodes.push({
         layer: 'architecture',
         type: 'entity',
         locator: schema.locator,
-        parent: domain ? domainId(domain.directory) : undefined,
+        domain: schema.domain?.directory,
         name: schema.definition.name,
         description: schema.definition.description,
         sources: [

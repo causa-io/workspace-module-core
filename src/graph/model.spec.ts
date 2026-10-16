@@ -240,6 +240,24 @@ describe('model', () => {
       );
     });
 
+    it('should locate the schemas and topics in their domains', async () => {
+      const actualModel = await new GraphContext(context).get(ModelFact);
+
+      const orderPath = join(rootPath, 'domains/ordering/entities/order.yaml');
+      expect(actualModel.schemas.get(orderPath)?.domain).toMatchObject({
+        directory: 'domains/ordering',
+        name: 'Ordering',
+      });
+      expect(
+        actualModel.schemas.get(join(rootPath, 'shared/address.yaml'))?.domain,
+      ).toBeUndefined();
+      const actualTopic = actualModel.topics.get('ordering.order.v1');
+      expect(actualTopic).toMatchObject({
+        domain: { directory: 'domains/ordering' },
+        schema: { locator: 'domains/ordering/events/order/v1.yaml' },
+      });
+    });
+
     it('should report the schema files that cannot be parsed', async () => {
       await writeFile(
         join(rootPath, 'domains/ordering/entities/broken.yaml'),

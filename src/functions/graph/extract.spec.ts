@@ -51,7 +51,7 @@ const projectRule: GraphRule = {
         layer: 'architecture',
         type: 'project',
         locator: 'domains/ordering/api',
-        parent: 'domain:domains/ordering',
+        domain: 'domains/ordering',
         name: await graph.get(ProjectNameFact),
         sources: [{ path: 'domains/ordering/api/causa.yaml' }],
       },
@@ -217,11 +217,12 @@ describe('GraphExtractForAll', () => {
     expect(actualResult.graph).toEqual({
       name: 'shop',
       description: expect.any(String),
+      domains: {},
       nodes: {
         architecture: {
           project: {
             'domains/ordering/api': {
-              parent: 'domain:domains/ordering',
+              domain: 'domains/ordering',
               name: 'ordering-api',
               origin: {
                 kind: 'declared',
@@ -265,13 +266,14 @@ describe('GraphExtractForAll', () => {
         name: 'projectRule',
         kind: 'declared',
         description: 'Projects.',
+        domains: 0,
         nodes: 1,
         edges: 0,
         warnings: [],
         dangling: [
           {
-            id: 'domain:domains/ordering',
-            field: 'parent',
+            id: 'domains/ordering',
+            field: 'domain',
             node: 'project:domains/ordering/api',
           },
         ],
@@ -280,6 +282,7 @@ describe('GraphExtractForAll', () => {
         name: 'serviceRule',
         kind: 'declared',
         description: 'Services.',
+        domains: 0,
         nodes: 2,
         edges: 2,
         warnings: [
@@ -301,6 +304,7 @@ describe('GraphExtractForAll', () => {
         name: 'factRule',
         kind: 'declared',
         description: 'Depends on failing facts.',
+        domains: 0,
         nodes: 0,
         edges: 0,
         warnings: [],
@@ -357,7 +361,14 @@ describe('GraphExtractForAll', () => {
     expect(actualGraph).toEqual(actualResult.graph);
     const actualReport = parse(await readFile(report, 'utf-8'));
     expect(actualReport).toEqual({
-      summary: { nodes: 2, edges: 2, warnings: 2, failures: 3, dangling: 2 },
+      summary: {
+        domains: 0,
+        nodes: 2,
+        edges: 2,
+        warnings: 2,
+        failures: 3,
+        dangling: 2,
+      },
       rules: actualResult.rules,
       facts: actualResult.facts,
       failures: actualResult.failures,
@@ -394,6 +405,7 @@ describe('GraphExtractForAll', () => {
     expect(actualResult.graph).toEqual({
       name: 'shop',
       description: expect.any(String),
+      domains: {},
       nodes: expect.any(Object),
       edges: expect.any(Object),
       environment: {
@@ -427,7 +439,14 @@ describe('GraphExtractForAll', () => {
     ]);
     const actualReport = parse(await readFile(report, 'utf-8'));
     expect(actualReport).toEqual({
-      summary: { nodes: 2, edges: 2, warnings: 5, failures: 4, dangling: 2 },
+      summary: {
+        domains: 0,
+        nodes: 2,
+        edges: 2,
+        warnings: 5,
+        failures: 4,
+        dangling: 2,
+      },
       rules: actualResult.rules,
       facts: actualResult.facts,
       resources: actualResult.resources,

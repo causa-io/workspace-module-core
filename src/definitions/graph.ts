@@ -10,25 +10,26 @@ import { IsDate, IsInt, IsPositive, IsString } from 'class-validator';
 import { stringify } from 'yaml';
 import type {
   GraphContext,
-  GraphFailure,
   GraphFactReport,
+  GraphFailure,
   GraphWarning,
 } from '../graph/context.js';
 import type {
-  GraphFetcherReport,
-  GraphResourcesReport,
-} from './graph-environment.js';
-import type {
   Graph,
+  GraphDomain,
   GraphEdge,
   GraphNode,
   GraphNodes,
   GraphOriginKind,
   GraphOriginSource,
 } from '../graph/generated.js';
+import type {
+  GraphFetcherReport,
+  GraphResourcesReport,
+} from './graph-environment.js';
 
-export * from '../graph/generated.js';
 export type { GraphWarning } from '../graph/context.js';
+export * from '../graph/generated.js';
 
 /**
  * The `graph` parent command, grouping all commands related to the architecture graph of the workspace.
@@ -63,6 +64,11 @@ export type GraphRuleReport = {
   readonly description: string;
 
   /**
+   * The number of distinct domains the rule emitted.
+   */
+  readonly domains: number;
+
+  /**
    * The number of distinct nodes the rule emitted.
    */
   readonly nodes: number;
@@ -81,6 +87,21 @@ export type GraphRuleReport = {
    * The references held by the elements the rule emitted, to nodes that no rule emitted.
    */
   readonly dangling: GraphDanglingReference[];
+};
+
+/**
+ * A domain, as returned by a rule. The origin is built from the rule and the given sources.
+ */
+export type GraphRuleDomain = Omit<GraphDomain, 'origin'> & {
+  /**
+   * The locator of the domain: its directory, relative to the workspace root.
+   */
+  readonly locator: string;
+
+  /**
+   * The locations in the workspace the domain is extracted from.
+   */
+  readonly sources: GraphOriginSource[];
 };
 
 /**
@@ -124,9 +145,14 @@ export type GraphRuleEdge = Omit<GraphEdge, 'origin'> & {
 };
 
 /**
- * What a rule returns: the nodes and edges it extracted, and the warnings it raised.
+ * What a rule returns: the domains, nodes, and edges it extracted, and the warnings it raised.
  */
 export type GraphRuleOutput = {
+  /**
+   * The domains the rule extracted.
+   */
+  readonly domains?: GraphRuleDomain[];
+
   /**
    * The nodes the rule extracted.
    */
@@ -211,22 +237,22 @@ export type GraphExtractResult = {
 };
 
 /**
- * A reference to a node that does not exist in the graph.
+ * A reference to a node or a domain that does not exist in the graph.
  */
 export type GraphDanglingReference = {
   /**
-   * The ID of the missing node.
+   * The ID of the missing node, or the locator of the missing domain.
    */
   readonly id: string;
 } & (
   | {
       /**
-       * The reference is the `parent` of a node.
+       * The reference is the `parent` or the `domain` of a node.
        */
-      readonly field: 'parent';
+      readonly field: 'parent' | 'domain';
 
       /**
-       * The ID of the node whose parent is missing.
+       * The ID of the node whose parent or domain is missing.
        */
       readonly node: string;
     }

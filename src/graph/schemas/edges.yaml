@@ -176,3 +176,25 @@ properties:
       performing a transition.
     items:
       $ref: ./edge.yaml
+
+  accepts:
+    type: array
+    description: |-
+      A `trigger` or an `apiOperation` accepts a payload following a `schema`:
+      the `dto` of a trigger, or the request body of an operation. An `event`
+      trigger has no `accepts` edge: its payload is an event of the topic
+      delivering to it, whose event schema `defines` the topic.
+    items:
+      $ref: ./edge.yaml
+
+  returns:
+    type: array
+    description: |-
+      An `apiOperation` returns a response body following a `schema`. One edge
+      per response status and schema, labelled with the status.
+    items:
+      $ref: ./edge.yaml
+      properties:
+        data:
+          oneOf:
+            - $ref: ./edge-data/returns.yaml

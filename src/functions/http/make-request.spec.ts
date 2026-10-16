@@ -96,7 +96,7 @@ describe('HttpMakeRequestForAll', () => {
       .put('/raw', 'plain-text')
       .matchHeader(
         'content-type',
-        (value) => value === undefined || !value.includes('application/json'),
+        (value) => !value?.includes('application/json'),
       )
       .reply(200, 'hello there', { 'content-type': 'text/plain' });
 
@@ -155,8 +155,9 @@ describe('HttpMakeRequestForAll', () => {
 
   it('should send the body as multipart/form-data when the content type requests it', async () => {
     const scope = nock('https://api.example.com')
-      .matchHeader('content-type', (value) =>
-        value.startsWith('multipart/form-data; boundary='),
+      .matchHeader(
+        'content-type',
+        (value) => !!value?.startsWith('multipart/form-data; boundary='),
       )
       .post(
         '/upload',
@@ -195,8 +196,9 @@ describe('HttpMakeRequestForAll', () => {
   it('should send a multipart/form-data file part sourced from a local file path', async () => {
     await writeFile(join(tmpDir, 'upload.txt'), 'file-from-disk');
     const scope = nock('https://api.example.com')
-      .matchHeader('content-type', (value) =>
-        value.startsWith('multipart/form-data; boundary='),
+      .matchHeader(
+        'content-type',
+        (value) => !!value?.startsWith('multipart/form-data; boundary='),
       )
       .post(
         '/upload',

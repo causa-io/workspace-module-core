@@ -85,6 +85,8 @@ export const entityId = (locator: string) => nodeId('entity', locator);
 
 export const stateId = (locator: string) => nodeId('state', locator);
 
+export const schemaId = (locator: string) => nodeId('schema', locator);
+
 /**
  * The locator of a service, `<project directory>#<service name>`.
  */

@@ -5,12 +5,13 @@ import { enqueuesAssumedFromOwningProject } from './enqueues-assumed-from-owning
 import { entityFromSchema } from './entity-from-schema.js';
 import { eventTopicFromSchemaPath } from './event-topic-from-schema-path.js';
 import { projectFromConfiguration } from './project-from-configuration.js';
+import { schemaFromModel } from './schema-from-model.js';
 import { serviceContainerFromConfiguration } from './service-container-from-configuration.js';
 import { stateFromConstraintSchema } from './state-from-constraint-schema.js';
 
 /**
- * The rules extracting core Causa concepts: domains, projects, the model, and the relations declared by service
- * containers.
+ * The rules extracting core Causa concepts: domains, projects, the model and its schemas, and the relations declared by
+ * service containers and API specifications.
  */
 export const CORE_GRAPH_RULES: readonly GraphRule[] = [
   domainFromConfiguration,
@@ -21,4 +22,5 @@ export const CORE_GRAPH_RULES: readonly GraphRule[] = [
   eventTopicFromSchemaPath,
   entityFromSchema,
   stateFromConstraintSchema,
+  schemaFromModel,
 ];
